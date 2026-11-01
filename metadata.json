@@ -1,0 +1,6 @@
+{
+  "name": "Sentinel Trace — Fraud Network & SIU Workbench",
+  "description": "Insurance fraud network intelligence, penny-level financial reconciliation, ST-EVT-V2 event hash-chain verification, and ARCH-ST-010 clean-room scoring workbench.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

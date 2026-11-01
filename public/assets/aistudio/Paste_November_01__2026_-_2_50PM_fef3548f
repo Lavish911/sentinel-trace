@@ -1,0 +1,1034 @@
+# MASTER ARCHITECTURE REVISION PROMPT — ARCH-ST-008
+## SENTINEL//TRACE | Insurance Fraud Network Intelligence & Investigation Platform
+
+You are acting as the **Principal Software Architect, Database Architect, Financial Systems Engineer, Fraud Analytics Architect, and Adversarial Quality Reviewer** for SENTINEL//TRACE.
+
+Your task is to produce **ARCH-ST-008**, a complete, self-contained, implementation-ready architecture specification that corrects every outstanding defect identified in the independent review of ARCH-ST-007.
+
+This is a critical architecture revision. Do not treat this as a cosmetic editing exercise.
+
+You must inspect the uploaded ARCH-ST-007 document and the audit findings supplied in this prompt. You must verify every claimed correction against the actual schema, DDL, triggers, state transitions, formulas, workflows, and acceptance tests.
+
+**You are not authorized to start application implementation. Your deliverable is ARCH-ST-008 only.**
+
+---
+
+# PART 1 — NON-NEGOTIABLE WORKING RULES
+
+1. Treat the uploaded ARCH-ST-007 as the current architecture baseline.
+2. Treat every finding in this prompt as an unresolved defect until you demonstrate that it has been corrected.
+3. Do not assume that a defect is fixed merely because ARCH-ST-007 says it is fixed.
+4. Inspect the actual definitions, not just summaries or conclusions.
+5. Do not remove mandatory requirements to make the architecture easier to implement.
+6. Do not silently change business rules, entity definitions, data volumes, fraud labels, financial semantics, or evaluation requirements.
+7. Do not introduce unrelated features or unnecessary scope expansion.
+8. Do not reference ARCH-ST-001 through ARCH-ST-007 as required reading for implementing ARCH-ST-008. The final document must stand alone.
+9. Do not leave placeholders, blank formulas, undefined abbreviations, unresolved references, or instructions such as "same as previous version."
+10. Every important rule must have:
+   - A precise definition.
+   - Its authoritative source of truth.
+   - Its enforcement location.
+   - Its failure behavior.
+   - At least one corresponding acceptance test.
+11. Distinguish between:
+   - Database-enforced guarantees.
+   - Application-enforced guarantees.
+   - Analytical/model-enforced guarantees.
+   - Operational procedures.
+12. Never label something `[DB-ENFORCED]` unless the actual DDL, constraint, or trigger enforces it.
+13. Do not claim that tests, hashes, benchmarks, or verifications passed unless they have actually been executed independently.
+14. If execution is unavailable, use the status `SPECIFIED — NOT YET EXECUTED`.
+15. If an architectural decision cannot be made without inventing a business assumption, explicitly identify the decision and its consequences. Propose a default, explain the trade-off, and mark it for approval rather than hiding the ambiguity.
+16. Maintain deterministic behavior: the same canonical input, configuration, and software versions must produce the same outputs.
+17. Do not optimize for a high document score. Optimize for correctness, auditability, security, reproducibility, and implementation feasibility.
+
+---
+
+# PART 2 — PRESERVE THE ORIGINAL BUSINESS CONTRACT
+
+## 2.1 Mandatory domain entities
+
+The system must preserve all ten mandatory YottaFlex domain entities:
+
+1. Claimant
+2. Policy
+3. Claim
+4. Incident
+5. Provider
+6. Invoice
+7. Payment
+8. RelationshipEdge
+9. FraudIndicator
+10. Investigation
+
+Do not rename, replace, merge, or omit these entities.
+
+Support tables are allowed, but must be clearly identified as support/infrastructure tables rather than replacements for the ten mandatory entities.
+
+## 2.2 Required synthetic baseline
+
+Preserve the ARCH-ST-007 baseline exactly unless a genuine contradiction makes a change unavoidable. Any proposed change must be explicitly justified and must not be silently applied.
+
+| Dataset | Required count |
+|---|---:|
+| Claimants | 2,000 |
+| Policies | 2,200 |
+| Incidents | 3,800 |
+| Claims | 5,000 |
+| Providers | 500 |
+| Invoices | 7,500 |
+| Payments | 4,200 |
+| Relationship edges | 8,000 |
+| Fraud indicators | 4,120 |
+| Investigations | 45 |
+| Immutable events | 19,495 |
+| Ingestion exceptions | 25 |
+
+The positive-label contract is:
+
+- 750 ring-related claims, consisting of 15 full rings and 5 partial rings.
+- 25 singleton duplicate-fraud claims.
+- Total positive claims: 775.
+- Total negative claims: 4,225.
+- Total claims: 5,000.
+
+Preserve the distinction between ground-truth fraud labels and operationally observable evidence.
+
+## 2.3 Mandatory negative/exception cases
+
+Preserve all five original YF-NEG cases:
+
+- YF-NEG-1: Claim references a nonexistent policy. Preserve the rejected reference in a controlled exception record without violating foreign-key integrity.
+- YF-NEG-2: Payment exceeds the approved amount.
+- YF-NEG-3: Duplicate invoice across different claimants.
+- YF-NEG-4: A planted relationship exists in ground truth but is deliberately missing from operational relationship edges.
+- YF-NEG-5: Common address alone must never be treated as proof of fraud.
+
+Preserve all five benign lookalike scenarios:
+
+- BL-1: Regional trauma hospital / popular DRP body-shop hub.
+- BL-2: Commercial delivery fleet.
+- BL-3: Catastrophic hail/weather burst.
+- BL-4: Multi-generational family household.
+- BL-5: Rural towing/repair monopoly.
+
+Do not weaken these scenarios, remove them, or make them trivially distinguishable.
+
+The fraud analytics system must distinguish suspicious patterns from legitimate shared infrastructure and relationships.
+
+---
+
+# PART 3 — COMPLETE ALL ARCH-ST-007 AUDIT FINDINGS
+
+You must address every finding below. Do not skip any.
+
+## A. ARCHITECTURE AND ANALYTICS FINDINGS
+
+### P1 — Self-contained fraud-indicator specification
+
+ARCH-ST-007 refers to indicator formulas inherited from earlier documents.
+
+This is unacceptable.
+
+ARCH-ST-008 must contain all 15 fraud indicators in full.
+
+For every indicator specify:
+
+- Stable indicator ID and name.
+- Business meaning.
+- Exact input fields.
+- Exact source tables.
+- Exact mathematical formula.
+- Time window and reference timestamp.
+- Eligibility conditions.
+- Null and missing-data handling.
+- Deduplication rules.
+- Normalization.
+- Activation/emission condition.
+- Severity calculation.
+- Points or score contribution.
+- Tie-breaking rules.
+- Deterministic behavior.
+- Whether it contributes to claim-level, provider-level, claimant-level, or cluster-level scoring.
+- Ground-truth isolation requirements.
+- At least one positive test and one negative/benign test.
+
+Include the complete edge-weight formula, indicator aggregation formula, scoring pipeline, and all thresholds.
+
+No formula may be described as "preserved from ARCH-ST-006" or "defined previously."
+
+### P2 — Invoice approval and claim FSM contradiction
+
+ARCH-ST-007 allows invoice approval when claim status is `APPROVED` or `PARTIALLY_PAID`, but its claim FSM only permits `reconcile_and_approve_invoice` from `SUBMITTED` or `UNDER_REVIEW`.
+
+Resolve this contradiction.
+
+Specify:
+
+- Whether multiple invoices may be approved against one claim.
+- How later invoices are approved after the claim becomes `APPROVED`.
+- How invoices are handled after partial payment.
+- Whether invoice approval changes claim status.
+- How aggregate approved amounts are calculated.
+- What happens if the claim is placed on SIU hold while invoices are outstanding.
+- How concurrent invoice approvals are serialized.
+- How approved amounts are reduced or reversed.
+
+Ensure the database and application workflows agree.
+
+### P3 — Denial transitions for approved and partially paid claims
+
+The existing denial transition does not adequately cover approved-but-unpaid and partially paid claims.
+
+Define the complete denial and recovery lifecycle.
+
+Specify:
+
+- Whether an approved claim can be denied before any payment.
+- Whether a partially paid claim can be denied.
+- How previously disbursed amounts are treated.
+- Whether recovery/clawback is mandatory or conditional.
+- How outstanding payment reservations are handled.
+- How remaining approved amounts are treated.
+- Which financial records remain immutable.
+- Which claim states are reachable after recovery.
+- How denial affects investigation status and fraud indicators.
+
+Provide a complete transition table and adversarial tests.
+
+### P4 — Evidence-token identity and duplicate evidence
+
+ARCH-ST-007 uses different identity mechanisms for evidence tokens, including edge IDs and attribute hashes.
+
+This can incorrectly count multiple representations of the same underlying fact as independent evidence.
+
+Define a canonical evidence identity system.
+
+Requirements:
+
+- A canonical fact must have one stable identity regardless of how many graph edges, records, or indicators represent it.
+- Define the identity of role-reversal evidence.
+- Define the identity of shared bank, phone, device, address, and other attribute evidence.
+- Deduplicate evidence tokens before cluster boosting.
+- Prevent one fact from being counted multiple times through different representations.
+- Define token scope and lifecycle.
+- Define how conflicting or corrected source records affect token identity.
+- Ensure the ground-truth dataset cannot create operational evidence tokens.
+
+Provide tests where multiple records represent the same underlying fact and prove that only one token contributes.
+
+### P5 — Four-claim clean-room fixture
+
+The existing clean-room fixture is not sufficiently independently reproducible.
+
+Replace or expand it into a hand-computable fixture containing all raw inputs necessary to reproduce the complete calculation.
+
+It must include:
+
+1. Raw claim records.
+2. Raw claimant/provider records.
+3. Raw relationship records.
+4. Canonicalized relationship facts.
+5. Complete adjacency representation.
+6. Edge direction and weights.
+7. Every relevant graph calculation.
+8. Full PageRank transition matrix.
+9. Dangling-node handling.
+10. PageRank convergence rules.
+11. Scaled PageRank values.
+12. Every emitted indicator.
+13. Every indicator severity.
+14. Every claim-level base score.
+15. Every evidence token.
+16. Every cluster membership.
+17. Every cluster eligibility decision.
+18. Every boost or dampening calculation.
+19. Every final score.
+20. Expected classifications.
+
+Every intermediate value must be independently calculable from the supplied fixture.
+
+Do not provide only precomputed results.
+
+### P6 — Statistical evaluation and bootstrap specification
+
+The existing cluster-stratified bootstrap description is insufficient.
+
+Define the evaluation methodology precisely.
+
+Specify:
+
+- Evaluation cohorts and their definitions.
+- Sampling strata.
+- Sampling unit.
+- Whether claims or fraud rings are sampled.
+- How multiple claims belonging to the same ring are handled.
+- How paired comparisons are constructed.
+- Number of bootstrap repetitions.
+- Random seed and PRNG.
+- Sampling with or without replacement.
+- Percentile interval calculation.
+- Confidence interval handling for empty or degenerate samples.
+- Wilson interval methodology.
+- Metric aggregation.
+- How false positives from benign lookalikes are reported.
+- How the planted missing-edge case is evaluated.
+- How cluster-level detection is scored.
+- How AP and trapezoidal PR-AUC are distinguished.
+- How precision@K and recall@K are calculated.
+- How ablation studies are run.
+
+Do not use the term "cluster-stratified bootstrap" without a fully executable sampling procedure.
+
+---
+
+## B. CRITICAL DATABASE, PAYMENT AND LEDGER FINDINGS
+
+### T1 — Blocked payment can be promoted to authorized
+
+Critical defect.
+
+The INSERT recipient trigger skips validation when `payment_status = 'BLOCKED_INVALID_RECIPIENT'`.
+
+The UPDATE trigger does not adequately revalidate the recipient when the status changes to `AUTHORIZED`.
+
+This may allow an invalid payment recipient to be promoted to an authorized payment.
+
+Fix this at the database and application layers.
+
+Choose and specify a safe approach:
+
+- Make blocked payment records terminal and immutable; or
+- Revalidate the full recipient contract on every transition to an authorizable state.
+
+Define every permitted payment status transition.
+
+Tests must prove that an invalid blocked payment cannot become authorized, reserved, disbursed, or otherwise financially active.
+
+### T2 — Missing claim INSERT investigation-cluster consistency trigger
+
+ARCH-ST-007 defines a trigger for updates to `detected_cluster_id` and `investigation_id`, but does not adequately enforce the same condition on INSERT.
+
+Add a `BEFORE INSERT ON claims` validation trigger.
+
+The trigger must ensure that a claim linked to an investigation has a cluster consistent with that investigation.
+
+Also specify behavior for:
+
+- NULL investigation IDs.
+- NULL cluster IDs.
+- Investigation without a cluster.
+- Claim without an investigation.
+- Invalid investigation references.
+- Updates and deletes.
+
+Demonstrate actual trigger definitions and tests.
+
+### T3 — SQLite/Python monetary serialization equivalence
+
+Critical defect.
+
+Python Decimal quantization with `ROUND_HALF_EVEN` and SQLite `printf('%.2f')` may produce different results, especially when NUMERIC values are represented as floating point.
+
+Choose one canonical money representation.
+
+Preferred direction: integer minor units (cents/paise-equivalent) for financial calculations, with explicit conversion and validation at API boundaries.
+
+If using another representation, prove equivalence.
+
+Required boundary vectors include:
+
+- 1.005
+- 2.675
+- Negative equivalents.
+- Negative zero.
+- Zero.
+- Maximum supported amount.
+- Values with more than two decimal places.
+
+Specify:
+
+- Input parsing.
+- Precision validation.
+- Rounding policy.
+- Storage representation.
+- Arithmetic representation.
+- Serialization.
+- API formatting.
+- Hashing behavior.
+
+The database and Python implementation must produce identical canonical monetary values.
+
+### T4 — Event-ledger known-answer vectors are symbolic
+
+The five existing vectors do not constitute real known-answer tests because some expected hashes are symbolic expressions such as `H_1`.
+
+Provide actual, executable known-answer vectors.
+
+Each vector must include:
+
+- Exact input fields.
+- Exact canonical serialized byte sequence.
+- Exact UTF-8 or ASCII byte representation.
+- Exact expected SHA-256 digest as a 64-character hexadecimal string.
+- Previous hash.
+- Expected event hash.
+- Independent verification method.
+
+Do not invent a digest or claim verification without actually calculating it.
+
+If execution is unavailable, mark the vector `SPECIFIED — NOT YET EXECUTED`.
+
+### T5 — Event ledger does not validate canonical payload JSON
+
+Python currently canonicalizes JSON using sorted keys, compact separators, and `ensure_ascii=True`, while SQLite can hash whatever `NEW.payload_json` string is supplied.
+
+Define one authoritative canonical JSON boundary.
+
+Specify:
+
+- Object key ordering.
+- Whitespace.
+- Unicode escaping.
+- Unicode normalization policy.
+- Number serialization.
+- Decimal handling.
+- Boolean/null representation.
+- Array ordering.
+- Duplicate key handling.
+- Invalid JSON behavior.
+- Maximum payload size.
+- Whether payloads are validated before insertion.
+- Whether direct SQL insertion can bypass canonicalization.
+
+The SQLite trigger and Python code must hash identical canonical payload bytes.
+
+Include tests for different key orderings, whitespace, escaped characters, Unicode, numbers, negative zero, and malformed JSON.
+
+### T6 — Payment UPDATE recipient validation incomplete
+
+Payment UPDATE protection does not sufficiently define recipient integrity during status transitions.
+
+Specify:
+
+- Whether recipient identity is snapshotted at payment creation.
+- Whether provider/claimant bank details can change after payment creation.
+- Whether a payment uses current bank details or historical snapshot data.
+- How bank-hash changes are handled.
+- Whether an existing payment can ever be redirected.
+- Whether recipient validation occurs on authorization, reservation, disbursement, and reversal.
+- Which fields are immutable.
+- Which fields are mutable.
+- How changes are audited.
+
+Provide actual triggers and state-transition tests.
+
+### T7 — Payment fingerprint validation order
+
+Payment idempotency must not return an existing payment for invalid new input.
+
+Define the exact order:
+
+1. Parse raw request.
+2. Validate required fields.
+3. Validate monetary precision and range.
+4. Canonicalize all request fields.
+5. Calculate canonical request fingerprint.
+6. Resolve idempotency key.
+7. Compare existing fingerprint if the key already exists.
+8. Return existing result only when the canonical request matches.
+9. Return a conflict when the same key is reused with a different request.
+10. Create a new record only when all validations pass.
+
+An invalid amount such as `10.005` must never retrieve an existing valid payment result.
+
+Also distinguish a true idempotency key from a reconciliation reference.
+
+Provide concurrency and replay tests.
+
+### T8 — Investigation and claim-cluster immutability
+
+The existing investigation triggers do not adequately protect every route through which a linked claim may be detached or reassigned.
+
+Define the complete relationship contract between:
+
+- Investigation.
+- Anchor claim.
+- Member claims.
+- Detected cluster.
+- Claim investigation assignment.
+
+Specify:
+
+- Whether claim cluster assignments become immutable once linked to an investigation.
+- Whether member claims may be detached.
+- Whether they may be reassigned.
+- What happens when an investigation is closed.
+- Whether the anchor claim may be reassigned.
+- How historical membership is preserved.
+- What happens when a cluster is recomputed.
+- How all changes are recorded.
+
+Provide INSERT, UPDATE, and DELETE protections where applicable, with adversarial tests.
+
+### T9 — Blocked-payment persistence conflicts with HTTP 422 rollback
+
+ARCH-ST-007 says the system inserts a `BLOCKED_INVALID_RECIPIENT` record and immutable event, then raises HTTP 422.
+
+If all operations occur inside the same transaction, the exception may roll back the blocked record and event.
+
+Resolve this contradiction.
+
+Define the exact transaction boundaries.
+
+Possible safe approaches include:
+
+- A separate durable transaction for the blocked attempt and its event.
+- A transactional outbox or equivalent persistence mechanism.
+- A carefully defined response flow that preserves the audit record before returning the validation response.
+
+Do not rely on vague language such as "persist first, then raise."
+
+Specify what survives, what rolls back, and what the caller receives.
+
+Add a test proving that the blocked record and event remain durable after the HTTP 422 response.
+
+### T10 — Event ledger is not actually a global hash chain
+
+The current design has a global event sequence, but `prev_event_hash` links the previous event within the same aggregate.
+
+This is a collection of per-aggregate chains with global sequencing, not a single global hash chain.
+
+Do not misrepresent it.
+
+Choose one architecture:
+
+**Option A:** Retain per-aggregate hash chains with a globally ordered sequence and describe them accurately.
+
+**Option B:** Implement a true global hash chain, where each event references the previous global event hash.
+
+Explain the trade-offs and select one.
+
+In either case define:
+
+- Genesis records.
+- Aggregate sequencing.
+- Global sequence uniqueness.
+- Concurrent event insertion.
+- Rollback behavior.
+- Event tampering detection.
+- Verification procedure.
+- External anchoring.
+- External digest storage.
+- Anchoring cadence.
+- Recovery procedure.
+- Threat model.
+- What database administrators can and cannot alter.
+
+Do not claim absolute immutability merely because a hash exists in SQLite.
+
+### T11 — Missing NumPy/runtime dependency pinning
+
+The clustering process uses NumPy randomness, including `np.random.RandomState(42)`.
+
+Pin every relevant dependency and runtime version.
+
+At minimum specify:
+
+- Python version.
+- SQLite version.
+- NetworkX version.
+- NumPy version.
+- Community-detection library/version, if used.
+- Any other library affecting numerical results or graph behavior.
+- Lockfile strategy.
+- Dependency installation procedure.
+- Reproducibility verification.
+
+A single version list is not enough. Explain how dependency drift is detected.
+
+### T12 — Incorrect `[DB-ENFORCED]` classifications
+
+Audit every assertion marked `[DB-ENFORCED]`.
+
+For each assertion provide:
+
+- Exact rule.
+- Exact table.
+- Exact constraint or trigger.
+- Exact operation protected: INSERT, UPDATE, DELETE.
+- Whether direct SQL can bypass it.
+- Whether the condition is actually cross-table.
+- Whether the database truly enforces it.
+
+Remove or correct all inaccurate classifications.
+
+Do not claim that application-only checks are database-enforced.
+
+### T13 — Unexecuted tests and vectors falsely marked VERIFIED
+
+ARCH-ST-007 includes language indicating that certain tests or vectors are verified even though no execution evidence is supplied.
+
+Correct all such language.
+
+Use these statuses consistently:
+
+- `SPECIFIED — NOT YET EXECUTED`
+- `EXECUTED — PASSED`
+- `EXECUTED — FAILED`
+- `BLOCKED — ENVIRONMENT UNAVAILABLE`
+
+Only use `EXECUTED — PASSED` when actual execution evidence exists.
+
+Provide the command, environment, version, and output required to substantiate a passed result.
+
+A specification is not a test result.
+
+### T14 — PageRank clean-room calculation needs full derivation
+
+The existing four-claim fixture reports expected PageRank values such as `1.333333`, but lacks the full matrix and derivation.
+
+Provide:
+
+- Exact graph.
+- Exact directed/undirected interpretation.
+- Exact adjacency matrix.
+- Exact transition matrix.
+- Edge-weight normalization.
+- Damping factor.
+- Teleportation vector.
+- Dangling-node behavior.
+- Initialization vector.
+- Iteration formula.
+- Convergence tolerance.
+- Maximum iterations.
+- Stopping condition.
+- Final unscaled PageRank vector.
+- Scaling factor.
+- Final scaled vector.
+
+Show enough arithmetic to independently reproduce every expected value.
+
+Do not retain previous numerical outputs unless the derivation verifies them.
+
+---
+
+# PART 4 — ADDITIONAL TECHNICAL ISSUES THAT MUST BE RESOLVED
+
+These issues were also identified during the ARCH-ST-007 audit.
+
+## 4.1 Investigation table and forward foreign keys
+
+The Investigation table is created before Claims, while Claims reference Investigations.
+
+SQLite may permit a forward foreign-key reference, but the complete schema must be tested.
+
+Specify:
+
+- Exact schema creation order.
+- Foreign-key activation.
+- Migration behavior.
+- `PRAGMA foreign_key_check`.
+- Full schema initialization test.
+- Behavior when a referenced table is not yet created.
+
+Do not assume this works without a test.
+
+## 4.2 Investigation deletion and historical references
+
+The use of `ON DELETE SET NULL` for claim investigation references may conflict with historical audit requirements.
+
+Define whether investigations may be deleted at all.
+
+Prefer preserving investigation history and preventing destructive deletion where appropriate.
+
+If deletion is allowed, specify how immutable historical references are retained.
+
+## 4.3 Payment state-transition enforcement
+
+Define the full payment FSM.
+
+For every payment status specify:
+
+- Allowed predecessor states.
+- Allowed successor states.
+- Triggering operation.
+- Required validations.
+- Financial effect.
+- Event emitted.
+- Whether the transition is reversible.
+- Failure behavior.
+
+The database must prevent illegal transitions wherever feasible.
+
+Do not rely solely on application-level checks.
+
+## 4.4 Investigation FSM
+
+Define the Investigation FSM with the same rigor as the Claim FSM.
+
+Include:
+
+- Every state.
+- Every allowed transition.
+- Every forbidden transition.
+- Required actor/authorization.
+- Preconditions.
+- Effects on linked claims.
+- Event records.
+- Closure/reopening behavior.
+- Immutability requirements.
+
+## 4.5 Idempotency key semantics
+
+Define the exact semantics of `reconciliation_ref` and the idempotency key.
+
+Do not conflate:
+
+- Request identity.
+- Reconciliation identity.
+- Payment identity.
+- External bank transaction identity.
+
+Explain uniqueness scope and lifecycle.
+
+## 4.6 Indicator scope-key delimiter safety
+
+If `indicator_scope_key` is built through delimiter concatenation, demonstrate that component fields cannot create collisions.
+
+Use an unambiguous canonical serialization strategy, such as length-prefixing or structured canonical encoding.
+
+Include collision tests.
+
+## 4.7 Event count derivation
+
+The baseline contains 19,495 immutable events.
+
+Provide a complete derivation of that count.
+
+Show event counts by:
+
+- Aggregate type.
+- Event type.
+- Lifecycle operation.
+- Seed-generation stage.
+
+The count must be independently reproducible.
+
+## 4.8 SQLite concurrency and financial atomicity
+
+Define transaction boundaries and locking strategy for:
+
+- Concurrent invoice approvals.
+- Payment authorization.
+- Payment reservation.
+- Payment disbursement.
+- Payment cancellation.
+- Payment expiry.
+- Clawback.
+- Approved amount reduction.
+- Claim denial.
+- Event creation.
+
+Demonstrate that no concurrent operation can exceed approved financial exposure or produce inconsistent rollups.
+
+Use conditional state updates and transactional invariants where appropriate.
+
+---
+
+# PART 5 — REQUIRED FORMAL SPECIFICATION CONTENT
+
+ARCH-ST-008 must include the following complete sections.
+
+1. Document control, version, scope, and change history.
+2. Executive architecture overview.
+3. System boundaries and trust boundaries.
+4. Functional requirements.
+5. Non-functional requirements.
+6. Mandatory YottaFlex domain entities.
+7. Complete relational schema.
+8. Primary keys, foreign keys, unique constraints, checks, and indexes.
+9. Full SQLite DDL.
+10. All INSERT, UPDATE, and DELETE triggers.
+11. Complete state machines for Claim, Invoice, Payment, and Investigation.
+12. Financial accounting model.
+13. Payment lifecycle and idempotency.
+14. Immutable event ledger.
+15. Event serialization and hash calculation.
+16. Event verification and external anchoring.
+17. Synthetic data-generation methodology.
+18. Ground-truth isolation.
+19. Complete operational relationship graph.
+20. Graph construction and canonicalization.
+21. All 15 fraud indicators.
+22. Indicator aggregation.
+23. Claim-level scoring.
+24. Provider-level scoring.
+25. Cluster construction.
+26. Cluster-level hard-collusion rules.
+27. Evidence-token construction and deduplication.
+28. Cluster boost eligibility.
+29. Benign-context dampening.
+30. Final score and classification thresholds.
+31. Investigation generation and workflow.
+32. API contracts and authorization.
+33. Frontend operational workflows.
+34. Error handling and exception persistence.
+35. Determinism and reproducibility.
+36. Evaluation methodology.
+37. Clean-room fixture with complete intermediate calculations.
+38. Acceptance-test specification.
+39. Adversarial/security tests.
+40. Baseline reconciliation.
+41. Dependency/runtime lock specification.
+42. Deployment and operational requirements.
+43. Migration and recovery strategy.
+44. Known limitations and residual risks.
+45. Implementation readiness checklist.
+46. Complete traceability matrix.
+
+Every section must contain the actual required specification, not merely a heading or promise to define it later.
+
+---
+
+# PART 6 — ACCEPTANCE TEST REQUIREMENTS
+
+Preserve and improve the T-01 through T-15 acceptance-test structure from ARCH-ST-007.
+
+Do not delete an existing test merely because it exposes a defect.
+
+For every test include:
+
+- Test ID.
+- Requirement being verified.
+- Preconditions.
+- Complete fixture/input.
+- Execution steps.
+- Expected database state.
+- Expected API response, if applicable.
+- Expected event records.
+- Expected financial effects.
+- Expected analytics output.
+- Failure conditions.
+- Whether the test is database, application, analytics, integration, or adversarial.
+
+The test suite must explicitly cover:
+
+### Database and financial correctness
+- Invalid foreign keys.
+- Nonexistent policy exception.
+- Payment over approved amount.
+- Duplicate invoices across claimants.
+- Partial payments.
+- Multiple invoices per claim.
+- Invoice approval after partial payment.
+- Claim denial after approval.
+- Claim denial after partial payment.
+- Outstanding payment reservations.
+- Payment expiry.
+- Cancellation.
+- Clawback.
+- Approved amount reduction.
+- Concurrent financial operations.
+- Idempotency replay.
+- Idempotency key reused with a different payload.
+- Invalid precision on an existing idempotency key.
+- Invalid recipient.
+- Blocked payment promotion attempt.
+- Bank detail changes after payment creation.
+
+### Graph and fraud correctness
+- Missing operational relationship despite planted ground truth.
+- Common-address-only benign scenario.
+- All five benign lookalikes.
+- All five YF-NEG cases.
+- Duplicate evidence-token representations.
+- Same-incident participation without independent collusive evidence.
+- Legitimate hub concentration.
+- Cross-household identifiers.
+- Directional relationship constraints.
+- Undirected edge canonicalization.
+- Deterministic cluster membership.
+- Cluster boost eligibility.
+- Cluster dampening.
+- PageRank clean-room reproduction.
+- Indicator deduplication.
+- Ground-truth isolation.
+
+### Event ledger correctness
+- Canonical payload JSON.
+- Unicode.
+- Escaping.
+- Key-order variations.
+- Malformed JSON.
+- Monetary serialization.
+- Hash known-answer vectors.
+- Aggregate sequencing.
+- Global sequencing.
+- Concurrent event creation.
+- Tampering detection.
+- Rollback behavior.
+- External anchor verification.
+
+### Reproducibility and evaluation
+- Exact baseline row counts.
+- Exact fraud/negative label counts.
+- Exact event counts.
+- Deterministic seed generation.
+- Dependency version lock.
+- Independent clean-room calculation.
+- Evaluation metric reproduction.
+- Bootstrap reproducibility.
+- Wilson confidence intervals.
+- Benign false-positive analysis.
+
+A test that only checks `count > 0` is not sufficient when an exact deterministic baseline is required.
+
+Where exact counts are expected, specify the exact expected count.
+
+---
+
+# PART 7 — REQUIRED TRACEABILITY MATRIX
+
+At the end of ARCH-ST-008, include a complete traceability matrix with these columns:
+
+| Finding ID | Original defect | ARCH-ST-008 section | Exact correction | Database enforcement | Application enforcement | Acceptance test | Verification status |
+|---|---|---|---|---|---|---|---|
+
+Include every finding:
+
+- P1–P6.
+- T1–T14.
+- All additional technical issues in Part 4.
+- Every original mandatory YottaFlex requirement.
+- Every YF-NEG case.
+- Every benign lookalike.
+- Every mandatory baseline count.
+
+No finding may disappear from the matrix.
+
+Use `NOT RESOLVED` if a finding remains open. Do not mark it resolved based on a textual claim alone.
+
+---
+
+# PART 8 — ADVERSARIAL SELF-REVIEW BEFORE FINALIZING
+
+After drafting ARCH-ST-008, perform two separate review passes.
+
+## Pass A — Architecture and business logic
+
+Act as an independent principal architect.
+
+Look for:
+
+- Contradictory business rules.
+- Missing domain constraints.
+- Incomplete lifecycle definitions.
+- Circular dependencies.
+- Unclear ownership of data.
+- Inconsistent source-of-truth rules.
+- Financial accounting errors.
+- Ground-truth leakage.
+- Incorrect fraud assumptions.
+- False-positive risks.
+- Non-deterministic analytics.
+- Unspecified edge cases.
+
+## Pass B — Database and implementation adversary
+
+Act as a hostile database/security reviewer.
+
+Try to break the design using:
+
+- Direct SQL writes.
+- Invalid INSERT operations.
+- Invalid UPDATE operations.
+- DELETE operations.
+- Concurrent transactions.
+- Replayed requests.
+- Duplicate idempotency keys.
+- Malformed payloads.
+- Unicode and serialization edge cases.
+- Floating-point boundary values.
+- Foreign-key violations.
+- State-transition bypasses.
+- Invalid recipient changes.
+- Investigation reassignment.
+- Cluster reassignment.
+- Event tampering.
+- Ground-truth access.
+- Missing and duplicated graph edges.
+
+For every discovered issue, correct it in the document before final delivery or explicitly mark it unresolved.
+
+Do not approve your own work simply because the document is internally consistent.
+
+---
+
+# PART 9 — DELIVERABLE FORMAT
+
+Produce a complete document titled:
+
+**ARCH-ST-008 — SENTINEL//TRACE: Final Self-Contained Architecture Specification**
+
+The document must:
+
+- Stand alone without any previous architecture document.
+- Contain complete definitions, not references to earlier versions.
+- Include actual SQL/DDL and trigger logic.
+- Include complete formulas.
+- Include all lifecycle tables.
+- Include reproducible fixtures.
+- Include acceptance tests.
+- Include the full traceability matrix.
+- Clearly distinguish verified execution from specification-only work.
+- Preserve all mandatory domain requirements and baseline counts.
+- Explicitly list any remaining unresolved decisions.
+
+Do not provide only a change summary.
+
+Do not provide only a list of corrections.
+
+Do not provide application code.
+
+Do not write a short executive-only document.
+
+Produce the complete revised architecture specification.
+
+---
+
+# PART 10 — FINAL VERDICT RULE
+
+Your final verdict must be exactly one of:
+
+- `APPROVED FOR IMPLEMENTATION`
+- `CONDITIONALLY APPROVED — BLOCKED BY NAMED ITEMS`
+- `NOT APPROVED FOR IMPLEMENTATION`
+
+You may use `APPROVED FOR IMPLEMENTATION` only if:
+
+1. All P1–P6 findings are resolved.
+2. All T1–T14 findings are resolved.
+3. All additional Part 4 issues are resolved.
+4. All mandatory entities and business requirements are preserved.
+5. All five YF-NEG cases are preserved.
+6. All five benign lookalikes are preserved.
+7. All mandatory baseline counts are specified and reconcilable.
+8. Every critical database invariant has an actual enforcement mechanism.
+9. Financial workflows are internally consistent and transactionally safe.
+10. All 15 fraud indicators are completely defined.
+11. The scoring pipeline is deterministic and reproducible.
+12. Ground-truth data cannot leak into operational scoring.
+13. The clean-room fixture is independently hand-computable.
+14. The event-ledger model is accurately described and verifiable.
+15. The acceptance-test matrix covers all mandatory cases.
+16. No unresolved critical or high-severity architecture defects remain.
+17. The traceability matrix contains no missing findings.
+
+If tests have not been executed, explicitly say so. You may assess the specification's design readiness, but you must not claim implementation or runtime verification.
+
+**Do not give yourself approval merely because you wrote the specification.**
+
+Your goal is to make ARCH-ST-008 genuinely implementation-ready, not to make it appear implementation-ready.
+
+Begin by extracting the complete ARCH-ST-007 structure and mapping every finding in this prompt to its affected section. Then draft and adversarially review ARCH-ST-008.

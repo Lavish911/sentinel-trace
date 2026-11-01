@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Sentinel Trace — Fraud Network &amp; SIU Workbench</title>
+    <meta name="description" content="Insurance fraud network intelligence, penny-level financial reconciliation, ST-EVT-V2 event hash-chain verification, and ARCH-ST-010 clean-room scoring workbench." />
+    <meta property="og:title" content="Sentinel Trace — Fraud Network &amp; SIU Workbench" />
+    <meta property="og:description" content="Insurance fraud network intelligence, penny-level financial reconciliation, ST-EVT-V2 event hash-chain verification, and ARCH-ST-010 clean-room scoring workbench." />
+    <meta property="og:type" content="website" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <script>
+      (function () {
+        function isInjectedExtensionError(msg, src, stack) {
+          var combined = String(msg || '') + ' ' + String(src || '') + ' ' + String(stack || '');
+          return (
+            combined.indexOf('chrome-extension://') !== -1 ||
+            combined.indexOf('moz-extension://') !== -1 ||
+            combined.indexOf('Failed to connect to MetaMask') !== -1 ||
+            combined.indexOf('nkbihfbeogaeaoehlefnkodbefgpgknn') !== -1 ||
+            combined.indexOf('inpage.js') !== -1
+          );
+        }
+        window.addEventListener(
+          'error',
+          function (event) {
+            var errStack = event && event.error && event.error.stack ? event.error.stack : '';
+            if (isInjectedExtensionError(event && event.message, event && event.filename, errStack)) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+              return false;
+            }
+          },
+          true
+        );
+        window.addEventListener(
+          'unhandledrejection',
+          function (event) {
+            var reason = event && event.reason;
+            var msg = reason && (reason.message || String(reason));
+            var stack = reason && reason.stack ? reason.stack : '';
+            if (isInjectedExtensionError(msg, '', stack)) {
+              event.preventDefault();
+              event.stopImmediatePropagation();
+              return false;
+            }
+          },
+          true
+        );
+      })();
+    </script>
+  </head>
+  <body class="bg-slate-950 text-slate-100 antialiased selection:bg-sky-500/30 selection:text-sky-100">
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+
