@@ -58,3 +58,4 @@ def test_is_canonical_json_non_dict_roots():
     assert is_canonical_json('"hello"') == 0
     assert is_canonical_json('123') == 0
     assert is_canonical_json(None) == 0
+

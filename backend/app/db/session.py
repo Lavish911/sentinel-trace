@@ -42,3 +42,4 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
     """FastAPI dependency for accessing database connection per request."""
     with get_db_context() as conn:
         yield conn
+

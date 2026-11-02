@@ -50,3 +50,4 @@ def health_check(db: sqlite3.Connection = Depends(get_db)) -> HealthResponse:
         trigger_count=int(schema_info["trigger_count"]),
         details=details_str,
     )
+

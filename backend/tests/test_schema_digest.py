@@ -71,3 +71,4 @@ def test_digest_order_independence():
 
     assert digest_a == digest_b, "ST-SCHEMA-V1 digest must be order-independent"
     assert digest_a == settings.EXPECTED_SCHEMA_SHA256
+

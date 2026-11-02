@@ -25,3 +25,4 @@ def test_health_check_endpoint(client: TestClient):
     assert data["table_count"] == 12
     assert data["trigger_count"] == 24
     assert data["schema_digest"] == settings.EXPECTED_SCHEMA_SHA256
+

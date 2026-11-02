@@ -70,3 +70,4 @@ def register_udfs(connection: sqlite3.Connection) -> None:
     connection.create_function(
         "is_canonical_json", 1, is_canonical_json, deterministic=True
     )
+

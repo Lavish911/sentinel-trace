@@ -127,3 +127,4 @@ src/
 ### 3.2 Preservation of Domain Logic
 * All core cryptographic math, `ST-EVT-V2` event hashing, and 10-stage scoring formulas currently residing in `src/utils/sentinelEngine.ts` will be **strictly preserved**.
 * Domain logic will be treated as pure business functions, decoupled from React UI components, enabling seamless synchronization with the Python backend detection engine.
+

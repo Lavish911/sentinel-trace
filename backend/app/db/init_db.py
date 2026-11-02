@@ -87,3 +87,4 @@ def initialize_database(
     connection.executescript(trigs_sql)
 
     return verify_schema(connection)
+
