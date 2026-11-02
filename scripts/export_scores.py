@@ -52,7 +52,7 @@ with open("yf_neg_4_scores.csv", "w", newline="", encoding="utf-8") as f:
             f"{base_s:.2f}", f"{final_s:.2f}", tier
         ])
 
-print("Exported yf_neg_4_scores.csv successfully.")
+print(f"Exported yf_neg_4_scores.csv successfully ({len(yf4_rows)} claims).")
 
 # 2. Export yf_neg_5_scores.csv (80 claims for the 80 apartment claimants at 100 Ocean Ave)
 yf5_claims = op_conn.execute("""
@@ -63,20 +63,13 @@ yf5_claims = op_conn.execute("""
     ORDER BY c.claim_id ASC
 """).fetchall()
 
-# Exactly 80 claims (first claim per claimant) or all claims
 with open("yf_neg_5_scores.csv", "w", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
     writer.writerow([
         "claim_id", "claimant_id", "address_norm", "indicator_ids",
         "p_net", "p_fin", "p_beh", "p_doc", "base_score", "final_score", "risk_tier"
     ])
-    seen_clmts = set()
-    count = 0
     for cid, clmt_id, addr, final_s, tier in yf5_claims:
-        if clmt_id in seen_clmts:
-            continue
-        seen_clmts.add(clmt_id)
-        count += 1
         inds = op_conn.execute(
             "SELECT indicator_code, pillar, raw_points FROM fraud_indicators WHERE claim_id = ? ORDER BY indicator_code ASC",
             (cid,)
@@ -98,8 +91,5 @@ with open("yf_neg_5_scores.csv", "w", newline="", encoding="utf-8") as f:
             f"{p_net:.2f}", f"{p_fin:.2f}", f"{p_beh:.2f}", f"{p_doc:.2f}",
             f"{base_s:.2f}", f"{final_s:.2f}", tier
         ])
-        if count == 80:
-            break
 
-print(f"Exported yf_neg_5_scores.csv ({count} claims) successfully.")
-
+print(f"Exported yf_neg_5_scores.csv successfully ({len(yf5_claims)} claims).")
