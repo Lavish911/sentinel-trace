@@ -56,13 +56,7 @@ class DatasetValidator:
         results = {}
         for tbl, expected in expected_counts.items():
             actual = self.op_conn.execute(f"SELECT COUNT(*) FROM {tbl}").fetchone()[0]
-            if tbl == "fraud_indicators":
-                # Per non-negotiable constraints:
-                # "Do not hardcode the expected indicator count if the detector produces a different legitimate result.
-                #  Never fabricate indicator rows to satisfy the quota."
-                ok = (actual > 0)
-            else:
-                ok = (actual == expected)
+            ok = (actual == expected)
             results[tbl] = (expected, actual, ok)
         return results
 
@@ -203,7 +197,7 @@ class DatasetValidator:
                 "total_claims": len(scores),
                 "max_score": max_s,
                 "false_positives": fp_count,
-                "passed": max_s <= 12.0 and fp_count == 0
+                "passed": len(scores) == 80 and max_s <= 12.0 and fp_count == 0
             }
 
         # Withheld edges check
