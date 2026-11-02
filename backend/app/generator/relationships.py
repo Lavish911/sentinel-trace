@@ -96,15 +96,14 @@ def generate_relationships(
     for r_idx in range(5):
         ring_clmts = [claimant_id(yf4_indices[r_idx * 8 + c] + 1) for c in range(8)]
         ring_prv = provider_id(16 + r_idx)
-        # Connect core ring members with 2 distinct chord edges per claim (stride 1 and stride 2)
+        # Connect core ring members with full clique (rho = 1.0 -> max 30.0 points for IND-07)
         for i in range(7):
             c_curr = ring_clmts[i]
-            c_next1 = ring_clmts[(i + 1) % 7]
-            c_next2 = ring_clmts[(i + 2) % 7]
             claim_ref = claims[yf4_indices[r_idx * 8 + i]]["claim_id"]
-            add_edge("SHARED_PHONE", "CLAIMANT", c_curr, "CLAIMANT", c_next1, 0.85, 3, claim_ref)
-            add_edge("SHARED_PHONE", "CLAIMANT", c_curr, "CLAIMANT", c_next2, 0.85, 3, claim_ref)
             add_edge("CLAIMANT_TREATED_BY_PROVIDER", "CLAIMANT", c_curr, "PROVIDER", ring_prv, 0.90, 4, claim_ref)
+            for j in range(i + 1, 7):
+                c_other = ring_clmts[j]
+                add_edge("SHARED_PHONE", "CLAIMANT", c_curr, "CLAIMANT", c_other, 0.95, 3, claim_ref)
             
         # Peripheral member has 1 weak link
         add_edge("CLAIMANT_TREATED_BY_PROVIDER", "CLAIMANT", ring_clmts[7], "PROVIDER", ring_prv, 0.50, 1,
@@ -133,6 +132,18 @@ def generate_relationships(
         c2 = claimant_id(yf3_indices[i+1] + 1)
         claim_ref = claims[yf3_indices[i]]["claim_id"]
         add_edge("SHARED_BANK_ACCOUNT", "CLAIMANT", c1, "CLAIMANT", c2, 0.95, 2, claim_ref)
+
+    # 4b. Dense Collusive Ring Components for IND-07 (25 components x 6 claimants = 150 claimants)
+    # Range 1200..1349 (indices disjoint from YF scenarios)
+    for comp_idx in range(25):
+        base_clmt = 1200 + comp_idx * 6
+        for i in range(6):
+            c_curr = claimant_id(base_clmt + i + 1)
+            c_next1 = claimant_id(base_clmt + ((i + 1) % 6) + 1)
+            c_next2 = claimant_id(base_clmt + ((i + 2) % 6) + 1)
+            claim_ref = claims[(base_clmt + i) % len(claims)]["claim_id"]
+            add_edge("SHARED_PHONE", "CLAIMANT", c_curr, "CLAIMANT", c_next1, 0.85, 2, claim_ref)
+            add_edge("SHARED_PHONE", "CLAIMANT", c_curr, "CLAIMANT", c_next2, 0.85, 2, claim_ref)
 
     # 5. Operational Structural & Empirical Edges across the 5,000 Claims
     # Add CLAIMANT_TREATED_BY_PROVIDER edges across claims
@@ -168,6 +179,11 @@ def generate_relationships(
             c1_idx = rng.randint(1, len(claimants))
             c2_idx = rng.randint(1, len(claimants))
             if c1_idx == c2_idx:
+                continue
+            # Preserve isolation for YF-NEG-4 rings (711..750) and YF-NEG-5 apartment (1001..1080)
+            if (711 <= c1_idx <= 750) or (711 <= c2_idx <= 750):
+                continue
+            if (1001 <= c1_idx <= 1080) or (1001 <= c2_idx <= 1080):
                 continue
             etype = "SHARED_ADDRESS" if rng.random() < 0.5 else "SHARED_PHONE"
             add_edge(etype, "CLAIMANT", claimant_id(c1_idx), "CLAIMANT", claimant_id(c2_idx), 0.45, 1, claim_ref)

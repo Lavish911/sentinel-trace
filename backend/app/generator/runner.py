@@ -14,6 +14,7 @@ import sys
 import os
 import sqlite3
 import hashlib
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 
@@ -246,7 +247,7 @@ def run_generator(
         clmt_id = claimant_id(i + 1)
         inc_id = incident_id(i + 1)
         cents = 250000 + i * 10000
-        det_ts = "2026-01-02T10:00:00Z"
+        det_ts = (datetime(2026, 1, 1, 0, 0, 0) + timedelta(seconds=i * 120)).strftime("%Y-%m-%dT%H:%M:%SZ")
         
         # Add event first to satisfy FK immutable_event_id
         ev = event_builder.add_event(
@@ -310,10 +311,11 @@ def run_generator(
 
     # 5.4 Lifecycle Transitions: Invoices Approved (1,200) & Claims Approved (1,200)
     # Trigger trg_invoices_sync_claim_au cascades claim to APPROVED!
-    for inv in lifecycle_plan["approved_invoices"]:
+    for inv_idx, inv in enumerate(lifecycle_plan["approved_invoices"]):
         invid = inv["invoice_id"]
         cid = inv["claim_id"]
         app_cents = inv["billed_cents"]
+        app_ts = (datetime(2026, 1, 15, 0, 0, 0) + timedelta(seconds=inv_idx * 200)).strftime("%Y-%m-%dT%H:%M:%SZ")
         
         event_builder.add_event(
             event_type="INVOICE_APPROVED",
@@ -321,7 +323,7 @@ def run_generator(
             entity_id=invid,
             claim_id=cid,
             actor_id="USR-ADJ-001",
-            occurred_at_utc="2026-01-08T10:00:00Z",
+            occurred_at_utc=app_ts,
             payload_dict={"approved_cents": app_cents, "claim_id": cid, "invoice_id": invid}
         )
         event_builder.add_event(
@@ -330,7 +332,7 @@ def run_generator(
             entity_id=cid,
             claim_id=cid,
             actor_id="USR-ADJ-001",
-            occurred_at_utc="2026-01-08T10:00:00Z",
+            occurred_at_utc=app_ts,
             payload_dict={"approved_amount_cents": app_cents, "claim_id": cid}
         )
 
@@ -365,7 +367,7 @@ def run_generator(
             entity_id=p["payment_id"],
             claim_id=p["claim_id"],
             actor_id="USR-FIN-001",
-            occurred_at_utc="2026-01-10T08:00:00Z",
+            occurred_at_utc=p["created_at_utc"],
             payload_dict={
                 "amount_cents": p["amount_cents"],
                 "claim_id": p["claim_id"],
@@ -383,7 +385,7 @@ def run_generator(
             entity_id=p["payment_id"],
             claim_id=p["claim_id"],
             actor_id="USR-FIN-001",
-            occurred_at_utc="2026-01-10T08:00:00Z",
+            occurred_at_utc=p["created_at_utc"],
             payload_dict={
                 "amount_cents": p["amount_cents"],
                 "block_reason": "BLOCKED_UNAPPROVED",
@@ -428,6 +430,7 @@ def run_generator(
         p = auth_payments[idx]
         pid = p["payment_id"]
         amt = p["amount_cents"]
+        disb_ts = (datetime(2026, 1, 21, 0, 0, 0) + timedelta(seconds=idx * 270)).strftime("%Y-%m-%dT%H:%M:%SZ")
         
         op_conn.execute(
             """
@@ -435,11 +438,11 @@ def run_generator(
             SET payment_status = 'DISBURSED',
                 disbursed_amount_cents = ?,
                 net_paid_cents = ?,
-                disbursed_at_utc = '2026-01-12T12:00:00Z',
+                disbursed_at_utc = ?,
                 external_bank_tx_ref = ?
             WHERE payment_id = ?
             """,
-            (amt, amt, f"ACH-{pid}", pid)
+            (amt, amt, disb_ts, f"ACH-{pid}", pid)
         )
         
         # Add disbursement event
@@ -449,7 +452,7 @@ def run_generator(
             entity_id=pid,
             claim_id=p["claim_id"],
             actor_id="USR-FIN-001",
-            occurred_at_utc="2026-01-12T12:00:00Z",
+            occurred_at_utc=disb_ts,
             payload_dict={"amount_cents": amt, "claim_id": p["claim_id"], "external_bank_tx_ref": f"ACH-{pid}", "payment_id": pid}
         )
 
@@ -458,6 +461,7 @@ def run_generator(
 
     # 5.7 Payments Clawback (20)
     # trg_payments_validate_upd requires PAYMENT_CLAWBACK_REVERSED event present BEFORE update
+    claw_timestamps = []
     for idx in range(lifecycle_plan["payments_to_clawback"]):
         p = auth_payments[idx]
         pid = p["payment_id"]
@@ -466,6 +470,8 @@ def run_generator(
         amt = p["amount_cents"]
         cb_amt = max(1, amt // 2)
         net_paid = amt - cb_amt
+        claw_ts = (datetime(2026, 1, 22, 0, 0, 0) + timedelta(seconds=idx * 3600)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        claw_timestamps.append(claw_ts)
         
         event_builder.add_event(
             event_type="PAYMENT_CLAWBACK_REVERSED",
@@ -473,7 +479,7 @@ def run_generator(
             entity_id=pid,
             claim_id=cid,
             actor_id="USR-SIU-001",
-            occurred_at_utc="2026-01-15T10:00:00Z",
+            occurred_at_utc=claw_ts,
             payload_dict={
                 "amount_cents": amt,
                 "claim_id": cid,
@@ -491,16 +497,17 @@ def run_generator(
         pid = p["payment_id"]
         amt = p["amount_cents"]
         cb_amt = max(1, amt // 2)
+        claw_ts = claw_timestamps[idx]
         op_conn.execute(
             """
             UPDATE payments
             SET payment_status = 'REVERSED_CLAWBACK',
                 clawed_back_cents = ?,
                 net_paid_cents = ?,
-                reversed_at_utc = '2026-01-15T10:00:00Z'
+                reversed_at_utc = ?
             WHERE payment_id = ?
             """,
-            (cb_amt, amt - cb_amt, pid)
+            (cb_amt, amt - cb_amt, claw_ts, pid)
         )
     op_conn.commit()
 
@@ -509,13 +516,14 @@ def run_generator(
     for idx in range(lifecycle_plan["claims_to_siu_hold"]):
         c = claims[500 + idx]
         cid = c["claim_id"]
+        siu_ts = (datetime(2026, 1, 23, 0, 0, 0) + timedelta(seconds=idx * 1400)).strftime("%Y-%m-%dT%H:%M:%SZ")
         event_builder.add_event(
             event_type="CLAIM_SIU_HOLD_PLACED",
             entity_type="Claim",
             entity_id=cid,
             claim_id=cid,
             actor_id="USR-SIU-001",
-            occurred_at_utc="2026-01-16T09:00:00Z",
+            occurred_at_utc=siu_ts,
             payload_dict={"claim_id": cid, "reason": "SUSPECTED_NETWORK_COLLUSION"}
         )
     last_inserted_event_idx = sync_events_to_db(last_inserted_event_idx)
@@ -528,18 +536,21 @@ def run_generator(
 
     # 5.9 Payments Cancelled (25)
     # Select 25 authorized payments that remain in AUTHORIZED status (e.g. 1000..1024)
+    cancel_timestamps = []
     for idx in range(lifecycle_plan["payments_to_cancel"]):
         p = auth_payments[1000 + idx]
         pid = p["payment_id"]
         cid = p["claim_id"]
         amt = p["amount_cents"]
+        cancel_ts = (datetime(2026, 1, 24, 0, 0, 0) + timedelta(seconds=idx * 3400)).strftime("%Y-%m-%dT%H:%M:%SZ")
+        cancel_timestamps.append(cancel_ts)
         event_builder.add_event(
             event_type="PAYMENT_CANCELLED",
             entity_type="Payment",
             entity_id=pid,
             claim_id=cid,
             actor_id="USR-SIU-001",
-            occurred_at_utc="2026-01-17T14:00:00Z",
+            occurred_at_utc=cancel_ts,
             payload_dict={
                 "amount_cents": amt,
                 "claim_id": cid,
@@ -553,15 +564,16 @@ def run_generator(
     for idx in range(lifecycle_plan["payments_to_cancel"]):
         p = auth_payments[1000 + idx]
         pid = p["payment_id"]
+        cancel_ts = cancel_timestamps[idx]
         op_conn.execute(
             """
             UPDATE payments
             SET payment_status = 'CANCELLED',
-                reversed_at_utc = '2026-01-17T14:00:00Z',
+                reversed_at_utc = ?,
                 cancel_reason = 'SIU_HOLD_RESERVATION_CLEARED'
             WHERE payment_id = ?
             """,
-            (pid,)
+            (cancel_ts, pid)
         )
     op_conn.commit()
 
@@ -570,13 +582,14 @@ def run_generator(
     for idx in range(lifecycle_plan["claims_to_deny"]):
         c = claims[4000 + idx]
         cid = c["claim_id"]
+        deny_ts = (datetime(2026, 1, 25, 0, 0, 0) + timedelta(seconds=idx * 3400)).strftime("%Y-%m-%dT%H:%M:%SZ")
         event_builder.add_event(
             event_type="CLAIM_DENIED",
             entity_type="Claim",
             entity_id=cid,
             claim_id=cid,
             actor_id="USR-SIU-001",
-            occurred_at_utc="2026-01-18T11:00:00Z",
+            occurred_at_utc=deny_ts,
             payload_dict={"claim_id": cid, "reason": "CONFIRMED_FRAUD_FABRICATED_LOSS"}
         )
     last_inserted_event_idx = sync_events_to_db(last_inserted_event_idx)
@@ -595,6 +608,7 @@ def run_generator(
         cid = c["claim_id"]
         clmt_id = c["claimant_id"]
         exp_cents = c["claimed_amount_cents"]
+        invg_ts = (datetime(2026, 1, 26, 0, 0, 0) + timedelta(seconds=idx * 1900)).strftime("%Y-%m-%dT%H:%M:%SZ")
         
         event_builder.add_event(
             event_type="INVESTIGATION_OPENED",
@@ -602,12 +616,12 @@ def run_generator(
             entity_id=invg_id,
             claim_id=cid,
             actor_id="USR-SIU-001",
-            occurred_at_utc="2026-01-19T10:00:00Z",
+            occurred_at_utc=invg_ts,
             payload_dict={"investigation_id": invg_id, "primary_claim_id": cid, "priority": "P2_HIGH"}
         )
         invg_rows.append((
             invg_id, cid, clmt_id, None, "OPEN", "P2_HIGH", "USR-SIU-001",
-            "2026-01-19T10:00:00Z", "2026-01-19T10:00:00Z", None, None,
+            invg_ts, invg_ts, None, None,
             exp_cents, 0, f"SIU investigation into claim {cid}"
         ))
 

@@ -22,7 +22,6 @@ def compute_line_item_fingerprint(cpt_code: str, start_utc: str, end_utc: str, b
     end_day = end_utc[:10]
     raw = f"{norm_code}|{start_day}|{end_day}|{billed_cents}"
     return sha256_hex(raw)
-    
 
 
 CPT_CODES = [
@@ -58,27 +57,43 @@ def generate_financials(
     # YF-NEG-3: 25 claims across distinct claimants sharing duplicate invoices
     yf3_indices = set(scenario_metadata.get("yf3_indices", []))
     shared_yf3_cpt = "AB-FRAME-101"
-    shared_yf3_date = "2026-01-10T10:00:00Z"
+    shared_yf3_date = "2026-01-08T10:00:00Z"
     shared_yf3_billed = 420000
     shared_yf3_fp = compute_line_item_fingerprint(shared_yf3_cpt, shared_yf3_date, shared_yf3_date, shared_yf3_billed)
 
     first_yf3_invid = None
     seen_fingerprints: Dict[str, str] = {}
+    primary_invoices: Dict[int, Dict[str, Any]] = {}
 
     yf4_core_indices = [710 + r * 8 + c for r in range(5) for c in range(7)]
 
     for idx in range(COUNT_INVOICES):
-        if 5000 <= idx < 5035:
-            # Map to YF-NEG-4 core claims for split-billing (IND-12)
-            claim_idx = yf4_core_indices[idx - 5000]
-            is_yf4_second_item = True
-        elif idx < len(claims):
+        is_yf4_split = False
+        is_intra_dup = False
+        is_multi_prv = False
+
+        if idx < len(claims):
+            # Primary invoice for every claim (0..4999)
             claim_idx = idx
-            is_yf4_second_item = False
+        elif 5000 <= idx < 5035:
+            # 1st split-billing item for YF-NEG-4 core claims (IND-12)
+            claim_idx = yf4_core_indices[idx - 5000]
+            is_yf4_split = True
+        elif 5035 <= idx < 5070:
+            # 2nd split-billing item for YF-NEG-4 core claims (IND-12: k_split >= 3)
+            claim_idx = yf4_core_indices[idx - 5035]
+            is_yf4_split = True
+        elif 5070 <= idx < 5285:
+            # Multi-provider referral claims (215 claims with second provider -> IND-06)
+            claim_idx = 2000 + (idx - 5070)
+            is_multi_prv = True
+        elif 5285 <= idx < 5510:
+            # Intra-claim duplicate resubmissions (225 claims -> IND-04)
+            claim_idx = 2300 + (idx - 5285)
+            is_intra_dup = True
         else:
-            # Secondary invoices for non-scenario claims (range 1100 to 4899)
-            claim_idx = 1100 + ((idx - 5035) % 3800)
-            is_yf4_second_item = False
+            # General secondary invoices for non-scenario claims (range 2600 to 4899)
+            claim_idx = 2600 + ((idx - 5510) % 2200)
 
         target_claim = claims[claim_idx]
         cid = target_claim["claim_id"]
@@ -87,29 +102,40 @@ def generate_financials(
         if claim_idx in scenario_metadata.get("yf4_indices", []):
             r_num = 16 + ((claim_idx - 710) // 8)
             prv = providers[r_num - 1]
+        elif claim_idx in scenario_metadata.get("yf4_repeat_indices", []):
+            clmt_id_val = target_claim["claimant_id"]
+            clmt_num = int(clmt_id_val.replace("CLMT-", "")) - 1
+            r_num = 16 + ((clmt_num - 710) // 8)
+            prv = providers[r_num - 1]
+        elif is_multi_prv:
+            # Second distinct provider to generate network centrality spike (IND-06)
+            prv_base = (claim_idx * 7 + (claim_idx // 2000) * 43 + 17) % 480
+            if prv_base >= 15:
+                prv_base += 5
+            prv = providers[prv_base]
         else:
-            prv = providers[(claim_idx * 3) % len(providers)]
+            prv_base = (claim_idx * 7 + (claim_idx // 2000) * 43) % 480
+            if prv_base >= 15:
+                prv_base += 5
+            prv = providers[prv_base]
             
         prvid = prv["provider_id"]
         prv_seq = prv_invoice_counters.get(prvid, 0) + 1
         prv_invoice_counters[prvid] = prv_seq
         invid = invoice_id(prvid, prv_seq)
         
-        # Timing
-        if is_yf4_second_item:
-            # Same day split billing from ring provider
-            svc_start = "2026-02-15T09:00:00Z"
-            svc_end = "2026-02-15T17:00:00Z"
-            sub_ts = "2026-02-15T19:00:00Z"
-        elif claim_idx in yf4_core_indices:
-            svc_start = "2026-02-15T09:00:00Z"
-            svc_end = "2026-02-15T17:00:00Z"
-            sub_ts = "2026-02-15T19:00:00Z"
+        # Timing: Invoices submitted Jan 10..14, strictly following claims (Jan 5..9)
+        sub_date = datetime(2026, 1, 10, 0, 0, 0) + timedelta(seconds=int(idx * 57.5))
+        sub_ts = sub_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+        
+        if is_yf4_split or (claim_idx in yf4_core_indices and idx < 5000):
+            # Same day split billing from ring provider (IND-12)
+            svc_start = "2026-01-09T09:00:00Z"
+            svc_end = "2026-01-09T17:00:00Z"
         else:
-            svc_date = datetime(2026, 1, 5) + timedelta(days=idx % 30)
-            svc_start = svc_date.strftime("%Y-%m-%dT09:00:00Z")
-            svc_end = svc_date.strftime("%Y-%m-%dT17:00:00Z")
-            sub_ts = (svc_date + timedelta(hours=2)).strftime("%Y-%m-%dT19:00:00Z")
+            svc_date = datetime(2026, 1, 9, 9, 0, 0) - timedelta(hours=int((idx % 48) + 1))
+            svc_start = svc_date.strftime("%Y-%m-%dT%H:%M:%SZ")
+            svc_end = (svc_date + timedelta(hours=4)).strftime("%Y-%m-%dT%H:%M:%SZ")
         
         # Line item & fingerprint
         if claim_idx in yf3_indices:
@@ -125,12 +151,15 @@ def generate_financials(
                 status = "REJECTED_DUPLICATE"
                 dup_of = first_yf3_invid
         elif claim_idx in scenario_metadata.get("yf4_indices", []):
-            if is_yf4_second_item:
+            if is_yf4_split:
                 cpt = "CPT99213"
-                billed = 15000 + (claim_idx - 710) * 10
-            else:
+                billed = 15000 + (claim_idx - 710) * 10 + (idx % 20) * 5
+            elif claim_idx in yf4_core_indices:
                 cpt = "CPT99214"
-                billed = 35000 + (claim_idx - 710) * 10  # Upcoded billing fact
+                billed = 120000 + (claim_idx - 710) * 10  # Upcoded billing (IND-08: z > 4.0 -> 20.0 pts)
+            else:
+                cpt = "CPT99213"
+                billed = 22000
             fp = compute_line_item_fingerprint(cpt, svc_start, svc_end, billed)
             status = "SUBMITTED"
             dup_of = None
@@ -138,12 +167,40 @@ def generate_financials(
                 billed += 1
                 fp = compute_line_item_fingerprint(cpt, svc_start, svc_end, billed)
             seen_fingerprints[fp] = invid
+        elif 1800 <= claim_idx < 1980 and idx < 5000:
+            # Cross-claimant duplicate line items for IND-03 (180 claims across 90 distinct pairs)
+            pair_c = (claim_idx - 1800) // 2
+            cpt = "AB-FRAME-101"
+            svc_start = "2026-01-08T14:00:00Z"
+            svc_end = "2026-01-08T18:00:00Z"
+            billed = 370000 + pair_c * 50
+            fp = compute_line_item_fingerprint(cpt, svc_start, svc_end, billed)
+            if fp in seen_fingerprints:
+                status = "REJECTED_DUPLICATE"
+                dup_of = seen_fingerprints[fp]
+            else:
+                status = "SUBMITTED"
+                dup_of = None
+                seen_fingerprints[fp] = invid
+        elif is_intra_dup and claim_idx in primary_invoices:
+            # Resubmission of primary invoice line item on same claim (IND-04)
+            prim = primary_invoices[claim_idx]
+            cpt = prim["cpt"]
+            billed = prim["billed"]
+            svc_start = prim["svc_start"]
+            svc_end = prim["svc_end"]
+            fp = prim["fp"]
+            status = "REJECTED_DUPLICATE"
+            dup_of = prim["invid"]
         else:
             cpt_choice, billed_base = CPT_CODES[idx % len(CPT_CODES)]
             cpt = cpt_choice
             max_cap = target_claim["payout_cap_cents"]
-            # Ensure billed fits within claim payout cap while remaining strictly unique
-            billed = min(billed_base, max_cap - 20000) + (idx % 500) * 10 + (idx // 500)
+            if 300 <= idx < 820:
+                # Upcoded billing for IND-08 (target ~400 claims with z > 2.0)
+                billed = min(max_cap - 5000, int(billed_base * 2.8)) + (idx % 200) * 10
+            else:
+                billed = min(billed_base, max_cap - 20000) + (idx % 500) * 10 + (idx // 500)
             fp = compute_line_item_fingerprint(cpt, svc_start, svc_end, billed)
             status = "SUBMITTED"
             dup_of = None
@@ -152,13 +209,17 @@ def generate_financials(
                 fp = compute_line_item_fingerprint(cpt, svc_start, svc_end, billed)
             seen_fingerprints[fp] = invid
 
-        pinv_num = f"PI-{prvid}-{prv_seq:06d}"
-        
+        if idx < len(claims):
+            primary_invoices[claim_idx] = {
+                "cpt": cpt, "billed": billed, "svc_start": svc_start,
+                "svc_end": svc_end, "fp": fp, "invid": invid
+            }
+
         invoices.append({
             "invoice_id": invid,
             "claim_id": cid,
             "provider_id": prvid,
-            "provider_invoice_number": pinv_num,
+            "provider_invoice_number": f"PINV-{prvid[-6:]}-{prv_seq:04d}",
             "invoice_status": status,
             "service_start_utc": svc_start,
             "service_end_utc": svc_end,
@@ -175,11 +236,7 @@ def generate_financials(
             "duplicate_of_invoice_id": dup_of
         })
 
-    # --------------------------------------------------------------------------
     # 2. GENERATE PAYMENTS (4,200)
-    # 4,115 authorized payments distributed across 1,200 approved invoices
-    # 85 blocked payments on unapproved invoices
-    # --------------------------------------------------------------------------
     payments: List[Dict[str, Any]] = []
     
     # 1,200 invoices to approve: selected strictly from SUBMITTED invoices
@@ -205,7 +262,8 @@ def generate_financials(
             pid = payment_id(pay_seq)
             amt = base_amt + (rem if p_i == k - 1 else 0)
             idem_key = sha256_hex(f"IDEM-PAY-{pay_seq:06d}-{seed}")
-            created_ts = "2026-01-10T08:00:00Z"
+            pay_date = datetime(2026, 1, 18, 0, 0, 0) + timedelta(seconds=int(pay_seq * 61.7))
+            pay_ts = pay_date.strftime("%Y-%m-%dT%H:%M:%SZ")
             
             payments.append({
                 "payment_id": pid,
@@ -216,17 +274,15 @@ def generate_financials(
                 "recipient_provider_id": prvid,
                 "payment_status": "AUTHORIZED",
                 "amount_cents": amt,
-                "disbursed_amount_cents": 0,
-                "clawed_back_cents": 0,
-                "net_paid_cents": 0,
                 "idempotency_key": idem_key,
-                "created_at_utc": created_ts,
-                "disbursed_at_utc": None,
-                "reversed_at_utc": None,
                 "authorized_by": "USR-FIN-001",
                 "block_reason_code": None,
+                "scheduled_disbursement_utc": pay_ts,
+                "disbursed_at_utc": None,
                 "external_bank_tx_ref": None,
-                "cancel_reason": None
+                "cancel_reason": None,
+                "created_at_utc": pay_ts,
+                "updated_at_utc": pay_ts
             })
 
     assert len(payments) == 4115, f"Expected 4115 authorized payments, got {len(payments)}"
@@ -240,7 +296,8 @@ def generate_financials(
         prvid = target_inv["provider_id"]
         amt = target_inv["billed_cents"]
         idem_key = sha256_hex(f"IDEM-PAY-{pay_seq:06d}-{seed}")
-        created_ts = "2026-01-10T08:00:00Z"
+        pay_date = datetime(2026, 1, 18, 0, 0, 0) + timedelta(seconds=int(pay_seq * 61.7))
+        pay_ts = pay_date.strftime("%Y-%m-%dT%H:%M:%SZ")
         
         payments.append({
             "payment_id": pid,
@@ -251,24 +308,21 @@ def generate_financials(
             "recipient_provider_id": prvid,
             "payment_status": "BLOCKED_UNAPPROVED",
             "amount_cents": amt,
-            "disbursed_amount_cents": 0,
-            "clawed_back_cents": 0,
-            "net_paid_cents": 0,
             "idempotency_key": idem_key,
-            "created_at_utc": created_ts,
-            "disbursed_at_utc": None,
-            "reversed_at_utc": None,
             "authorized_by": "USR-FIN-001",
             "block_reason_code": "INV_NOT_APPROVED",
+            "scheduled_disbursement_utc": pay_ts,
+            "disbursed_at_utc": None,
             "external_bank_tx_ref": None,
-            "cancel_reason": None
+            "cancel_reason": None,
+            "created_at_utc": pay_ts,
+            "updated_at_utc": pay_ts
         })
 
     assert len(payments) == COUNT_PAYMENTS, f"Expected {COUNT_PAYMENTS} total payments, got {len(payments)}"
 
-    # --------------------------------------------------------------------------
-    # 3. LIFECYCLE RECONCILIATION PLAN (Exact budget to hit 19,615 events)
-    # --------------------------------------------------------------------------
+    # 3. BUILD LIFECYCLE DIRECTIVES
+    approved_invoices = [inv for inv in invoices if inv["invoice_status"] == "SUBMITTED"][:1200]
     lifecycle_plan = {
         "invoices_to_approve": 1200,      # Updates invoice to APPROVED -> cascades claim to APPROVED
         "approved_invoices": approved_invoices,
@@ -281,5 +335,5 @@ def generate_financials(
         "investigations_to_open": 45,     # Opens 45 SIU investigations
         "ingestion_exceptions": 25        # Records 25 YF-NEG-1 nonexistent policy exceptions
     }
-
+    
     return invoices, payments, lifecycle_plan
