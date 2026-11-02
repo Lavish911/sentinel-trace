@@ -4,7 +4,8 @@
 **Supersedes:** `SPEC-DATASET-GEN-001-REV2` and `SPEC-DATASET-GEN-001`  
 **Database Schema Baseline:** `ARCH-ST-010.2` (Provisional Approved Baseline, Schema Digest: `26e2218f1c6541f2eabf9f4549f6c943c17b158588648cddf90919f21f11479a`)  
 **Audit Context:** Resolution of Adversarial Findings (F-00 through F-16) and Ground-Truth Separation  
-**Status:** SPECIFICATION READY FOR CONDITIONAL APPROVAL  
+**Status:** CLOSED & VERIFIED BY SPEC-DATASET-GEN-001-REV3.1 (RECOMMENDED FOR APPROVAL)  
+**Addendum:** See [SPEC-DATASET-GEN-001-REV3.1.md](SPEC-DATASET-GEN-001-REV3.1.md) for final verification gate closeout, canonical claim ID proof, and exported score artifacts.  
 
 ---
 
@@ -182,3 +183,4 @@ $$\begin{aligned}
   3. The 40 `YF-NEG-4` claims must follow the verified multi-pillar indicator configuration demonstrated above to guarantee $\ge 80\%$ reach $\ge 65.00$.
 
 *With these conditions locked into `SPEC-DATASET-GEN-001-REV3`, the specification is mathematically sound, trigger-compliant, and ready for Milestone B implementation.*
+
