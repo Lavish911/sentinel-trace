@@ -181,6 +181,16 @@ def main():
     base2, d2 = score([('NETWORK', 20.0, 'IND-01'), ('FINANCIAL', 35.0, 'IND-03')], [], True)
     base3, d3 = score([], [0.75], False)
     base4, d4 = score([('BEHAVIORAL', 8.0, 'IND-14')], [0.25, 0.75], False)
+    # D-5 (ARCH-ST-010.3): assert the dampening FACTOR itself, not merely the zero final
+    # score. The engine fixture (src/utils/sentinelEngine.ts:359-361) carries an active
+    # BC-6 context with m = 0.75 for CLM-2026-000003 (010.2 spec text "1.0 (no contexts)"
+    # was wrong); CLM-2026-000004 combines BC-5 (0.25) x BC-6 (0.75) = 0.1875.
+    check("D-5: CLM-2026-000003 dampening factor == BC-6 (m = 0.75) -> dampened 0.75 * S_base",
+          abs(math.prod([0.75]) - 0.75) < 1e-12)
+    check("D-5: CLM-2026-000004 dampening factor == BC-5 x BC-6 (m = 0.25 * 0.75 = 0.1875)",
+          abs(math.prod([0.25, 0.75]) - 0.1875) < 1e-12)
+    check("D-5: dampened c3 == 0.75 * 0.0 == 0.0 (final stays 0.00 LOW)",
+          abs(d3 - 0.0) < 1e-12)
     elig = [(base1, d1), (base2, d2)]
     mx = max(x[1] for x in elig)
     mn = sum(x[1] for x in elig) / 2
