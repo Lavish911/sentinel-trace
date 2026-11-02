@@ -12,6 +12,8 @@ BEGIN
             THEN RAISE(ABORT, 'ERR_NON_MONOTONIC_SEQUENCE_NO')
         WHEN (SELECT COUNT(*) FROM immutable_events) > 0 AND NEW.prev_event_hash != (SELECT event_hash FROM immutable_events WHERE sequence_no = NEW.sequence_no - 1)
             THEN RAISE(ABORT, 'ERR_BROKEN_HASH_CHAIN_LINK')
+        WHEN EXISTS (SELECT 1 FROM json_tree(NEW.payload_json) WHERE type = 'real')
+            THEN RAISE(ABORT, 'ERR_EVENT_PAYLOAD_FLOAT_FORBIDDEN')
     END;
 END;
 
@@ -41,6 +43,10 @@ BEGIN
              OR NEW.reserved_authorized_cents != 0 OR NEW.gross_disbursed_cents != 0
              OR NEW.clawed_back_cents != 0 OR NEW.net_paid_cents != 0
             THEN RAISE(ABORT, 'ERR_CLAIM_INITIAL_BALANCES_MUST_BE_ZERO')
+        WHEN NEW.siu_referred != 0
+            THEN RAISE(ABORT, 'ERR_CLAIM_INITIAL_SIU_REFERRED_MUST_BE_ZERO')
+        WHEN NEW.latest_ief_score != 0.0 OR NEW.latest_risk_tier != 'LOW' OR NEW.scoring_evidence_sha256 IS NOT NULL
+            THEN RAISE(ABORT, 'ERR_CLAIM_INITIAL_SCORE_STATE_INVALID')
         WHEN NEW.claimant_id != (SELECT claimant_id FROM policies WHERE policy_id = NEW.policy_id)
             THEN RAISE(ABORT, 'ERR_CLAIM_POLICY_CLAIMANT_MISMATCH')
         WHEN NEW.payout_cap_cents != MIN(
@@ -62,6 +68,16 @@ BEGIN
              OR NEW.payout_cap_cents != OLD.payout_cap_cents
              OR NEW.submitted_at_utc != OLD.submitted_at_utc
             THEN RAISE(ABORT, 'ERR_CLAIM_IMMUTABLE_CORE_FIELDS')
+        WHEN OLD.siu_referred = 1 AND NEW.siu_referred = 0
+            THEN RAISE(ABORT, 'ERR_CLAIM_SIU_REFERRED_IRREVERSIBLE')
+        WHEN OLD.siu_referred = 0 AND NEW.siu_referred = 1
+             AND NEW.claim_status != 'SIU_HOLD'
+             AND NOT EXISTS (
+                 SELECT 1 FROM investigations
+                 WHERE primary_claim_id = NEW.claim_id
+                   AND investigation_status = 'CLOSED_CONFIRMED_FRAUD'
+             )
+            THEN RAISE(ABORT, 'ERR_CLAIM_SIU_REFERRAL_REQUIRES_HOLD_OR_CONFIRMED_FRAUD')
         WHEN NEW.historical_approved_cents < OLD.historical_approved_cents
             THEN RAISE(ABORT, 'ERR_CLAIM_HISTORICAL_APPROVED_DECREASE_FORBIDDEN')
         WHEN NEW.approved_amount_cents != COALESCE((
@@ -120,7 +136,7 @@ BEGIN
             OR (OLD.claim_status = 'APPROVED' AND NEW.claim_status IN ('PARTIALLY_PAID','PAID','SIU_HOLD'))
             OR (OLD.claim_status = 'PARTIALLY_PAID' AND NEW.claim_status IN ('PAID','APPROVED','SIU_HOLD'))
             OR (OLD.claim_status = 'PAID' AND NEW.claim_status IN ('PARTIALLY_PAID','APPROVED','SIU_HOLD'))
-            OR (OLD.claim_status = 'SIU_HOLD' AND NEW.claim_status IN ('APPROVED','DENIED','CLOSED_NO_PAY'))
+            OR (OLD.claim_status = 'SIU_HOLD' AND NEW.claim_status IN ('UNDER_REVIEW','APPROVED','PARTIALLY_PAID','PAID','DENIED','CLOSED_NO_PAY'))
         )
             THEN RAISE(ABORT, 'ERR_CLAIM_INVALID_FSM_TRANSITION')
     END;
@@ -418,7 +434,10 @@ BEGIN
                 THEN RAISE(ABORT, 'ERR_DISBURSED_TIMESTAMP_BEFORE_CREATED')
             WHEN NOT EXISTS (
                  SELECT 1 FROM immutable_events e
-                 WHERE e.entity_type = 'Payment' AND e.entity_id = NEW.payment_id
+                 WHERE e.sequence_no = (
+                     SELECT MAX(e2.sequence_no) FROM immutable_events e2
+                     WHERE e2.entity_type = 'Payment' AND e2.entity_id = NEW.payment_id
+                 )
                    AND e.event_type = 'PAYMENT_AUTHORIZED'
                    AND e.payload_sha256 = sha256_hex(
                        CASE NEW.recipient_type
@@ -447,7 +466,10 @@ BEGIN
                 THEN RAISE(ABORT, 'ERR_PAYMENT_CANCELLATION_REQUIRES_REASON')
             WHEN NOT EXISTS (
                  SELECT 1 FROM immutable_events e
-                 WHERE e.entity_type = 'Payment' AND e.entity_id = NEW.payment_id
+                 WHERE e.sequence_no = (
+                     SELECT MAX(e2.sequence_no) FROM immutable_events e2
+                     WHERE e2.entity_type = 'Payment' AND e2.entity_id = NEW.payment_id
+                 )
                    AND e.event_type = 'PAYMENT_CANCELLED'
                    AND e.payload_sha256 = sha256_hex(
                        '{"amount_cents":' || CAST(NEW.amount_cents AS TEXT)
@@ -464,7 +486,10 @@ BEGIN
                 THEN RAISE(ABORT, 'ERR_CLAWBACK_TIMESTAMP_BEFORE_DISBURSED')
             WHEN NOT EXISTS (
                  SELECT 1 FROM immutable_events e
-                 WHERE e.entity_type = 'Payment' AND e.entity_id = NEW.payment_id
+                 WHERE e.sequence_no = (
+                     SELECT MAX(e2.sequence_no) FROM immutable_events e2
+                     WHERE e2.entity_type = 'Payment' AND e2.entity_id = NEW.payment_id
+                 )
                    AND e.event_type = 'PAYMENT_CLAWBACK_REVERSED'
                    AND e.payload_sha256 = sha256_hex(
                        '{"amount_cents":' || CAST(NEW.amount_cents AS TEXT)
@@ -483,6 +508,24 @@ BEGIN
                 THEN RAISE(ABORT, 'ERR_CLAWBACK_MUST_STRICTLY_INCREASE')
             WHEN NEW.reversed_at_utc < OLD.reversed_at_utc
                 THEN RAISE(ABORT, 'ERR_CLAWBACK_TIMESTAMP_REGRESSION')
+            WHEN NOT EXISTS (
+                 SELECT 1 FROM immutable_events e
+                 WHERE e.sequence_no = (
+                     SELECT MAX(e2.sequence_no) FROM immutable_events e2
+                     WHERE e2.entity_type = 'Payment' AND e2.entity_id = NEW.payment_id
+                 )
+                   AND e.event_type = 'PAYMENT_CLAWBACK_REVERSED'
+                   AND e.payload_sha256 = sha256_hex(
+                       '{"amount_cents":' || CAST(NEW.amount_cents AS TEXT)
+                       || ',"claim_id":"' || NEW.claim_id
+                       || '","clawed_back_cents":' || CAST(NEW.clawed_back_cents AS TEXT)
+                       || ',"invoice_id":"' || NEW.invoice_id
+                       || '","net_paid_cents":' || CAST(NEW.net_paid_cents AS TEXT)
+                       || ',"payment_id":"' || NEW.payment_id
+                       || '","payment_status":"REVERSED_CLAWBACK"}'
+                   )
+             )
+                THEN RAISE(ABORT, 'ERR_CLAWBACK_REQUIRES_EVENT')
         END
         ELSE RAISE(ABORT, 'ERR_PAYMENT_INVALID_STATE_TRANSITION')
     END;
@@ -616,12 +659,7 @@ BEGIN
     SELECT RAISE(ABORT, 'ERR_INVESTIGATION_DELETE_FORBIDDEN');
 END;
 
--- 7. [ARCH-ST-010.1 / C-6] Relationship-Edge Tamper Protection
---    Edges are append-only. The ONLY permitted post-insert mutation is the
---    deactivation is_active 1 -> 0, and it is valid ONLY when the newest
---    immutable_events row for (RelationshipEdge, edge_id) is a
---    RELATIONSHIP_EDGE_DEACTIVATED event whose payload_sha256 matches the
---    canonical payload contract. All other UPDATEs and all DELETEs abort.
+-- 7. [ARCH-ST-010.2 / C-6 / NEW-4] Relationship-Edge Tamper Protection
 CREATE TRIGGER trg_edges_flow_upd
 BEFORE UPDATE ON relationship_edges
 FOR EACH ROW
@@ -642,10 +680,10 @@ BEGIN
              OR NEW.first_observed_utc != OLD.first_observed_utc
              OR NEW.supporting_claim_id != OLD.supporting_claim_id
             THEN RAISE(ABORT, 'ERR_EDGE_CORE_FIELDS_IMMUTABLE')
-        WHEN NEW.is_active = OLD.is_active
-            THEN NULL  -- only last_observed_utc bumps are permitted alongside no-op is_active
         WHEN NEW.last_observed_utc < OLD.last_observed_utc
             THEN RAISE(ABORT, 'ERR_EDGE_OBSERVED_TIME_REGRESSION')
+        WHEN NEW.is_active = 1 AND OLD.is_active = 0
+            THEN RAISE(ABORT, 'ERR_EDGE_REACTIVATION_FORBIDDEN')
         WHEN NEW.is_active = 0 AND OLD.is_active = 1
              AND NOT EXISTS (
                  SELECT 1 FROM immutable_events e
@@ -660,11 +698,11 @@ BEGIN
                    )
              )
             THEN RAISE(ABORT, 'ERR_EDGE_DEACTIVATION_REQUIRES_EVENT')
-        WHEN NEW.is_active = 1 AND OLD.is_active = 0
-            THEN RAISE(ABORT, 'ERR_EDGE_REACTIVATION_FORBIDDEN')
-        WHEN NEW.is_active NOT IN (0, 1)
-             OR (NEW.is_active = OLD.is_active AND NEW.last_observed_utc IS NULL)
-            THEN RAISE(ABORT, 'ERR_EDGE_MUTATION_INVALID')
+        WHEN NEW.is_active = 0 AND OLD.is_active = 1
+            THEN NULL
+        WHEN NEW.is_active = OLD.is_active
+            THEN NULL
+        ELSE RAISE(ABORT, 'ERR_EDGE_MUTATION_INVALID')
     END;
 END;
 
@@ -676,9 +714,6 @@ BEGIN
 END;
 
 -- 8. [ARCH-ST-010.1 / C-6] Fraud-Indicator Append-Only Protection
---    Indicators are the auditable evidence layer behind S_base. They are
---    append-only: every UPDATE or DELETE aborts. Score manipulation is
---    additionally defeated by trg_claims_score_upd (ST-SCORE-V1 binding).
 CREATE TRIGGER trg_findings_block_upd
 BEFORE UPDATE ON fraud_indicators
 FOR EACH ROW
@@ -694,8 +729,6 @@ BEGIN
 END;
 
 -- 9. [ARCH-ST-010.1 / C-6] claims.siu_referred lifecycle
---     siu_referred flips to 1 exactly when a claim enters SIU_HOLD and can
---     never be reset (SIU referral is permanent history).
 CREATE TRIGGER trg_claims_siu_referred_au
 AFTER UPDATE OF claim_status ON claims
 FOR EACH ROW
@@ -714,12 +747,7 @@ BEGIN
     UPDATE claims SET siu_referred = 1 WHERE claim_id = NEW.primary_claim_id;
 END;
 
--- 12. [ARCH-ST-010.1 / C-6] Score-to-evidence reconciliation (ST-SCORE-V1)
---     Any write to claims.latest_ief_score, claims.latest_risk_tier or
---     claims.scoring_evidence_sha256 MUST carry a scoring_evidence_sha256
---     that equals the ST-SCORE-V1 digest recomputed database-side from the
---     curator's fraud_indicators rows + the claimed score itself, and the
---     risk tier must equal the deterministic tier thresholds.
+-- 11. [ARCH-ST-010.2 / C-6 / NEW-1] Score-to-evidence reconciliation (ST-SCORE-V1)
 CREATE TRIGGER trg_claims_score_upd
 BEFORE UPDATE OF latest_ief_score, latest_risk_tier, scoring_evidence_sha256 ON claims
 FOR EACH ROW
@@ -727,6 +755,57 @@ BEGIN
     SELECT CASE
         WHEN NEW.scoring_evidence_sha256 IS NULL
             THEN RAISE(ABORT, 'ERR_SCORE_EVIDENCE_DIGEST_REQUIRED')
+        WHEN (SELECT COUNT(*) FROM fraud_indicators WHERE claim_id = NEW.claim_id) = 0
+             AND NEW.latest_ief_score != 0.0
+            THEN RAISE(ABORT, 'ERR_SCORE_ZERO_INDICATORS_NONZERO_FORBIDDEN')
+        WHEN (SELECT COUNT(*) FROM fraud_indicators WHERE claim_id = NEW.claim_id) > 0
+             AND NOT (
+                 CASE
+                     WHEN EXISTS (
+                         SELECT 1
+                         FROM fraud_indicators f1_bank
+                         JOIN fraud_indicators f1_dup
+                           ON f1_dup.claim_id = f1_bank.claim_id
+                         JOIN fraud_indicators f2_bank
+                           ON f2_bank.indicator_code = 'IND-01'
+                          AND f2_bank.canonical_evidence_token = f1_bank.canonical_evidence_token
+                          AND f2_bank.claim_id != f1_bank.claim_id
+                         JOIN fraud_indicators f2_dup
+                           ON f2_dup.claim_id = f2_bank.claim_id
+                          AND f2_dup.indicator_code = 'IND-03'
+                          AND f2_dup.canonical_evidence_token = f1_dup.canonical_evidence_token
+                         WHERE f1_bank.claim_id = NEW.claim_id
+                           AND f1_bank.indicator_code = 'IND-01'
+                           AND f1_dup.indicator_code = 'IND-03'
+                     ) THEN
+                         NEW.latest_ief_score >= MAX(65.0, ROUND((
+                             0.35 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'NETWORK'), 0.0) / 60.0)
+                             + 0.30 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'FINANCIAL'), 0.0) / 55.0)
+                             + 0.20 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'BEHAVIORAL'), 0.0) / 45.0)
+                             + 0.15 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'DOCUMENT'), 0.0) / 40.0)
+                         ) - 0.005, 2))
+                         AND NEW.latest_ief_score <= MIN(100.0, MAX(65.0, ROUND((
+                             0.35 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'NETWORK'), 0.0) / 60.0)
+                             + 0.30 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'FINANCIAL'), 0.0) / 55.0)
+                             + 0.20 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'BEHAVIORAL'), 0.0) / 45.0)
+                             + 0.15 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'DOCUMENT'), 0.0) / 40.0)
+                         ) + 20.0 + 0.005, 2)))
+                     ELSE
+                         NEW.latest_ief_score >= ROUND(0.15 * (
+                             0.35 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'NETWORK'), 0.0) / 60.0)
+                             + 0.30 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'FINANCIAL'), 0.0) / 55.0)
+                             + 0.20 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'BEHAVIORAL'), 0.0) / 45.0)
+                             + 0.15 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'DOCUMENT'), 0.0) / 40.0)
+                         ) - 0.005, 2)
+                         AND NEW.latest_ief_score <= ROUND((
+                             0.35 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'NETWORK'), 0.0) / 60.0)
+                             + 0.30 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'FINANCIAL'), 0.0) / 55.0)
+                             + 0.20 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'BEHAVIORAL'), 0.0) / 45.0)
+                             + 0.15 * MIN(100.0, 100.0 * COALESCE((SELECT SUM(raw_points) FROM fraud_indicators WHERE claim_id = NEW.claim_id AND pillar = 'DOCUMENT'), 0.0) / 40.0)
+                         ) + 0.005, 2)
+                 END
+             )
+            THEN RAISE(ABORT, 'ERR_SCORE_OUTSIDE_INDICATOR_BOUNDS')
         WHEN NEW.scoring_evidence_sha256 != (
                 SELECT COALESCE(
                     sha256_hex(
