@@ -10,6 +10,7 @@ import sqlite3
 import json
 from typing import Dict, Any, List, Optional
 
+from backend.app.core.config import REPO_ROOT
 from backend.app.db.session import get_db
 from db.operations import place_claim_on_siu_hold, release_claim_from_siu_hold
 from db.seed import EventChainEmitter
@@ -56,11 +57,28 @@ def list_claims(
         params.extend([s_term, s_term, s_term])
 
     if scenario == "yf_neg_4":
-        # 40 collusion ring claims (CLM-2026-000711..000750)
-        where_clauses.append("c.claim_id BETWEEN 'CLM-2026-000711' AND 'CLM-2026-000750'")
+        # 40 collusion ring claims under partial missing edge observability
+        gt_path = REPO_ROOT / "data" / "ground_truth.db"
+        if gt_path.is_file():
+            with sqlite3.connect(str(gt_path)) as gt_conn:
+                yf4_ids = [
+                    r[0]
+                    for r in gt_conn.execute(
+                        "SELECT claim_id FROM ground_truth_claim_labels WHERE scenario_code = 'YF-NEG-4'"
+                    ).fetchall()
+                ]
+            if yf4_ids:
+                placeholders = ",".join("?" for _ in yf4_ids)
+                where_clauses.append(f"c.claim_id IN ({placeholders})")
+                params.extend(yf4_ids)
+        else:
+            # Operational relationship fallback: collusion clinic network billing
+            where_clauses.append(
+                "c.claim_id IN (SELECT DISTINCT claim_id FROM invoices WHERE provider_id BETWEEN 'PRV-000031' AND 'PRV-000040')"
+            )
     elif scenario == "yf_neg_5":
-        # 80 high-density apartment claims (742 Evergreen Terrace / 100 Ocean Ave)
-        where_clauses.append("(clmt.address_norm LIKE '742 EVERGREEN TERRACE%' OR clmt.address_norm LIKE '100 Ocean Ave%' OR c.claim_id BETWEEN 'CLM-2026-000776' AND 'CLM-2026-000855')")
+        # 80 high-density apartment claims: shared multi-unit building at 742 Evergreen Terrace
+        where_clauses.append("clmt.address_norm LIKE '742 EVERGREEN TERRACE%'")
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 

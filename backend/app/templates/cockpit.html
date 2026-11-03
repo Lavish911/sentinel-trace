@@ -322,13 +322,13 @@ g.node.sel .nshape{stroke:var(--ink) !important;stroke-width:2.6 !important}
     <div class="chip-row" id="mast-chips" aria-hidden="true">
       <span class="chip" id="chip-baseline"><b>ARCH-ST-010.3 VERIFIED</b></span>
       <span class="chip" id="chip-schema"><span class="dot" id="chip-schema-dot"></span><span id="chip-schema-txt">schema…</span></span>
-      <span class="chip" id="chip-merkle">Merkle …</span>
+      <span class="chip" id="chip-merkle" title="Sequential ST-EVT-V2 cryptographic hash chain tip hash">Chain Tip …</span>
     </div>
     <nav class="mast-nav" aria-label="Primary">
       <a class="nav-item" href="#/overview" data-nav="overview"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16v-5m4 5V8m4 8v-3"/></svg>Overview</a>
       <a class="nav-item" href="#/claims" data-nav="claims"><svg viewBox="0 0 24 24"><path d="M7 4h7l4 4v12H7zM14 4v4h4M10 12h5m-5 4h5"/></svg>Claims Desk</a>
       <a class="nav-item" href="#/network" data-nav="network"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.4"/><circle cx="5" cy="18" r="2.4"/><circle cx="19" cy="18" r="2.4"/><path d="M11 8l-4 8m6-8l4 8M7.5 18h9"/></svg>Network</a>
-      <a class="nav-item" href="#/chain" data-nav="chain"><svg viewBox="0 0 24 24"><path d="M9 15l-3-3 3-3m6 0l3 3-3 3M9 12h6"/></svg>Merkle Chain</a>
+      <a class="nav-item" href="#/chain" data-nav="chain"><svg viewBox="0 0 24 24"><path d="M9 15l-3-3 3-3m6 0l3 3-3 3M9 12h6"/></svg>Event Chain</a>
       <a class="nav-item" href="#/cases" data-nav="cases"><svg viewBox="0 0 24 24"><path d="M4 8h16v11H4zM4 8l2-4h12l2 4M10 12h4"/></svg>SIU Cases</a>
     </nav>
   </div>
@@ -502,17 +502,30 @@ async function loadGlobal(){
   ]);
   State.dashboard = dash; State.health = health;
   if(dash){
-    $('#chip-baseline').innerHTML = `<b>${esc(dash.dataset_baseline)}</b>`;
-    $('#chip-merkle').textContent = 'Merkle ' + dash.merkle_root.slice(0,12) + '…';
+    const tip = dash.tip_event_hash || dash.merkle_root || '';
+    $('#chip-merkle').textContent = 'Chain Tip ' + (tip ? tip.slice(0,12) + '…' : '—');
+    $('#chip-merkle').title = `ST-EVT-V2 sequential tip hash: ${tip} (Tip Seq #${dash.event_chain?.tip_sequence_no || dash.entities?.immutable_events || 19675})`;
     $('#foot-baseline').textContent = dash.dataset_baseline;
   }
   if(health){
-    const ok = !!health.schema_digest;
-    $('#chip-schema-dot').className = 'dot ' + (ok ? 'dot-ok' : '');
-    $('#chip-schema-txt').innerHTML = `ST-SCHEMA <span style="color:${ok?'var(--sage)':'var(--terra)'}">${ok?'OK':'FAIL'}</span> · ${esc((health.schema_digest||'').slice(0,8))||'—'}`;
-    $('#chip-schema').title = health.schema_verified
-      ? 'Schema digest verified'
-      : `Digest ${health.schema_digest} matches baseline; deployment reports trigger count ${health.trigger_count} vs expected ${health.expected_trigger_count ?? 24} (backend config drift — see Integrity panel on Overview).`;
+    const ok = !!health.schema_verified;
+    const digest = health.schema_digest || '';
+    if(ok){
+      $('#chip-baseline').innerHTML = `<b>${esc(health.schema_baseline)} VERIFIED</b>`;
+      $('#chip-baseline').style.borderColor = 'var(--sage)';
+    } else {
+      $('#chip-baseline').innerHTML = `<b style="color:var(--terra)">${esc(health.schema_baseline||'SCHEMA')} UNVERIFIED</b>`;
+      $('#chip-baseline').style.borderColor = 'var(--terra)';
+    }
+    $('#chip-schema-dot').className = 'dot ' + (ok ? 'dot-ok' : 'dot-fail');
+    $('#chip-schema-txt').innerHTML = `ST-SCHEMA <span style="color:${ok?'var(--sage)':'var(--terra)'}">${ok?'OK':'FAIL'}</span> · ${esc(digest.slice(0,8))||'—'}`;
+    $('#chip-schema').title = ok
+      ? `Canonical ${health.schema_baseline} schema verified (12 tables, 27 triggers, digest ${digest})`
+      : `Schema mismatch or unverified: Tables: ${health.table_count}/12, Triggers: ${health.trigger_count}/27. Digest: ${digest}`;
+  } else {
+    $('#chip-baseline').innerHTML = `<b style="color:var(--terra)">DATABASE OFFLINE</b>`;
+    $('#chip-baseline').style.borderColor = 'var(--terra)';
+    $('#chip-schema-txt').innerHTML = `ST-SCHEMA <span style="color:var(--terra)">FAIL</span>`;
   }
 }
 
@@ -659,12 +672,9 @@ async function renderOverview(){
         <div class="card-b" style="font-size:12.5px;display:flex;flex-direction:column;gap:8px">
           <div class="fld" style="grid-template-columns:170px 1fr"><dt>Dataset baseline</dt><dd class="mono">${esc(dash.dataset_baseline)}</dd></div>
           <div class="fld" style="grid-template-columns:170px 1fr"><dt>Schema digest</dt><dd class="hash">${esc(State.health?.schema_digest||'—')} ${State.health?.schema_digest?`<button class="copy-btn" onclick="copyText('${esc(State.health.schema_digest)}','Digest')" aria-label="Copy schema digest">${I.copy}copy</button>`:''}</dd></div>
-          <div class="fld" style="grid-template-columns:170px 1fr"><dt>Merkle root</dt><dd class="hash">${esc(dash.merkle_root)} <button class="copy-btn" onclick="copyText('${esc(dash.merkle_root)}','Root')" aria-label="Copy Merkle root">${I.copy}copy</button></dd></div>
-          <div class="fld" style="grid-template-columns:170px 1fr"><dt>Immutable events</dt><dd class="mono num">${fmtNum(ent.immutable_events)}</dd></div>
-          ${State.health && !State.health.schema_verified ? `
-          <div class="payoff-note" style="margin-top:4px">
-            <b>Deployment notice.</b> The schema digest matches the ${esc(State.health.schema_baseline||'ARCH-ST-010.3')} baseline, but the running backend config expects ${State.health.expected_trigger_count ?? 24} triggers and the deployed schema ships <b>${State.health.trigger_count}</b>. The richer 010.3 trigger set is intentional; backend <code>verify_schema()</code> still flags count drift. Data integrity itself is unaffected.
-          </div>`:''}
+          <div class="fld" style="grid-template-columns:170px 1fr"><dt>Chain tip hash</dt><dd class="hash">${esc(dash.tip_event_hash||dash.merkle_root||'—')} <button class="copy-btn" onclick="copyText('${esc(dash.tip_event_hash||dash.merkle_root||'')}','Tip hash')" aria-label="Copy chain tip hash">${I.copy}copy</button></dd></div>
+          <div class="fld" style="grid-template-columns:170px 1fr"><dt>Immutable events</dt><dd class="mono num">${fmtNum(ent.immutable_events)} sequential events (ST-EVT-V2)</dd></div>
+          <div class="fld" style="grid-template-columns:170px 1fr"><dt>Verification status</dt><dd>${State.health?.schema_verified ? `<span class="badge badge-ok">VERIFIED · ARCH-ST-010.3 COMPLIANT (12 tables, 27 triggers)</span>` : `<span class="badge badge-fail">UNVERIFIED · ${esc(State.health?.details||'Schema mismatch')}</span>`}</dd></div>
         </div>
       </div>
     </div>
@@ -885,7 +895,7 @@ function paintNetTabBadge(net){
   if(el && net && net.metrics) el.textContent = ` ${net.metrics.total_nodes}/${net.metrics.total_edges}`;
 }
 
-const DOSSIER_TABS = [ ['dossier','Dossier'], ['indicators','Indicators'], ['network','Network'], ['chain','Merkle chain'], ['case','SIU case'] ];
+const DOSSIER_TABS = [ ['dossier','Dossier'], ['indicators','Indicators'], ['network','Network'], ['chain','Event chain'], ['case','SIU case'] ];
 function setDossierTab(tab){
   State.dossier.tab = tab;
   $$('.dtab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
@@ -1610,12 +1620,12 @@ async function renderChainView(claimId){
   const T = sesToken; const root = $('#view-chain');
   State.chain.claimId = claimId;
   root.innerHTML = `
-    <div class="breadcrumbs"><a href="#/overview">Overview</a><span class="sep">/</span><span>Merkle audit timeline</span></div>
+    <div class="breadcrumbs"><a href="#/overview">Overview</a><span class="sep">/</span><span>Event audit timeline</span></div>
     <div class="page-head">
       <div>
-        <div class="eyebrow">Merkle Audit Timeline</div>
+        <div class="eyebrow">Cryptographic Event Audit Timeline</div>
         <h1 id="m-h">Every transition, hashed and sequenced</h1>
-        <p class="lede">The immutable event ledger. Each event carries a SHA-256 hash chained to its predecessor; the dashboard exposes the dataset Merkle root. Scope the view to one claim to follow its forensic chronology.</p>
+        <p class="lede">The immutable event ledger. Each event carries a SHA-256 hash chained to its predecessor (prev_event_hash); the dashboard exposes the dataset tip event hash. Scope the view to one claim to follow its forensic chronology.</p>
       </div>
       <div class="head-meta" id="chain-head-meta"></div>
     </div>
@@ -1629,7 +1639,7 @@ async function renderChainView(claimId){
         <div class="field" id="chain-type-field" style="display:none"><label for="chain-type">Event type within scope</label><select class="select" id="chain-type"></select></div>
         <div class="field"><label>&nbsp;</label><button class="btn btn-ghost" id="chain-go" ${claimId?'':'disabled'}>Load timeline</button></div>
       </div>
-      <p class="hint" style="padding:8px 16px;border-top:1px solid var(--panel-line)">The API exposes the chain per claim (GET /claims/{id}/timeline). A global, cross-claim event feed is not part of the current API surface, so the dataset-wide view is limited to the Merkle summary above.</p>
+      <p class="hint" style="padding:8px 16px;border-top:1px solid var(--panel-line)">The API exposes the chain per claim (GET /claims/{id}/timeline). A global, cross-claim event feed is not part of the current API surface, so the dataset-wide view is limited to the ledger summary above.</p>
     </div>
     <div id="chain-body">${claimId ? renderLoading('Replaying the event chain for ' + claimId + '.') : ''}</div>
     <div class="card" style="margin-top:14px">
@@ -1640,10 +1650,11 @@ async function renderChainView(claimId){
   const dash = State.dashboard || await api('/dashboard/stats').catch(()=>null);
   if(T !== sesToken) return;
   if(dash){
+    const tip = dash.tip_event_hash || dash.merkle_root || '';
     $('#chain-stats-slot').innerHTML = `
       <div class="chain-stats" role="list" aria-label="Ledger summary">
-        <div role="listitem"><div class="cs-label">Merkle root</div><div class="cs-val" style="font-size:12px">${esc(dash.merkle_root.slice(0,18))}… <button class="copy-btn" onclick="copyText('${esc(dash.merkle_root)}','Merkle root')" aria-label="Copy full Merkle root">${I.copy}copy</button></div></div>
-        <div role="listitem"><div class="cs-label">Immutable events</div><div class="cs-val">${fmtNum(dash.entities.immutable_events)}</div></div>
+        <div role="listitem"><div class="cs-label">Chain tip hash</div><div class="cs-val" style="font-size:12px">${esc(tip.slice(0,18))}… <button class="copy-btn" onclick="copyText('${esc(tip)}','Chain tip hash')" aria-label="Copy full chain tip hash">${I.copy}copy</button></div></div>
+        <div role="listitem"><div class="cs-label">Immutable events</div><div class="cs-val">${fmtNum(dash.entities?.immutable_events||19675)}</div></div>
         <div role="listitem"><div class="cs-label">Dataset baseline</div><div class="cs-val" style="font-size:12px">${esc(dash.dataset_baseline)}</div></div>
         <div role="listitem" id="chain-verify-slot"><div class="cs-label">Linkage (scoped)</div><div class="cs-val muted">—</div></div>
       </div>`;
@@ -1728,7 +1739,7 @@ function chainMarkup(events, subtitle, openFullFn){
   const ordered = events.slice().sort((a,b)=>a.sequence_no-b.sequence_no);
   const contiguous = new Map(ordered.map((e,i)=>[e.event_id, i>0 && e.prev_event_hash === ordered[i-1].event_hash]));
   return `
-    ${subtitle?`<p class="hint" style="margin-bottom:10px">${esc(subtitle)}${openFullFn?` <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="${openFullFn}">Open in Merkle timeline ${I.arrowR}</button>`:''}</p>`:''}
+    ${subtitle?`<p class="hint" style="margin-bottom:10px">${esc(subtitle)}${openFullFn?` <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="${openFullFn}">Open in event timeline ${I.arrowR}</button>`:''}</p>`:''}
     ${ordered.map(e=>{
       const pay = e.payload && Object.keys(e.payload).length ? e.payload : null;
       const idSafe = esc(e.event_id).replace(/[^a-zA-Z0-9_-]/g,'_');

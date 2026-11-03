@@ -53,12 +53,21 @@ def get_dashboard_stats(conn: sqlite3.Connection = Depends(get_db)) -> Dict[str,
     investigations_count = conn.execute("SELECT COUNT(*) FROM investigations").fetchone()[0]
     events_count = conn.execute("SELECT COUNT(*) FROM immutable_events").fetchone()[0]
 
-    # Event hash chain Merkle root (latest tip)
-    last_event = conn.execute("SELECT event_hash FROM immutable_events ORDER BY sequence_no DESC LIMIT 1").fetchone()
-    merkle_root = last_event[0] if last_event else ""
+    # Event hash chain tip (latest sequence tip)
+    last_event = conn.execute("SELECT event_hash, sequence_no FROM immutable_events ORDER BY sequence_no DESC LIMIT 1").fetchone()
+    tip_hash = last_event[0] if last_event else ""
+    tip_sequence_no = last_event[1] if last_event else 0
 
     return {
         "dataset_baseline": f"{settings.SCHEMA_BASELINE} (Seed 42)",
+        "event_chain": {
+            "tip_event_hash": tip_hash,
+            "tip_sequence_no": tip_sequence_no,
+            "total_events": events_count,
+            "chain_structure": "ST-EVT-V2 Cryptographic Hash Chain",
+        },
+        "merkle_root": tip_hash,  # Retained for backward compatibility with existing tests
+        "tip_event_hash": tip_hash,
         "total_claims": sum(tier_counts.values()),
         "risk_tiers": tier_counts,
         "claim_statuses": status_counts,
@@ -83,5 +92,4 @@ def get_dashboard_stats(conn: sqlite3.Connection = Depends(get_db)) -> Dict[str,
             "investigations": investigations_count,
             "immutable_events": events_count,
         },
-        "merkle_root": merkle_root,
     }
