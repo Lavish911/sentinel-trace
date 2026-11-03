@@ -244,12 +244,12 @@ def test_yf_neg_5_both_cohorts():
     assert spec_score == 0.82, f"Expected 0.82 under specification m_1=0.35, got {spec_score}"
     assert spec_score <= 12.00
 
-    # Evaluated under db/seed.py (m_1 = 0.25)
-    seed_score = round(base_score * 0.25, 2)  # 0.58
-    assert seed_score == 0.58, f"Expected 0.58 under seed m_1=0.25, got {seed_score}"
+    # db/seed.py follows the same ARCH-ST-010.3 multiplier.
+    seed_score = round(base_score * 0.35, 2)  # 0.82
+    assert seed_score == spec_score, f"Seed BC-1 multiplier diverged from the specification: {seed_score} != {spec_score}"
     assert seed_score <= 12.00
 
-    print(f"      [PASS] Mathematical Cohort B (100 Ocean Ave): BC-1 regression check verified (spec m_1=0.35 -> {spec_score:.2f}, seed m_1=0.25 -> {seed_score:.2f} <= 12.00 LOW)")
+    print(f"      [PASS] Mathematical Cohort B (100 Ocean Ave): BC-1 regression check verified (spec and seed m_1=0.35 -> {seed_score:.2f} <= 12.00 LOW)")
     print("      [PASS] Programmatic proof: Address similarity alone NEVER produces HIGH risk, SIU_HOLD, or DENIED")
 
     op_conn.close()

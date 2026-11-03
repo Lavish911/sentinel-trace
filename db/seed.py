@@ -727,7 +727,10 @@ def derive_operational_indicators_and_scores(conn: sqlite3.Connection) -> None:
         # Product dampening D(c) = max(0.15, prod m_b)
         d_prod = 1.0
         if bc1:
-            d_prod *= 0.25
+            # ARCH-ST-010.3 §7.1 defines the BC-1 multiplier as 0.35.
+            # Keep the canonical generator aligned with the published scoring
+            # contract and the modular scorer.
+            d_prod *= 0.35
         if bc2:
             d_prod *= 0.30
         if bc3:
