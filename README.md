@@ -4,14 +4,14 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![SQLite STRICT](https://img.shields.io/badge/SQLite-STRICT%20%7C%20WAL-003B57.svg)](https://www.sqlite.org/)
 [![Schema Digest](https://img.shields.io/badge/ARCH--ST--010.3-2187bf73...-success.svg)](#key-architectural-invariants-arch-st-0103)
-[![Backend Tests](https://img.shields.io/badge/backend%20tests-66%2F66%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
-[![Total Tests](https://img.shields.io/badge/total%20tests-94%2F94%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
-[![Deterministic Dual-Run](https://img.shields.io/badge/bit--determinism-VERIFIED-brightgreen.svg)](#step-4-verify-deterministic-dual-run-bit-identity)
+[![Backend Tests](https://img.shields.io/badge/backend%20tests-66%20collected-blue.svg)](#step-3-run-full-automated-test-suites)
+[![Test Inventory](https://img.shields.io/badge/test%20inventory-94%20declared-blue.svg)](#step-3-run-full-automated-test-suites)
+[![Deterministic Dual-Run](https://img.shields.io/badge/dual--run-rerun%20required-yellow.svg)](#step-4-verify-deterministic-dual-run-bit-identity)
 
 > **YottaFlex AI Candidate Project Submission**  
 > **Canonical Architecture Baseline:** **ARCH-ST-010.3**  
 > **Target Deadline:** November 4, 2026, 11:48:55 AM IST  
-> **Status:** **READY FOR EVALUATION** (66/66 backend pytest tests passing; 20/20 ARCH-ST-010.3 validation checks verified; 8/8 transactional fault-injection tests passing [94/94 primary repository suite tests]; 8 separate targeted P0 hardening checks passing; End-to-End Forensic Cockpit operational)
+> **Status:** Submission candidate; final clean-checkout verification is still required. This repository contains 66 collected backend pytest cases, 20 database acceptance checks, and 8 atomicity tests (94 cases/checks in the primary inventory), plus an 8-check P0 hardening harness. Historical pass statements in archived reports are not a substitute for a current run.
 
 ---
 
@@ -24,7 +24,7 @@ In commercial claims portfolios, organized fraud networks inflict immense losses
 - **Provider Billing Mills:** Phantom services, unbundled billing, and duplicate invoices submitted across distinct claimants.
 - **Velocity Anomalies:** Rapid burst filings, post-policy-inception losses, and repeat injury profiles.
 
-SENTINEL//TRACE addresses these challenges by unifying an **operationally observed multi-entity knowledge graph**, an **explainable 10-stage scoring waterfall**, and a **cryptographically sealed append-only audit trail** that produces legally admissible evidence for Special Investigation Units (SIU).
+SENTINEL//TRACE addresses these challenges by unifying an **operationally observed multi-entity knowledge graph**, an **explainable 10-stage scoring waterfall**, and a **cryptographically sealed append-only audit trail** that supports traceable review by Special Investigation Units (SIU).
 
 ```mermaid
 flowchart TD
@@ -152,7 +152,7 @@ The Integrated Evidence Framework (IEF) evaluates 15 indicators across 4 pillars
 5. **Stage 5:** Pillar normalization and soft-max weighting.
 6. **Stage 6:** Multi-pillar synergy boost (+15% when $\ge 3$ pillars fire).
 7. **Stage 7:** Syndicated cluster boost (+20% for dense graph cliques).
-8. **Stage 8:** Calibrated Benign Dampening (BC-1 multiplier $\le 0.15$ for benign high-density housing).
+8. **Stage 8:** Calibrated benign dampening. For BC-1, the published multiplier is $0.35$; multiple active contexts use the product rule with a $0.15$ floor.
 9. **Stage 9:** Strict clipping to $[0.0, 100.0]$.
 10. **Stage 10:** Cryptographic SHA-256 evidence digest generation (`scoring_evidence_sha256`).
 
@@ -164,21 +164,18 @@ Table 5.1 of the architecture specification mandates an exact **4,120 table targ
 
 ---
 
-## 6. Core Negative Scenario Validation
+## 6. Core Negative Scenario Targets
 
-All 5 core negative and stress scenarios from the specification are verified:
+The generator and tests define these acceptance targets. Treat the counts and scores below as expected outcomes until they have been rerun on the commit being submitted:
 
-- **YF-NEG-1 (Nonexistent Policy Reference):** 25 invalid claims referencing nonexistent policies are rejected at the foreign key/trigger boundary and quarantined into `ingestion_exceptions` with 25 `INGESTION_EXCEPTION_RECORDED` events. Verified by `db/test_suite.py::T-10`.
-- **YF-NEG-2 (Payment Exceeding Approved Amount):** Direct live attempt to disburse payments exceeding approved invoice caps is aborted with `ERR_PAYMENT_EXCEEDS_APPROVED_CAP`. 30 blocked attempts recorded as `BLOCKED_OVERPAYMENT`. Verified by `db/test_suite.py::T-11`.
-- **YF-NEG-3 (Duplicate Invoice Across Claimants):** 25 duplicate invoice pairs across different claimants (`is_cross = True`) rejected with `REJECTED_DUPLICATE` and escalated by detector to `HIGH` risk ($\ge 65.00$). Verified by `db/test_suite.py::T-12`.
-- **YF-NEG-4 (Missing Operational Relationships):** 25 planted missing edges strictly quarantined in `ground_truth.db` with zero leakage into operational graph. 36 of 40 ring claims (90% $\ge$ 80% threshold) score $\ge 65.00$ `HIGH` using observable data only. Verified by `db/test_suite.py::T-13` and `test_generator.py::test_scenario_yf_neg_4_detection`.
-- **YF-NEG-5 (High-Density Benign Suppression):** 80 apartment claims at 742 Evergreen Terrace Apt 4B (Cohort A, plus 420 lookalike controls in BL-1..BL-5) score below benign thresholds ($\le 12.00$) in `LOW` risk tier with 0 false positives via calibrated benign dampening. Verified by `db/test_suite.py::T-14` and `test_generator.py::test_scenario_yf_neg_5_suppression`.
+- **YF-NEG-1 (Nonexistent Policy Reference):** 25 invalid claims should be rejected at the foreign key/trigger boundary and quarantined in `ingestion_exceptions` with matching `INGESTION_EXCEPTION_RECORDED` events (`db/test_suite.py::T-10`).
+- **YF-NEG-2 (Payment Exceeding Approved Amount):** A payment above an approved invoice cap should abort with `ERR_PAYMENT_EXCEEDS_APPROVED_CAP`; the scenario expects 30 `BLOCKED_OVERPAYMENT` attempts (`db/test_suite.py::T-11`).
+- **YF-NEG-3 (Duplicate Invoice Across Claimants):** The scenario defines 25 cross-claimant duplicate-invoice cases that should be rejected and escalated to `HIGH` risk ($\ge 65.00$) (`db/test_suite.py::T-12`).
+- **YF-NEG-4 (Missing Operational Relationships):** 25 planted missing edges belong only in `ground_truth.db`; the target is at least 32 of 40 ring claims scoring `HIGH` from operational features (`db/test_suite.py::T-13` and `test_generator.py::test_scenario_yf_neg_4_detection`).
+- **YF-NEG-5 (High-Density Benign Suppression):** The target is 80 apartment claims and 420 lookalike controls below the benign thresholds ($\le 12.00$, `LOW`, no false positives) (`db/test_suite.py::T-14` and `test_generator.py::test_scenario_yf_neg_5_suppression`).
   > [!NOTE]
-  > **BC-1 Calibration Disclosure (Empirical vs. Standalone Reference):**
-  > - **Specification Standalone Reference Calculation:** In `ARCH-ST-010.3` §7.1 and `SPEC-DATASET-GEN-001-REV3.1` §4.1, the standalone $BC-1$ formula specifies a single-context multiplier of $m_1 = 0.35$, yielding a theoretical mathematical reference score of **0.82**.
-  > - **Operational Seed Calibration (Compounded Product Rule):** The authoritative operational dataset generated by `db/seed.py` implements the multi-context product rule $D = \max(0.15, \prod m_b)$ wherein $BC-1 = 0.25$ compounds with $BC-6 = 0.75$ ($D = 0.25 \times 0.75 = 0.1875$), producing an empirically observed score of **0.44** across the 80 operational claims in `data/operational.db`.
-  > - **Classification Invariant & Operational Deviation:** Both the theoretical reference score ($0.82$) and the empirically observed score ($0.44$) fall well below the $\le 12.00$ threshold, strictly preserving the `LOW` risk tier, 0 false positives, and preventing any `SIU_HOLD` or `DENIED` outcomes. This difference represents an intentional operational calibration/deviation from the standalone specification reference to account for multi-context compounding in the synthetic generator.
-  > - **Cohort Validation Scope:** Cohort A (742 Evergreen Terrace, 80 claims) is empirically validated against live operational database rows; Cohort B (100 Ocean Ave, modular generator reference) is mathematically verified via regression checks without mutating the canonical 5,000-claim baseline dataset.
+  > **BC-1 alignment:** `ARCH-ST-010.3`, both dataset specifications, the modular scorer, and the canonical seed now use $m_1 = 0.35$. The seed still applies the documented product rule when more than one benign context is active. Regenerate the dataset and rerun the negative-case checks before treating any historical score CSV or checksum as current evidence.
+  > - **Cohort validation scope:** Cohort A (742 Evergreen Terrace, 80 claims) is exercised against generated operational rows. Cohort B (100 Ocean Ave, modular generator reference) is a mathematical regression check and does not mutate the baseline dataset.
 
 ---
 
@@ -327,8 +324,8 @@ In compliance with YottaFlex Candidate Project Submission Guidelines, complete d
 ## 12. Baseline Provenance & Audit Remediation Summary
 
 - **ARCH-ST-010.2 (Archived Predecessor):** Defined 24 triggers, schema digest `26e2218f...`, 19,615 events, and $52.7M exposure. Preserved in `archive/verify-0102/` and `sentinel_trace.db`.
-- **Argon Adversarial Audit:** Evaluated Milestone B (commit `2096c3a`), identifying 10 findings (`F-AUD-01` through `F-AUD-10` in [`argon_audit_report.txt`](argon_audit_report.txt)).
-- **ARCH-ST-010.3 (Active Canonical Baseline):** Resolved all 10 findings by introducing 3 additional lifecycle triggers (27 total), event hash chain extension to 19,675 events (chain tip hash `333f22fc...`), and canonical dataset generator `db/seed.py` ($41.8M claimed exposure). Verified in `db/test_suite.py` and `archive/verify-0103/`.
+- **Argon Adversarial Audit:** The repository contains an audit report describing Milestone B findings. Its historical execution claims have not been independently reproduced in this branch.
+- **ARCH-ST-010.3 (Active Canonical Baseline):** The source defines 27 triggers, a 19,675-event target, and `db/seed.py` as the generator. Use the current verification procedure before representing those targets as observed outputs.
 
-**Final Assessment:** **READY FOR EVALUATION**  
-*Validated against ARCH-ST-010.3, SPEC-DATASET-GEN-001-REV3.1, and YottaFlex Submission Guidelines.*
+**Final Assessment:** **Requires final clean-checkout verification.**
+See [`docs/VERIFICATION.md`](docs/VERIFICATION.md), [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md), and [`docs/DATA_PROVENANCE.md`](docs/DATA_PROVENANCE.md) for the current evidence boundary and reproducible steps.

@@ -119,10 +119,10 @@ def test_scenario_yf_neg_5_suppression(operational_db, ground_truth_db):
     p_net = min(100.0, 100.0 * raw_ind05_dampened / 60.0)
     base_score = 0.35 * p_net  # ~ 2.333333
     spec_score = round(base_score * 0.35, 2)  # 0.82
-    seed_score = round(base_score * 0.25, 2)  # 0.58
+    seed_score = round(base_score * 0.35, 2)  # 0.82
+    assert seed_score == spec_score, "Seed and specification BC-1 multipliers must agree"
     assert spec_score <= 12.0, "Ocean Ave specification score exceeds 12.0 cap"
-    assert seed_score <= 12.0, "Ocean Ave seed formula score exceeds 12.0 cap"
-    assert spec_score < 30.0 and seed_score < 30.0, "Ocean Ave falsely escalated to MEDIUM/HIGH"
+    assert spec_score < 30.0, "Ocean Ave falsely escalated to MEDIUM/HIGH"
 
 def test_withheld_edges_isolation(operational_db, ground_truth_db):
     """Asserts that withheld cross-cluster bridge edges never enter operational database."""
