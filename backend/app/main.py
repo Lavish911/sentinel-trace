@@ -26,11 +26,11 @@ async def lifespan(app: FastAPI):
         conn = create_connection()
         schema_info = verify_schema(conn)
         if not schema_info["verified"] and schema_info["table_count"] == 0:
-            logger.info("Database empty; applying ARCH-ST-010.2 schema and triggers...")
+            logger.info("Database empty; applying ARCH-ST-010.3 schema and triggers...")
             schema_info = initialize_database(conn)
         
         logger.info(
-            "Schema verification status: %s (Tables: %d/12, Triggers: %d/24, Digest: %s...)",
+            "Schema verification status: %s (Tables: %d/12, Triggers: %d/27, Digest: %s...)",
             "PASS" if schema_info["verified"] else "FAIL",
             schema_info["table_count"],
             schema_info["trigger_count"],
@@ -103,4 +103,3 @@ def cockpit():
     if COCKPIT_HTML_PATH.exists():
         return HTMLResponse(content=COCKPIT_HTML_PATH.read_text(encoding="utf-8"))
     return HTMLResponse(content="<h1>Cockpit template not found</h1>", status_code=404)
-

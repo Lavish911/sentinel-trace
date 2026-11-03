@@ -17,25 +17,28 @@ class Settings(BaseModel):
     API_V1_STR: str = "/api/v1"
     VERSION: str = "0.1.0"
 
-    # Provisional approved database baseline: ARCH-ST-010.2
-    SCHEMA_BASELINE: str = "ARCH-ST-010.2"
+    # Canonical approved database baseline: ARCH-ST-010.3
+    SCHEMA_BASELINE: str = "ARCH-ST-010.3"
     EXPECTED_SCHEMA_SHA256: str = (
-        "26e2218f1c6541f2eabf9f4549f6c943c17b158588648cddf90919f21f11479a"
+        "2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab"
     )
 
-    # Database file location (defaults to local SQLite file)
+    # Database file location (defaults to canonical operational.db)
     DATABASE_PATH: str = Field(
         default_factory=lambda: os.getenv(
-            "SENTINEL_DB_PATH", str(REPO_ROOT / "sentinel_trace.db")
+            "SENTINEL_DB_PATH",
+            str(REPO_ROOT / "data" / "operational.db")
+            if (REPO_ROOT / "data" / "operational.db").exists()
+            else str(REPO_ROOT / "operational.db")
         )
     )
 
     # Shipped SQL asset paths
     OPS_SQL_PATH: Path = Field(
-        default_factory=lambda: REPO_ROOT / "archive" / "verify-0102" / "ops_0102.sql"
+        default_factory=lambda: REPO_ROOT / "archive" / "verify-0103" / "ops_0103.sql"
     )
     TRIGS_SQL_PATH: Path = Field(
-        default_factory=lambda: REPO_ROOT / "archive" / "verify-0102" / "trigs_0102.sql"
+        default_factory=lambda: REPO_ROOT / "archive" / "verify-0103" / "trigs_0103.sql"
     )
 
     # CORS origins
@@ -48,4 +51,3 @@ class Settings(BaseModel):
 
 
 settings = Settings()
-

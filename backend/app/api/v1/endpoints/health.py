@@ -33,9 +33,9 @@ def health_check(db: sqlite3.Connection = Depends(get_db)) -> HealthResponse:
 
     status_str = "HEALTHY" if is_verified else "SCHEMA_UNINITIALIZED_OR_MISMATCH"
     details_str = (
-        "Provisional ARCH-ST-010.2 schema verified and compliant."
+        "Canonical ARCH-ST-010.3 schema verified and compliant."
         if is_verified
-        else f"Tables: {schema_info['table_count']}/12, Triggers: {schema_info['trigger_count']}/24."
+        else f"Tables: {schema_info['table_count']}/12, Triggers: {schema_info['trigger_count']}/27."
     )
 
     return HealthResponse(
@@ -50,4 +50,3 @@ def health_check(db: sqlite3.Connection = Depends(get_db)) -> HealthResponse:
         trigger_count=int(schema_info["trigger_count"]),
         details=details_str,
     )
-

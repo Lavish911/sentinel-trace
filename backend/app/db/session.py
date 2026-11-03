@@ -1,27 +1,31 @@
 import sqlite3
 from contextlib import contextmanager
+from pathlib import Path
 from typing import Generator, Optional
 from backend.app.core.config import settings
-from backend.app.db.udfs import register_udfs
+from db.engine import register_udfs, open_operational_db
 
 
 def create_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
-    """Create and configure a SQLite connection with required PRAGMAs and UDFs."""
+    """Create and configure a SQLite connection with canonical ARCH-ST-010.3 PRAGMAs and UDFs."""
     target_path = db_path if db_path is not None else settings.DATABASE_PATH
-    connection = sqlite3.connect(target_path, check_same_thread=False)
+    target = Path(target_path)
+
+    # If target does not exist and root operational.db exists, fallback
+    if target_path != ":memory:" and not target.exists():
+        root_alt = Path(__file__).resolve().parent.parent.parent.parent / "operational.db"
+        if root_alt.exists():
+            target_path = str(root_alt)
+
+    connection = sqlite3.connect(str(target_path), check_same_thread=False)
     connection.row_factory = sqlite3.Row
 
-    # Enforce database integrity and trigger PRAGMAs
-    connection.execute("PRAGMA foreign_keys = ON;")
-    connection.execute("PRAGMA recursive_triggers = ON;")
-    connection.execute("PRAGMA trusted_schema = ON;")
+    # Enforce canonical ARCH-ST-010.3 UDFs and PRAGMAs
+    register_udfs(connection)
 
     if target_path != ":memory:":
         connection.execute("PRAGMA journal_mode = WAL;")
         connection.execute("PRAGMA synchronous = NORMAL;")
-
-    # Register deterministic UDFs required by schema check constraints and triggers
-    register_udfs(connection)
 
     return connection
 
@@ -42,4 +46,3 @@ def get_db() -> Generator[sqlite3.Connection, None, None]:
     """FastAPI dependency for accessing database connection per request."""
     with get_db_context() as conn:
         yield conn
-

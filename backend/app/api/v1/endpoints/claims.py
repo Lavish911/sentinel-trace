@@ -41,11 +41,11 @@ def list_claims(
         params.extend([s_term, s_term, s_term])
 
     if scenario == "yf_neg_4":
-        # 40 collusion ring claims (CLMT-000711..000750)
-        where_clauses.append("c.claimant_id BETWEEN 'CLMT-000711' AND 'CLMT-000750'")
+        # 40 collusion ring claims (CLM-2026-000711..000750)
+        where_clauses.append("c.claim_id BETWEEN 'CLM-2026-000711' AND 'CLM-2026-000750'")
     elif scenario == "yf_neg_5":
-        # 80 high-density apartment claims (100 Ocean Ave)
-        where_clauses.append("clmt.address_norm LIKE '100 Ocean Ave%'")
+        # 80 high-density apartment claims (742 Evergreen Terrace / 100 Ocean Ave)
+        where_clauses.append("(clmt.address_norm LIKE '742 EVERGREEN TERRACE%' OR clmt.address_norm LIKE '100 Ocean Ave%' OR c.claim_id BETWEEN 'CLM-2026-000776' AND 'CLM-2026-000855')")
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 

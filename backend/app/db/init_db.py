@@ -2,36 +2,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple
 import sqlite3
 from backend.app.core.config import settings
-
-ST_SCHEMA_V1_DIGEST_SQL = """
-SELECT sha256_hex(
-    'ST-SCHEMA-V1|' || COALESCE(
-        (
-            SELECT group_concat(
-                '4:type=S' || CAST(length(CAST(type AS BLOB)) AS TEXT) || ':' || type || ';'
-                || '4:name=S' || CAST(length(CAST(name AS BLOB)) AS TEXT) || ':' || name || ';'
-                || '8:tbl_name=S' || CAST(length(CAST(tbl_name AS BLOB)) AS TEXT) || ':' || tbl_name || ';'
-                || '3:sql=S' || CAST(length(CAST(sql AS BLOB)) AS TEXT) || ':' || sql || ';',
-                ''
-            )
-            FROM (
-                SELECT type, name, tbl_name, sql
-                FROM sqlite_master
-                WHERE sql IS NOT NULL AND name NOT LIKE 'sqlite_%'
-                ORDER BY type ASC, name ASC, tbl_name ASC
-            )
-        ),
-        ''
-    )
-);
-"""
-
-
-def compute_schema_digest(connection: sqlite3.Connection) -> str:
-    """Compute the deterministic, order-independent ST-SCHEMA-V1 digest."""
-    cursor = connection.execute(ST_SCHEMA_V1_DIGEST_SQL)
-    row = cursor.fetchone()
-    return str(row[0]) if row and row[0] is not None else ""
+from db.engine import compute_schema_digest, EXPECTED_SCHEMA_DIGEST
 
 
 def get_schema_counts(connection: sqlite3.Connection) -> Tuple[int, int]:
@@ -46,20 +17,20 @@ def get_schema_counts(connection: sqlite3.Connection) -> Tuple[int, int]:
 
 
 def verify_schema(connection: sqlite3.Connection) -> Dict[str, object]:
-    """Verify current database schema against the provisional approved baseline."""
+    """Verify current database schema against the canonical ARCH-ST-010.3 baseline."""
     n_tables, n_triggers = get_schema_counts(connection)
     digest = compute_schema_digest(connection)
     verified = digest == settings.EXPECTED_SCHEMA_SHA256 and (
         n_tables,
         n_triggers,
-    ) == (12, 24)
+    ) == (12, 27)
 
     return {
         "baseline": settings.SCHEMA_BASELINE,
         "table_count": n_tables,
         "trigger_count": n_triggers,
         "expected_table_count": 12,
-        "expected_trigger_count": 24,
+        "expected_trigger_count": 27,
         "schema_digest": digest,
         "expected_schema_digest": settings.EXPECTED_SCHEMA_SHA256,
         "verified": verified,
@@ -71,7 +42,7 @@ def initialize_database(
     ops_sql_path: Optional[Path] = None,
     trigs_sql_path: Optional[Path] = None,
 ) -> Dict[str, object]:
-    """Initialize SQLite database with approved ARCH-ST-010.2 schema and triggers."""
+    """Initialize SQLite database with canonical ARCH-ST-010.3 schema and triggers."""
     ops_path = ops_sql_path or settings.OPS_SQL_PATH
     trigs_path = trigs_sql_path or settings.TRIGS_SQL_PATH
 
@@ -87,4 +58,3 @@ def initialize_database(
     connection.executescript(trigs_sql)
 
     return verify_schema(connection)
-

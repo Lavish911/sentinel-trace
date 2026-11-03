@@ -14,6 +14,7 @@ dependencies = [
     "pydantic>=2.7.0",
     "pydantic-settings>=2.2.0",
     "networkx>=3.2",
+    "numpy>=1.26.0",
 ]
 
 [project.optional-dependencies]
@@ -27,5 +28,5 @@ testpaths = ["tests"]
 python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
+norecursedirs = ["archive", ".aistudio", "node_modules", ".git"]
 addopts = "-v --strict-markers"
-

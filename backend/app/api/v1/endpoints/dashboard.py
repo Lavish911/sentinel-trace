@@ -1,12 +1,13 @@
 """
 Dashboard summary statistics endpoint for SENTINEL//TRACE.
-Directly queries operational tables in sentinel_trace.db.
+Directly queries operational tables in operational.db.
 """
 
 from fastapi import APIRouter, Depends
 import sqlite3
 from typing import Dict, Any
 
+from backend.app.core.config import settings
 from backend.app.db.session import get_db
 
 router = APIRouter()
@@ -37,7 +38,7 @@ def get_dashboard_stats(conn: sqlite3.Connection = Depends(get_db)) -> Dict[str,
         FROM claims
     """).fetchone()
 
-    # Fraud indicators total & pillar breakdown
+    # Fraud indicators breakdown
     ind_total = conn.execute("SELECT COUNT(*) FROM fraud_indicators").fetchone()[0]
     pillar_counts = {}
     for row in conn.execute("SELECT pillar, COUNT(*) FROM fraud_indicators GROUP BY pillar").fetchall():
@@ -52,12 +53,12 @@ def get_dashboard_stats(conn: sqlite3.Connection = Depends(get_db)) -> Dict[str,
     investigations_count = conn.execute("SELECT COUNT(*) FROM investigations").fetchone()[0]
     events_count = conn.execute("SELECT COUNT(*) FROM immutable_events").fetchone()[0]
 
-    # Merkle root
+    # Event hash chain Merkle root (latest tip)
     last_event = conn.execute("SELECT event_hash FROM immutable_events ORDER BY sequence_no DESC LIMIT 1").fetchone()
     merkle_root = last_event[0] if last_event else ""
 
     return {
-        "dataset_baseline": "ARCH-ST-010.2 (Seed 42)",
+        "dataset_baseline": f"{settings.SCHEMA_BASELINE} (Seed 42)",
         "total_claims": sum(tier_counts.values()),
         "risk_tiers": tier_counts,
         "claim_statuses": status_counts,
