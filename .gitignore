@@ -6,11 +6,28 @@ coverage/
 *.log
 .env*
 !.env.example
+
+# Python
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
+.venv/
+env/
+venv/
+.pytest_cache/
+
+# SQLite databases
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 data/*.db
 data/*.db-journal
 data/*.db-wal
 data/*.db-shm
+
+# Build / tools
 bun.lock
 .aistudio/

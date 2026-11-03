@@ -1,10 +1,12 @@
 {
-  "name": "react-example",
+  "name": "sentinel-trace",
   "private": true,
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev:backend": "python -m uvicorn backend.app.main:app --reload --port 8000",
+    "test:backend": "python -m pytest backend/tests -v",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",

@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SENTINEL//TRACE — Forensic Fraud Intelligence Cockpit</title>
+  <style>
+    :root {
+      --bg-dark: #090d16;
+      --bg-panel: #111827;
+      --bg-card: #1f2937;
+      --bg-hover: #374151;
+      --border: #374151;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.2);
+      --emerald: #10b981;
+      --amber: #f59e0b;
+      --rose: #f43f5e;
+      --purple: #8b5cf6;
+      --blue: #3b82f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, monospace;
+      background-color: var(--bg-dark);
+      color: var(--text);
+      line-height: 1.5;
+      font-size: 14px;
+    }
+    header {
+      background: var(--bg-panel);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .brand h1 {
+      font-size: 18px;
+      letter-spacing: 2px;
+      font-weight: 700;
+      color: var(--cyan);
+      text-transform: uppercase;
+    }
+    .badge {
+      display: inline-block;
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+    .badge-schema { background: rgba(16, 185, 129, 0.2); color: var(--emerald); border: 1px solid var(--emerald); }
+    .badge-merkle { background: rgba(6, 182, 212, 0.2); color: var(--cyan); border: 1px solid var(--cyan); }
+    .badge-high { background: rgba(244, 63, 94, 0.2); color: var(--rose); border: 1px solid var(--rose); }
+    .badge-medium { background: rgba(245, 158, 11, 0.2); color: var(--amber); border: 1px solid var(--amber); }
+    .badge-low { background: rgba(16, 185, 129, 0.2); color: var(--emerald); border: 1px solid var(--emerald); }
+    
+    nav a {
+      color: var(--text-muted);
+      text-decoration: none;
+      margin-left: 16px;
+      font-size: 13px;
+      font-weight: 500;
+      transition: color 0.2s;
+    }
+    nav a:hover { color: var(--cyan); }
+
+    .container {
+      max-width: 1600px;
+      margin: 0 auto;
+      padding: 20px 24px;
+    }
+
+    /* KPI Summary Row */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+      margin-bottom: 24px;
+    }
+    .kpi-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
+    }
+    .kpi-label {
+      color: var(--text-muted);
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 4px;
+    }
+    .kpi-value {
+      font-size: 24px;
+      font-weight: 700;
+      color: #fff;
+    }
+    .kpi-sub {
+      font-size: 12px;
+      color: var(--cyan);
+      margin-top: 4px;
+    }
+
+    /* Main Grid: Left Triage, Right Dossier */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 480px 1fr;
+      gap: 20px;
+      min-height: 750px;
+    }
+
+    /* Triage Section */
+    .triage-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .panel-header {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    .panel-title {
+      font-size: 14px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: #fff;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .filter-pills {
+      display: flex;
+      gap: 6px;
+      flex-wrap: wrap;
+    }
+    .pill {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 4px 10px;
+      border-radius: 20px;
+      font-size: 11px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .pill.active, .pill:hover {
+      background: var(--cyan);
+      color: #000;
+      font-weight: 600;
+      border-color: var(--cyan);
+    }
+    .search-box {
+      width: 100%;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 8px 12px;
+      border-radius: 4px;
+      font-size: 12px;
+      outline: none;
+    }
+    .search-box:focus { border-color: var(--cyan); }
+
+    .triage-list {
+      flex: 1;
+      overflow-y: auto;
+      max-height: 650px;
+    }
+    .triage-item {
+      padding: 12px 16px;
+      border-bottom: 1px solid var(--border);
+      cursor: pointer;
+      transition: background 0.15s;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .triage-item:hover { background: var(--bg-card); }
+    .triage-item.selected {
+      background: rgba(6, 182, 212, 0.15);
+      border-left: 4px solid var(--cyan);
+    }
+    .item-id { font-weight: 700; font-size: 13px; color: #fff; }
+    .item-claimant { font-size: 12px; color: var(--text-muted); }
+    .item-score {
+      text-align: right;
+    }
+    .score-val { font-size: 15px; font-weight: 700; }
+
+    /* Dossier Section */
+    .dossier-panel {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-card);
+    }
+    .tab {
+      padding: 12px 20px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--text-muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      transition: all 0.2s;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .tab:hover { color: #fff; }
+    .tab.active {
+      color: var(--cyan);
+      border-bottom-color: var(--cyan);
+      background: var(--bg-panel);
+    }
+    .tab-content {
+      flex: 1;
+      padding: 20px;
+      overflow-y: auto;
+      max-height: 700px;
+    }
+    .detail-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .section-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 16px;
+    }
+    .section-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--cyan);
+      margin-bottom: 12px;
+      font-weight: 700;
+    }
+    .field-row {
+      display: flex;
+      justify-content: space-between;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .field-name { color: var(--text-muted); }
+    .field-val { font-weight: 600; color: #fff; word-break: break-all; }
+
+    /* Indicator Table */
+    .table-custom {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+      font-size: 12px;
+    }
+    .table-custom th {
+      text-align: left;
+      padding: 8px 12px;
+      background: var(--bg-card);
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+    }
+    .table-custom td {
+      padding: 8px 12px;
+      border-bottom: 1px solid var(--border);
+    }
+    .table-custom tr:hover td { background: var(--bg-card); }
+
+    /* Network Graph SVG Canvas */
+    #graph-container {
+      width: 100%;
+      height: 550px;
+      background: #080c14;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      position: relative;
+      overflow: hidden;
+    }
+    svg { width: 100%; height: 100%; }
+
+    /* Timeline */
+    .timeline {
+      position: relative;
+      padding-left: 20px;
+    }
+    .timeline::before {
+      content: '';
+      position: absolute;
+      left: 6px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: var(--border);
+    }
+    .timeline-item {
+      position: relative;
+      margin-bottom: 16px;
+    }
+    .timeline-dot {
+      position: absolute;
+      left: -20px;
+      top: 4px;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--cyan);
+      border: 2px solid var(--bg-dark);
+    }
+    .timeline-time { font-size: 11px; color: var(--text-muted); }
+    .timeline-content { font-size: 13px; font-weight: 600; color: #fff; }
+    .timeline-hash { font-family: monospace; font-size: 10px; color: var(--cyan); }
+
+    .btn {
+      background: var(--cyan);
+      color: #000;
+      border: none;
+      border-radius: 4px;
+      padding: 8px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn:hover { background: #22d3ee; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <h1>SENTINEL // TRACE</h1>
+      <span class="badge badge-schema">ARCH-ST-010.2 VERIFIED</span>
+      <span class="badge badge-merkle" id="merkle-badge">MERKLE: VERIFYING...</span>
+    </div>
+    <nav>
+      <a href="/docs" target="_blank">API Docs</a>
+      <a href="/redoc" target="_blank">ReDoc</a>
+      <a href="#refresh" onclick="loadStats(); loadClaims(); return false;">↻ Refresh Data</a>
+    </nav>
+  </header>
+
+  <div class="container">
+    <!-- Top KPI Summary -->
+    <div class="kpi-row">
+      <div class="kpi-card">
+        <div class="kpi-label">Total Claims Monitored</div>
+        <div class="kpi-value" id="kpi-total-claims">5,000</div>
+        <div class="kpi-sub" id="kpi-risk-breakdown">0 Critical · 0 High · 0 Med</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Fraud Indicators Persisted</div>
+        <div class="kpi-value" id="kpi-total-indicators">4,120</div>
+        <div class="kpi-sub">Exact ARCH-ST-010.2 Cardinality</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Active SIU Cases</div>
+        <div class="kpi-value" id="kpi-total-cases">45</div>
+        <div class="kpi-sub">Priority Investigations Landed</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Total Claimed Exposure</div>
+        <div class="kpi-value" id="kpi-total-exposure">$0.00</div>
+        <div class="kpi-sub" id="kpi-net-disbursed">Disbursed: $0.00</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Active Relationship Edges</div>
+        <div class="kpi-value" id="kpi-total-edges">8,000</div>
+        <div class="kpi-sub">Operational Knowledge Graph</div>
+      </div>
+    </div>
+
+    <!-- Main Grid: Triage Worklist vs Dossier Inspector -->
+    <div class="main-grid">
+      <!-- Left: Triage Worklist -->
+      <div class="triage-panel">
+        <div class="panel-header">
+          <div class="panel-title">
+            <span>Triage Worklist</span>
+            <span class="badge badge-schema" id="worklist-count">Loading...</span>
+          </div>
+          <div class="filter-pills">
+            <span class="pill active" onclick="setFilter(this, 'ALL')">All Claims</span>
+            <span class="pill" onclick="setFilter(this, 'HIGH')">High Risk (>=65)</span>
+            <span class="pill" onclick="setFilter(this, 'MEDIUM')">Medium Risk</span>
+            <span class="pill" onclick="setScenario(this, 'yf_neg_4')">YF-NEG-4 Collusion</span>
+            <span class="pill" onclick="setScenario(this, 'yf_neg_5')">YF-NEG-5 Ocean Ave</span>
+          </div>
+          <input type="text" class="search-box" id="search-input" placeholder="Search Claim ID, Claimant, Policy..." onkeyup="handleSearch(event)">
+        </div>
+
+        <div class="triage-list" id="triage-list">
+          <div style="padding: 20px; text-align: center; color: var(--text-muted);">Loading claims database...</div>
+        </div>
+      </div>
+
+      <!-- Right: Dossier Inspector -->
+      <div class="dossier-panel">
+        <div class="tabs">
+          <div class="tab active" onclick="switchTab(this, 'tab-overview')">Dossier Overview</div>
+          <div class="tab" onclick="switchTab(this, 'tab-indicators')">Fraud Indicators (<span id="tab-ind-count">0</span>)</div>
+          <div class="tab" onclick="switchTab(this, 'tab-network')">Network Topology</div>
+          <div class="tab" onclick="switchTab(this, 'tab-timeline')">Merkle Timeline</div>
+          <div class="tab" onclick="switchTab(this, 'tab-investigation')">SIU Case</div>
+        </div>
+
+        <div class="tab-content">
+          <!-- Tab 1: Overview -->
+          <div id="tab-overview">
+            <div id="overview-content">
+              <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
+                Select any claim from the triage worklist to inspect its full forensic dossier.
+              </div>
+            </div>
+          </div>
+
+          <!-- Tab 2: Fraud Indicators -->
+          <div id="tab-indicators" style="display: none;">
+            <div class="section-title">Triggered Fraud Indicators & Scoring Contributions</div>
+            <table class="table-custom">
+              <thead>
+                <tr>
+                  <th>Rule Code</th>
+                  <th>Pillar</th>
+                  <th>Severity</th>
+                  <th>Raw Points</th>
+                  <th>Max Points</th>
+                  <th>Canonical Evidence Token</th>
+                </tr>
+              </thead>
+              <tbody id="indicators-tbody">
+                <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No indicators to display.</td></tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Tab 3: Network Topology -->
+          <div id="tab-network" style="display: none;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+              <div class="section-title">Operational Entity Knowledge Graph (Zero Ground-Truth Leakage)</div>
+              <div style="font-size: 11px; color: var(--text-muted);" id="network-metrics-badge">Nodes: 0 | Edges: 0</div>
+            </div>
+            <div id="graph-container">
+              <svg id="network-svg"></svg>
+            </div>
+          </div>
+
+          <!-- Tab 4: Timeline -->
+          <div id="tab-timeline" style="display: none;">
+            <div class="section-title">Cryptographic Event Chain (SHA-256 Merkle Verification)</div>
+            <div class="timeline" id="timeline-container">
+              <div style="color: var(--text-muted);">No chronological events recorded.</div>
+            </div>
+          </div>
+
+          <!-- Tab 5: SIU Investigation -->
+          <div id="tab-investigation" style="display: none;">
+            <div id="siu-case-content">
+              <div style="color: var(--text-muted);">No active investigation linked to this claim.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentFilter = 'ALL';
+    let currentScenario = '';
+    let currentSearch = '';
+    let selectedClaimId = null;
+    let claimsData = [];
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/v1/dashboard/stats');
+        const data = await res.json();
+        document.getElementById('kpi-total-claims').innerText = data.total_claims.toLocaleString();
+        document.getElementById('kpi-risk-breakdown').innerText = 
+          `${data.risk_tiers.CRITICAL || 0} Critical · ${data.risk_tiers.HIGH || 0} High · ${data.risk_tiers.MEDIUM || 0} Med · ${data.risk_tiers.LOW || 0} Low`;
+        document.getElementById('kpi-total-indicators').innerText = data.indicators.total_persisted.toLocaleString();
+        document.getElementById('kpi-total-cases').innerText = data.entities.investigations.toLocaleString();
+        document.getElementById('kpi-total-exposure').innerText = '$' + Number(data.financials.total_claimed_dollars).toLocaleString('en-US', {minimumFractionDigits: 2});
+        document.getElementById('kpi-net-disbursed').innerText = 'Disbursed: $' + Number(data.financials.total_disbursed_dollars).toLocaleString('en-US', {minimumFractionDigits: 2});
+        document.getElementById('kpi-total-edges').innerText = data.entities.relationship_edges.toLocaleString();
+        
+        if (data.merkle_root) {
+          document.getElementById('merkle-badge').innerText = 'MERKLE: ' + data.merkle_root.substring(0, 16) + '...';
+        }
+      } catch (err) {
+        console.error('Failed to load dashboard stats:', err);
+      }
+    }
+
+    async function loadClaims() {
+      try {
+        let url = `/api/v1/claims?limit=100`;
+        if (currentFilter !== 'ALL') url += `&risk_tier=${currentFilter}`;
+        if (currentScenario) url += `&scenario=${currentScenario}`;
+        if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
+
+        const res = await fetch(url);
+        const data = await res.json();
+        claimsData = data.items;
+        document.getElementById('worklist-count').innerText = `${data.total} Claims Found`;
+
+        const listEl = document.getElementById('triage-list');
+        listEl.innerHTML = '';
+
+        if (claimsData.length === 0) {
+          listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No matching claims found.</div>';
+          return;
+        }
+
+        claimsData.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'triage-item' + (c.claim_id === selectedClaimId ? ' selected' : '');
+          item.onclick = () => selectClaim(c.claim_id);
+
+          const badgeClass = c.latest_risk_tier === 'CRITICAL' || c.latest_risk_tier === 'HIGH' ? 'badge-high' :
+                            c.latest_risk_tier === 'MEDIUM' ? 'badge-medium' : 'badge-low';
+
+          item.innerHTML = `
+            <div>
+              <div class="item-id">${c.claim_id}</div>
+              <div class="item-claimant">${c.claimant_name} · ${c.line_of_business}</div>
+              <div style="font-size: 11px; color: var(--cyan); margin-top: 2px;">$${Number(c.claimed_amount_dollars).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+            </div>
+            <div class="item-score">
+              <div class="score-val" style="color: ${c.latest_ief_score >= 65 ? 'var(--rose)' : c.latest_ief_score >= 35 ? 'var(--amber)' : 'var(--emerald)'}">${c.latest_ief_score.toFixed(1)}</div>
+              <span class="badge ${badgeClass}">${c.latest_risk_tier}</span>
+            </div>
+          `;
+          listEl.appendChild(item);
+        });
+
+        if (!selectedClaimId && claimsData.length > 0) {
+          selectClaim(claimsData[0].claim_id);
+        }
+      } catch (err) {
+        console.error('Failed to load claims list:', err);
+      }
+    }
+
+    async function selectClaim(claimId) {
+      selectedClaimId = claimId;
+      document.querySelectorAll('.triage-item').forEach(el => {
+        el.classList.toggle('selected', el.querySelector('.item-id').innerText === claimId);
+      });
+
+      try {
+        // Fetch claim full detail
+        const res = await fetch(`/api/v1/claims/${claimId}`);
+        const data = await res.json();
+        renderClaimDetail(data);
+
+        // Fetch indicators
+        const indRes = await fetch(`/api/v1/claims/${claimId}/indicators`);
+        const indData = await indRes.json();
+        renderIndicators(indData);
+
+        // Fetch timeline
+        const timeRes = await fetch(`/api/v1/claims/${claimId}/timeline`);
+        const timeData = await timeRes.json();
+        renderTimeline(timeData);
+
+        // Fetch network
+        const netRes = await fetch(`/api/v1/network/${claimId}`);
+        const netData = await netRes.json();
+        renderNetwork(netData);
+
+        // Render SIU Case
+        renderSIUCase(data);
+      } catch (err) {
+        console.error('Failed to load claim detail:', err);
+      }
+    }
+
+    function renderClaimDetail(d) {
+      const c = d.claim;
+      const clmt = d.claimant;
+      const p = d.policy;
+      const inc = d.incident;
+
+      const badgeClass = c.latest_risk_tier === 'CRITICAL' || c.latest_risk_tier === 'HIGH' ? 'badge-high' :
+                        c.latest_risk_tier === 'MEDIUM' ? 'badge-medium' : 'badge-low';
+
+      const html = `
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
+          <div>
+            <h2 style="font-size: 20px; font-weight: 700; color: #fff;">${c.claim_id}</h2>
+            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Status: <strong>${c.claim_status}</strong> · Submitted: ${c.submitted_at_utc}</div>
+          </div>
+          <div style="text-align: right;">
+            <div style="font-size: 28px; font-weight: 800; color: ${c.latest_ief_score >= 65 ? 'var(--rose)' : c.latest_ief_score >= 35 ? 'var(--amber)' : 'var(--emerald)'}">
+              ${Number(c.latest_ief_score).toFixed(2)}
+            </div>
+            <span class="badge ${badgeClass}" style="font-size: 12px;">${c.latest_risk_tier} RISK TIER</span>
+          </div>
+        </div>
+
+        <div class="detail-grid">
+          <!-- Claimant Profile -->
+          <div class="section-box">
+            <div class="section-title">Claimant Identification</div>
+            <div class="field-row"><span class="field-name">ID:</span><span class="field-val">${clmt.claimant_id || 'N/A'}</span></div>
+            <div class="field-row"><span class="field-name">Full Name:</span><span class="field-val">${clmt.first_name || ''} ${clmt.last_name || ''}</span></div>
+            <div class="field-row"><span class="field-name">Address:</span><span class="field-val">${clmt.address_norm || 'N/A'}</span></div>
+            <div class="field-row"><span class="field-name">Phone Hash:</span><span class="field-val" style="font-family: monospace; font-size: 11px;">${clmt.phone_hash || 'N/A'}</span></div>
+            <div class="field-row"><span class="field-name">Risk Profile:</span><span class="field-val">${clmt.risk_profile || 'STANDARD'}</span></div>
+          </div>
+
+          <!-- Policy & Incident Details -->
+          <div class="section-box">
+            <div class="section-title">Policy Coverage & Incident Context</div>
+            <div class="field-row"><span class="field-name">Policy ID:</span><span class="field-val">${p.policy_id || 'N/A'} (${p.line_of_business || 'N/A'})</span></div>
+            <div class="field-row"><span class="field-name">Effective Window:</span><span class="field-val">${p.effective_start_utc?.substring(0,10) || ''} to ${p.effective_end_utc?.substring(0,10) || ''}</span></div>
+            <div class="field-row"><span class="field-name">Incident ID:</span><span class="field-val">${inc.incident_id || 'N/A'} (${inc.incident_type || 'N/A'})</span></div>
+            <div class="field-row"><span class="field-name">Incident Timestamp:</span><span class="field-val">${inc.occurred_at_utc || 'N/A'}</span></div>
+            <div class="field-row"><span class="field-name">Location:</span><span class="field-val">${inc.city || ''}, ${inc.state || ''} ${inc.postal_code || ''}</span></div>
+          </div>
+
+          <!-- Financial Ledger -->
+          <div class="section-box">
+            <div class="section-title">Financial Exposure & Ledger</div>
+            <div class="field-row"><span class="field-name">Claimed Amount:</span><span class="field-val">$${(c.claimed_amount_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
+            <div class="field-row"><span class="field-name">Payout Cap:</span><span class="field-val">$${(c.payout_cap_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
+            <div class="field-row"><span class="field-name">Approved Amount:</span><span class="field-val">$${(c.approved_amount_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
+            <div class="field-row"><span class="field-name">Gross Disbursed:</span><span class="field-val">$${(c.gross_disbursed_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
+            <div class="field-row"><span class="field-name">Clawed Back:</span><span class="field-val" style="color: var(--amber);">$${(c.clawed_back_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
+            <div class="field-row"><span class="field-name">Net Paid:</span><span class="field-val" style="color: var(--emerald); font-weight: 700;">$${(c.net_paid_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
+          </div>
+
+          <!-- Cryptographic Digest -->
+          <div class="section-box">
+            <div class="section-title">Forensic Evidence Digest</div>
+            <div class="field-row"><span class="field-name">Evidence SHA-256:</span></div>
+            <div style="font-family: monospace; font-size: 11px; color: var(--cyan); word-break: break-all; margin-top: 4px; padding: 8px; background: #0b0f19; border-radius: 4px;">
+              ${c.scoring_evidence_sha256}
+            </div>
+            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">
+              Trigger Guard: Evaluated deterministically against all 15 ARCH-ST-010.2 indicator features.
+            </div>
+          </div>
+        </div>
+
+        <!-- Invoices & Providers -->
+        <div class="section-box" style="margin-top: 16px;">
+          <div class="section-title">Submitted Medical & Service Invoices (${d.invoices.length})</div>
+          <table class="table-custom">
+            <thead>
+              <tr>
+                <th>Invoice ID</th>
+                <th>Provider Name</th>
+                <th>Type</th>
+                <th>Specialty</th>
+                <th>Amount</th>
+                <th>Submission UTC</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${d.invoices.map(inv => `
+                <tr>
+                  <td style="font-family: monospace; color: #fff;">${inv.invoice_id}</td>
+                  <td>${inv.provider_name || inv.provider_id}</td>
+                  <td>${inv.provider_type || 'N/A'}</td>
+                  <td>${inv.specialty || 'N/A'}</td>
+                  <td style="font-weight: 700; color: var(--cyan);">$${(inv.amount_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                  <td style="font-size: 11px; color: var(--text-muted);">${inv.submitted_at_utc}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      document.getElementById('overview-content').innerHTML = html;
+    }
+
+    function renderIndicators(inds) {
+      document.getElementById('tab-ind-count').innerText = inds.length;
+      const tbody = document.getElementById('indicators-tbody');
+      tbody.innerHTML = '';
+
+      if (inds.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">No fraud indicators triggered for this claim.</td></tr>';
+        return;
+      }
+
+      inds.forEach(ind => {
+        const tr = document.createElement('tr');
+        const sevClass = ind.severity === 'CRITICAL' ? 'badge-high' : ind.severity === 'HIGH' ? 'badge-high' : 'badge-medium';
+
+        tr.innerHTML = `
+          <td style="font-weight: 700; color: #fff; font-family: monospace;">${ind.indicator_code}</td>
+          <td><span class="badge badge-schema">${ind.pillar}</span></td>
+          <td><span class="badge ${sevClass}">${ind.severity}</span></td>
+          <td style="font-weight: 700; color: var(--rose);">${ind.raw_points.toFixed(1)}</td>
+          <td style="color: var(--text-muted);">${ind.max_points.toFixed(1)}</td>
+          <td style="font-family: monospace; font-size: 11px; color: var(--cyan);">${ind.canonical_evidence_token}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
+    function renderTimeline(events) {
+      const container = document.getElementById('timeline-container');
+      container.innerHTML = '';
+
+      if (events.length === 0) {
+        container.innerHTML = '<div style="color: var(--text-muted);">No events recorded.</div>';
+        return;
+      }
+
+      events.forEach(ev => {
+        const item = document.createElement('div');
+        item.className = 'timeline-item';
+        item.innerHTML = `
+          <div class="timeline-dot"></div>
+          <div class="timeline-time">${ev.occurred_at_utc} (Seq #${ev.sequence_no})</div>
+          <div class="timeline-content">${ev.event_type} — ${ev.entity_type} [${ev.entity_id}]</div>
+          <div class="timeline-hash">HASH: ${ev.event_hash}</div>
+          <div style="font-size: 10px; color: var(--text-muted);">PREV: ${ev.prev_event_hash || 'GENESIS (ROOT)'}</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    function renderNetwork(net) {
+      document.getElementById('network-metrics-badge').innerText = 
+        `Nodes: ${net.metrics.total_nodes} | Edges: ${net.metrics.total_edges} | Cluster Density: ${net.metrics.density}`;
+
+      const svg = document.getElementById('network-svg');
+      svg.innerHTML = '';
+
+      const width = document.getElementById('graph-container').clientWidth || 700;
+      const height = 550;
+      const centerX = width / 2;
+      const centerY = height / 2;
+
+      // Group nodes by category
+      const nodes = net.nodes;
+      const edges = net.edges;
+      const total = nodes.length;
+
+      const nodeCoords = {};
+
+      nodes.forEach((n, idx) => {
+        let x, y;
+        if (n.type === 'CLAIM') {
+          x = centerX;
+          y = centerY;
+        } else {
+          const angle = (idx / (total - 1 || 1)) * 2 * Math.PI;
+          const radius = n.type === 'CLAIMANT' ? 140 : n.type === 'PROVIDER' ? 210 : 180;
+          x = centerX + radius * Math.cos(angle);
+          y = centerY + radius * Math.sin(angle);
+        }
+        nodeCoords[n.id] = { x, y, node: n };
+      });
+
+      // Draw Edges
+      edges.forEach(e => {
+        const src = nodeCoords[e.source];
+        const dst = nodeCoords[e.target];
+        if (src && dst) {
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', src.x);
+          line.setAttribute('y1', src.y);
+          line.setAttribute('x2', dst.x);
+          line.setAttribute('y2', dst.y);
+          line.setAttribute('stroke', e.type.startsWith('SHARED_') ? '#f43f5e' : '#374151');
+          line.setAttribute('stroke-width', Math.max(1.5, (e.weight || 0.5) * 3));
+          line.setAttribute('stroke-dasharray', e.type.startsWith('SHARED_') ? '4 2' : 'none');
+          svg.appendChild(line);
+        }
+      });
+
+      // Draw Nodes
+      Object.keys(nodeCoords).forEach(k => {
+        const item = nodeCoords[k];
+        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        circle.setAttribute('cx', item.x);
+        circle.setAttribute('cy', item.y);
+        circle.setAttribute('r', item.node.type === 'CLAIM' ? 22 : 16);
+
+        let fill = '#06b6d4';
+        if (item.node.type === 'CLAIMANT') fill = '#f59e0b';
+        else if (item.node.type === 'PROVIDER') fill = '#8b5cf6';
+        else if (item.node.type === 'POLICY') fill = '#3b82f6';
+        else if (item.node.type === 'INCIDENT') fill = '#f43f5e';
+
+        circle.setAttribute('fill', fill);
+        circle.setAttribute('stroke', '#ffffff');
+        circle.setAttribute('stroke-width', '2');
+        g.appendChild(circle);
+
+        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        text.setAttribute('x', item.x);
+        text.setAttribute('y', item.y + 26);
+        text.setAttribute('fill', '#f3f4f6');
+        text.setAttribute('font-size', '10px');
+        text.setAttribute('text-anchor', 'middle');
+        text.textContent = item.node.label.length > 18 ? item.node.label.substring(0, 16) + '..' : item.node.label;
+        g.appendChild(text);
+
+        svg.appendChild(g);
+      });
+    }
+
+    function renderSIUCase(data) {
+      const invg = data.investigation;
+      const container = document.getElementById('siu-case-content');
+
+      if (!invg) {
+        container.innerHTML = `
+          <div class="section-box" style="text-align: center; padding: 40px;">
+            <div style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px;">No Active SIU Case</div>
+            <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 20px;">This claim currently has no open Special Investigation Unit file.</div>
+            <button class="btn" onclick="openNewCase('${data.claim.claim_id}')">+ Open Investigation Case</button>
+          </div>
+        `;
+        return;
+      }
+
+      container.innerHTML = `
+        <div class="section-box">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+            <div class="section-title">SIU Case File: ${invg.investigation_id}</div>
+            <span class="badge ${invg.priority === 'P1_CRITICAL' ? 'badge-high' : 'badge-medium'}">${invg.priority}</span>
+          </div>
+
+          <div class="field-row"><span class="field-name">Status:</span><span class="field-val">${invg.investigation_status}</span></div>
+          <div class="field-row"><span class="field-name">Lead Investigator:</span><span class="field-val">${invg.assigned_investigator_id}</span></div>
+          <div class="field-row"><span class="field-name">Opened At:</span><span class="field-val">${invg.opened_at_utc}</span></div>
+          <div class="field-row"><span class="field-name">Estimated Exposure:</span><span class="field-val">$${(invg.estimated_exposure_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
+          <div class="field-row"><span class="field-name">Recovered Clawback:</span><span class="field-val" style="color: var(--emerald); font-weight: 700;">$${(invg.recovered_clawback_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
+
+          <div style="margin-top: 16px;">
+            <div class="field-name" style="margin-bottom: 4px;">Case Summary Notes:</div>
+            <div style="background: var(--bg-dark); padding: 12px; border-radius: 4px; font-size: 12px; color: #fff; line-height: 1.6;">
+              ${invg.case_summary_notes}
+            </div>
+          </div>
+        </div>
+      `;
+    }
+
+    async function openNewCase(claimId) {
+      const summary = prompt("Enter SIU investigation summary notes:", `Investigating high-risk indicators and network anomalies on claim ${claimId}`);
+      if (!summary) return;
+
+      try {
+        const res = await fetch('/api/v1/investigations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            primary_claim_id: claimId,
+            priority: 'P2_HIGH',
+            assigned_investigator_id: 'SIU-AGENT-001',
+            case_summary_notes: summary
+          })
+        });
+        const d = await res.json();
+        alert(`Created investigation file: ${d.investigation_id}`);
+        selectClaim(claimId);
+        loadStats();
+      } catch (err) {
+        alert("Failed to create investigation: " + err);
+      }
+    }
+
+    function setFilter(el, tier) {
+      document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      currentFilter = tier;
+      currentScenario = '';
+      loadClaims();
+    }
+
+    function setScenario(el, scenario) {
+      document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.remove('active'));
+      el.classList.add('active');
+      currentScenario = scenario;
+      currentFilter = 'ALL';
+      loadClaims();
+    }
+
+    function handleSearch(ev) {
+      currentSearch = ev.target.value.trim();
+      loadClaims();
+    }
+
+    function switchTab(el, tabId) {
+      document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
+      el.classList.add('active');
+
+      ['tab-overview', 'tab-indicators', 'tab-network', 'tab-timeline', 'tab-investigation'].forEach(id => {
+        document.getElementById(id).style.display = id === tabId ? 'block' : 'none';
+      });
+    }
+
+    // Init
+    loadStats();
+    loadClaims();
+  </script>
+</body>
+</html>
