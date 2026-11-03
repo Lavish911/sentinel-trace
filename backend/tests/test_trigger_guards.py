@@ -8,13 +8,14 @@ import sqlite3
 import pytest
 from pathlib import Path
 
-from backend.app.generator.config import DEFAULT_OPERATIONAL_DB
+from backend.app.core.config import settings
+from pathlib import Path
 from backend.app.db.udfs import register_udfs
 
 
 @pytest.fixture
 def op_conn():
-    conn = sqlite3.connect(str(DEFAULT_OPERATIONAL_DB))
+    conn = sqlite3.connect(str(settings.DATABASE_PATH))
     conn.execute("PRAGMA foreign_keys = ON;")
     conn.execute("PRAGMA recursive_triggers = ON;")
     register_udfs(conn)

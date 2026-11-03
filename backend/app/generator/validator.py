@@ -164,9 +164,11 @@ class DatasetValidator:
 
         # YF-NEG-4: 40 partially observable ring claims
         # In ground_truth.db, rings 16..20 members
+        gt_tables = [r[0] for r in self.gt_conn.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+        ring_tbl = 'ground_truth_claim_labels' if 'ground_truth_claim_labels' in gt_tables else 'ring_members'
         yf4_claims = [
             r[0] for r in self.gt_conn.execute(
-                "SELECT claim_id FROM ring_members WHERE ring_id IN ('RING-2026-016','RING-2026-017','RING-2026-018','RING-2026-019','RING-2026-020')"
+                f"SELECT claim_id FROM {ring_tbl} WHERE ring_id IN ('RING-2026-016','RING-2026-017','RING-2026-018','RING-2026-019','RING-2026-020')"
             ).fetchall()
         ]
         if yf4_claims:
@@ -182,13 +184,18 @@ class DatasetValidator:
                 "passed": ge65_count >= 32
             }
 
-        # YF-NEG-5: 80 apartment claims at 100 Ocean Ave
-        yf5_scores = self.op_conn.execute("""
-            SELECT c.latest_ief_score
-            FROM claims c
-            JOIN claimants clmt ON c.claimant_id = clmt.claimant_id
-            WHERE clmt.address_norm LIKE '100 Ocean Ave%'
-        """).fetchall()
+        # YF-NEG-5: 80 apartment claims (100 Ocean Ave & 742 Evergreen Terrace)
+        if "ground_truth_claim_labels" in gt_tables:
+            yf5_cids = [r[0] for r in self.gt_conn.execute("SELECT claim_id FROM ground_truth_claim_labels WHERE scenario_code = 'YF-NEG-5'").fetchall()]
+            placeholders = ",".join(["?"] * len(yf5_cids))
+            yf5_scores = self.op_conn.execute(f"SELECT latest_ief_score FROM claims WHERE claim_id IN ({placeholders})", yf5_cids).fetchall()
+        else:
+            yf5_scores = self.op_conn.execute("""
+                SELECT c.latest_ief_score
+                FROM claims c
+                JOIN claimants clmt ON c.claimant_id = clmt.claimant_id
+                WHERE clmt.address_norm LIKE '100 Ocean Ave%'
+            """).fetchall()
         if yf5_scores:
             scores = [r[0] for r in yf5_scores]
             max_s = max(scores)

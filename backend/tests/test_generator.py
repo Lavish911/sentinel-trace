@@ -20,8 +20,9 @@ from backend.app.db.udfs import register_udfs
 
 @pytest.fixture(scope="module")
 def operational_db():
-    assert DEFAULT_OPERATIONAL_DB.exists(), "sentinel_trace.db must exist before running generator tests"
-    conn = sqlite3.connect(str(DEFAULT_OPERATIONAL_DB))
+    db_path = Path(settings.DATABASE_PATH)
+    assert db_path.exists(), f"{db_path} must exist before running generator tests"
+    conn = sqlite3.connect(str(db_path))
     conn.row_factory = sqlite3.Row
     conn.execute("PRAGMA foreign_keys = ON;")
     conn.execute("PRAGMA recursive_triggers = ON;")
@@ -105,6 +106,8 @@ def test_withheld_edges_isolation(operational_db, ground_truth_db):
     assert scenarios["WITHHELD_EDGES"]["passed"]
     
     # Ground truth DB must contain the withheld edges
-    gt_withheld = ground_truth_db.execute("SELECT COUNT(*) FROM withheld_edges").fetchone()[0]
+    gt_tables = [r[0] for r in ground_truth_db.execute("SELECT name FROM sqlite_master WHERE type='table'").fetchall()]
+    tbl_name = 'ground_truth_missing_edges' if 'ground_truth_missing_edges' in gt_tables else 'withheld_edges'
+    gt_withheld = ground_truth_db.execute(f"SELECT COUNT(*) FROM {tbl_name}").fetchone()[0]
     assert gt_withheld > 0, "Withheld edges must be recorded in ground_truth.db"
 
