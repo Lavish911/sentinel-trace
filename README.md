@@ -15,6 +15,21 @@
 
 ---
 
+## Reviewer Fast Path
+
+`Install → Generate → Verify → Run → Investigate`
+
+```bash
+pip install -r backend/requirements.txt
+python scripts/generate_dataset.py
+python -m pytest backend/tests/ -v
+python -m uvicorn backend.app.main:app --port 8000
+```
+
+Then open `http://localhost:8000/`, choose a high-risk claim such as `CLM-2026-000050`, and follow its dossier, indicators, network, and investigation workflow. Dataset files are intentionally generated locally under `data/` and are not committed; generation is required before running the app or database-backed tests.
+
+---
+
 ## 1. System Overview & Business Problem
 
 **SENTINEL//TRACE** is an enterprise forensic intelligence and fraud detection engine engineered for property, casualty, and commercial insurance carriers.
@@ -145,22 +160,19 @@ The operational database contains 12 `STRICT` tables linked by enforced foreign 
 ### 10-Stage Scoring Waterfall
 The Integrated Evidence Framework (IEF) evaluates 15 indicators across 4 pillars:
 
-1. **Stage 1 (Network):** Ring cycles (IND-07), high PageRank (IND-06), shared phone/address (IND-05). (Cap: 60)
-2. **Stage 2 (Financial):** Duplicate invoices (IND-12), billing spikes (IND-03), unbundled CPT codes (IND-02). (Cap: 55)
-3. **Stage 3 (Behavioral):** Rapid inception filings (IND-01), suspicious velocity (IND-10). (Cap: 45)
-4. **Stage 4 (Document):** Mismatched police reports (IND-08), altered documents (IND-09). (Cap: 40)
-5. **Stage 5:** Pillar normalization and soft-max weighting.
-6. **Stage 6:** Multi-pillar synergy boost (+15% when $\ge 3$ pillars fire).
-7. **Stage 7:** Syndicated cluster boost (+20% for dense graph cliques).
-8. **Stage 8:** Calibrated Benign Dampening (BC-1 multiplier $\le 0.15$ for benign high-density housing).
-9. **Stage 9:** Strict clipping to $[0.0, 100.0]$.
-10. **Stage 10:** Cryptographic SHA-256 evidence digest generation (`scoring_evidence_sha256`).
+1. **Stage 1:** Build the active operational graph and compute PageRank.
+2. **Stage 2:** Evaluate all 15 observable indicators. The pillars are Network (IND-01, 02, 05, 06, 07), Financial (IND-03, 04, 08, 12), Behavioral (IND-09, 10, 11, 14), and Document (IND-13, 15).
+3. **Stage 3:** Deduplicate a claim's findings by `(indicator_code, canonical_evidence_token)`, retaining the maximum `raw_points`.
+4. **Stage 4:** Normalize pillar totals with caps of 60 / 55 / 45 / 40.
+5. **Stage 5:** Calculate the weighted base score (0.35 / 0.30 / 0.20 / 0.15).
+6. **Stage 6:** Apply benign-context dampening: $D = \max(0.15, \prod m_b)$, except eligible hard-collusion claims use $D = 1.0$.
+7. **Stage 7:** Determine hard-collusion eligibility from a shared IND-01 `BANK:` token and IND-03 `DUP_FP:` token pair.
+8. **Stage 8:** Apply the eligible-component cluster boost.
+9. **Stage 9:** Cap at 100 and apply the 65-point floor only to eligible hard-collusion claims.
+10. **Stage 10:** Round, assign the risk tier, and write the SHA-256 scoring-evidence digest (`scoring_evidence_sha256`).
 
-### Indicator Persistence: 14,440 Evaluated $\to$ Exact 4,120 Persisted
-Table 5.1 of the architecture specification mandates an exact **4,120 table target**. The engine applies deterministic quality ranking:
-- Deduplicates on `(claim_id, indicator_code, canonical_evidence_token)` taking maximum `raw_points`.
-- Quality sort: `(-float(raw_points), -velocity_count, claim_id, canonical_evidence_token)`.
-- Guarantees 100% score retention for core fraud rings (YF-NEG-4 retains 36/40 in HIGH tier).
+### Indicator Persistence: Exact 4,120 Persisted Findings
+For seed 42, the canonical generator asserts exactly **4,120** rows in `fraud_indicators`. Findings are derived from observable operational facts; the test suite verifies the persisted count, scoring invariants, and the YF-NEG-4 result of 36/40 ring claims in the `HIGH` tier.
 
 ---
 
