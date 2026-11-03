@@ -23,15 +23,10 @@ class Settings(BaseModel):
         "2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab"
     )
 
-    # Database file location (defaults to canonical operational.db)
-    DATABASE_PATH: str = Field(
-        default_factory=lambda: os.getenv(
-            "SENTINEL_DB_PATH",
-            str(REPO_ROOT / "data" / "operational.db")
-            if (REPO_ROOT / "data" / "operational.db").exists()
-            else str(REPO_ROOT / "operational.db")
-        )
-    )
+    # Database file location (defaults strictly to canonical data/operational.db)
+    @property
+    def DATABASE_PATH(self) -> str:
+        return os.getenv("SENTINEL_DB_PATH", str(REPO_ROOT / "data" / "operational.db"))
 
     # Shipped SQL asset paths
     OPS_SQL_PATH: Path = Field(

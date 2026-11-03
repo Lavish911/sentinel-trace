@@ -9,13 +9,15 @@ from db.engine import register_udfs, open_operational_db
 def create_connection(db_path: Optional[str] = None) -> sqlite3.Connection:
     """Create and configure a SQLite connection with canonical ARCH-ST-010.3 PRAGMAs and UDFs."""
     target_path = db_path if db_path is not None else settings.DATABASE_PATH
-    target = Path(target_path)
 
-    # If target does not exist and root operational.db exists, fallback
-    if target_path != ":memory:" and not target.exists():
-        root_alt = Path(__file__).resolve().parent.parent.parent.parent / "operational.db"
-        if root_alt.exists():
-            target_path = str(root_alt)
+    if target_path != ":memory:":
+        target = Path(target_path)
+        if not target.is_file():
+            raise FileNotFoundError(
+                f"Canonical database not found at {target_path}. "
+                "Automatic database creation during connection is disabled. "
+                "Please run explicit setup: python scripts/generate_dataset.py"
+            )
 
     connection = sqlite3.connect(str(target_path), check_same_thread=False)
     connection.row_factory = sqlite3.Row

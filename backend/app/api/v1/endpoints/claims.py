@@ -1,16 +1,31 @@
 """
 Claim management and dossier endpoints for SENTINEL//TRACE.
 Provides forensic investigation views over claims, claimants, policies, invoices, and payments.
+Directly interfaces with canonical db.operations for claim hold and release mutations.
 """
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 import sqlite3
 import json
 from typing import Dict, Any, List, Optional
 
 from backend.app.db.session import get_db
+from db.operations import place_claim_on_siu_hold, release_claim_from_siu_hold
+from db.seed import EventChainEmitter
 
 router = APIRouter()
+
+
+class ClaimHoldRequest(BaseModel):
+    actor_id: str = "USR-SIU-001"
+    reason: Optional[str] = "High-risk indicators requiring SIU review"
+
+
+class ClaimReleaseRequest(BaseModel):
+    cleared_investigation_id: str
+    target_status: str = Field(default="UNDER_REVIEW", pattern="^(UNDER_REVIEW|APPROVED)$")
+    actor_id: str = "USR-SIU-001"
 
 
 @router.get("")
@@ -154,8 +169,8 @@ def get_claim_detail(claim_id: str, conn: sqlite3.Connection = Depends(get_db)) 
     q_inds = "SELECT * FROM fraud_indicators WHERE claim_id = ? ORDER BY pillar, raw_points DESC"
     indicators = [dict(r) for r in conn.execute(q_inds, (claim_id,)).fetchall()]
 
-    # 8. Associated active investigation if any
-    q_invg = "SELECT * FROM investigations WHERE primary_claim_id = ? LIMIT 1"
+    # 8. Associated active investigation if any (latest)
+    q_invg = "SELECT * FROM investigations WHERE primary_claim_id = ? ORDER BY opened_at_utc DESC, investigation_id DESC LIMIT 1"
     invg_row = conn.execute(q_invg, (claim_id,)).fetchone()
     investigation = dict(invg_row) if invg_row else None
 
@@ -257,3 +272,94 @@ def get_claim_timeline(claim_id: str, conn: sqlite3.Connection = Depends(get_db)
             "prev_event_hash": r[9],
         })
     return events
+
+
+@router.post("/{claim_id}/hold")
+def place_claim_on_hold(
+    claim_id: str,
+    payload: ClaimHoldRequest = ClaimHoldRequest(),
+    conn: sqlite3.Connection = Depends(get_db)
+) -> Dict[str, Any]:
+    """Places a claim on SIU_HOLD using db.operations.place_claim_on_siu_hold."""
+    row = conn.execute("SELECT claim_status FROM claims WHERE claim_id = ?", (claim_id,)).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
+    if row[0] == "SIU_HOLD":
+        raise HTTPException(status_code=400, detail=f"Claim {claim_id} is already on SIU_HOLD")
+
+    from backend.app.api.v1.endpoints.investigations import get_operation_timestamp
+    now_utc = get_operation_timestamp(conn)
+    emitter = EventChainEmitter(conn)
+    emitter.sync_from_db()
+
+    try:
+        ev_id = place_claim_on_siu_hold(
+            conn=conn,
+            emitter=emitter,
+            claim_id=claim_id,
+            actor_id=payload.actor_id,
+            occurred_at_utc=now_utc,
+        )
+        conn.commit()
+    except sqlite3.IntegrityError as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=f"Database integrity error: {e}")
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to place claim on SIU hold: {e}")
+
+    return {
+        "status": "SIU_HOLD_PLACED",
+        "claim_id": claim_id,
+        "claim_status": "SIU_HOLD",
+        "event_id": ev_id,
+        "occurred_at_utc": now_utc,
+    }
+
+
+@router.post("/{claim_id}/release")
+def release_claim_hold(
+    claim_id: str,
+    payload: ClaimReleaseRequest,
+    conn: sqlite3.Connection = Depends(get_db)
+) -> Dict[str, Any]:
+    """
+    Releases a claim from SIU_HOLD following a CLEARED_BENIGN investigation.
+    Strictly verified against D-1 SIU exit gate in trg_claims_fsm_upd.
+    """
+    row = conn.execute("SELECT claim_status FROM claims WHERE claim_id = ?", (claim_id,)).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
+    if row[0] != "SIU_HOLD":
+        raise HTTPException(status_code=400, detail=f"Claim {claim_id} is not on SIU_HOLD")
+
+    from backend.app.api.v1.endpoints.investigations import get_operation_timestamp
+    now_utc = get_operation_timestamp(conn)
+    emitter = EventChainEmitter(conn)
+    emitter.sync_from_db()
+
+    try:
+        ev_id = release_claim_from_siu_hold(
+            conn=conn,
+            emitter=emitter,
+            claim_id=claim_id,
+            target_status=payload.target_status,
+            cleared_investigation_id=payload.cleared_investigation_id,
+            actor_id=payload.actor_id,
+            occurred_at_utc=now_utc,
+        )
+        conn.commit()
+    except sqlite3.IntegrityError as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=f"Database integrity error: {e}")
+    except Exception as e:
+        conn.rollback()
+        raise HTTPException(status_code=400, detail=f"Failed to release claim from SIU hold: {e}")
+
+    return {
+        "status": "SIU_HOLD_RELEASED",
+        "claim_id": claim_id,
+        "claim_status": payload.target_status,
+        "event_id": ev_id,
+        "occurred_at_utc": now_utc,
+    }

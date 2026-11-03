@@ -19,6 +19,10 @@ import sys
 import tempfile
 from pathlib import Path
 
+REPO_ROOT = Path(__file__).resolve().parent.parent
+if str(REPO_ROOT) not in sys.path:
+    sys.path.insert(0, str(REPO_ROOT))
+
 from db.engine import (
     EXPECTED_SCHEMA_DIGEST,
     compute_schema_digest,

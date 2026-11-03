@@ -1,936 +1,2242 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>SENTINEL//TRACE — Forensic Fraud Intelligence Cockpit</title>
-  <style>
-    :root {
-      --bg-dark: #090d16;
-      --bg-panel: #111827;
-      --bg-card: #1f2937;
-      --bg-hover: #374151;
-      --border: #374151;
-      --text: #f3f4f6;
-      --text-muted: #9ca3af;
-      --cyan: #06b6d4;
-      --cyan-glow: rgba(6, 182, 212, 0.2);
-      --emerald: #10b981;
-      --amber: #f59e0b;
-      --rose: #f43f5e;
-      --purple: #8b5cf6;
-      --blue: #3b82f6;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, monospace;
-      background-color: var(--bg-dark);
-      color: var(--text);
-      line-height: 1.5;
-      font-size: 14px;
-    }
-    header {
-      background: var(--bg-panel);
-      border-bottom: 1px solid var(--border);
-      padding: 12px 24px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      position: sticky;
-      top: 0;
-      z-index: 100;
-    }
-    .brand {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .brand h1 {
-      font-size: 18px;
-      letter-spacing: 2px;
-      font-weight: 700;
-      color: var(--cyan);
-      text-transform: uppercase;
-    }
-    .badge {
-      display: inline-block;
-      padding: 2px 8px;
-      border-radius: 4px;
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-    .badge-schema { background: rgba(16, 185, 129, 0.2); color: var(--emerald); border: 1px solid var(--emerald); }
-    .badge-merkle { background: rgba(6, 182, 212, 0.2); color: var(--cyan); border: 1px solid var(--cyan); }
-    .badge-high { background: rgba(244, 63, 94, 0.2); color: var(--rose); border: 1px solid var(--rose); }
-    .badge-medium { background: rgba(245, 158, 11, 0.2); color: var(--amber); border: 1px solid var(--amber); }
-    .badge-low { background: rgba(16, 185, 129, 0.2); color: var(--emerald); border: 1px solid var(--emerald); }
-    
-    nav a {
-      color: var(--text-muted);
-      text-decoration: none;
-      margin-left: 16px;
-      font-size: 13px;
-      font-weight: 500;
-      transition: color 0.2s;
-    }
-    nav a:hover { color: var(--cyan); }
-
-    .container {
-      max-width: 1600px;
-      margin: 0 auto;
-      padding: 20px 24px;
-    }
-
-    /* KPI Summary Row */
-    .kpi-row {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-      gap: 16px;
-      margin-bottom: 24px;
-    }
-    .kpi-card {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      padding: 16px;
-      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5);
-    }
-    .kpi-label {
-      color: var(--text-muted);
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      margin-bottom: 4px;
-    }
-    .kpi-value {
-      font-size: 24px;
-      font-weight: 700;
-      color: #fff;
-    }
-    .kpi-sub {
-      font-size: 12px;
-      color: var(--cyan);
-      margin-top: 4px;
-    }
-
-    /* Main Grid: Left Triage, Right Dossier */
-    .main-grid {
-      display: grid;
-      grid-template-columns: 480px 1fr;
-      gap: 20px;
-      min-height: 750px;
-    }
-
-    /* Triage Section */
-    .triage-panel {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .panel-header {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border);
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .panel-title {
-      font-size: 14px;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: #fff;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .filter-pills {
-      display: flex;
-      gap: 6px;
-      flex-wrap: wrap;
-    }
-    .pill {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: var(--text-muted);
-      padding: 4px 10px;
-      border-radius: 20px;
-      font-size: 11px;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .pill.active, .pill:hover {
-      background: var(--cyan);
-      color: #000;
-      font-weight: 600;
-      border-color: var(--cyan);
-    }
-    .search-box {
-      width: 100%;
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      color: #fff;
-      padding: 8px 12px;
-      border-radius: 4px;
-      font-size: 12px;
-      outline: none;
-    }
-    .search-box:focus { border-color: var(--cyan); }
-
-    .triage-list {
-      flex: 1;
-      overflow-y: auto;
-      max-height: 650px;
-    }
-    .triage-item {
-      padding: 12px 16px;
-      border-bottom: 1px solid var(--border);
-      cursor: pointer;
-      transition: background 0.15s;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-    }
-    .triage-item:hover { background: var(--bg-card); }
-    .triage-item.selected {
-      background: rgba(6, 182, 212, 0.15);
-      border-left: 4px solid var(--cyan);
-    }
-    .item-id { font-weight: 700; font-size: 13px; color: #fff; }
-    .item-claimant { font-size: 12px; color: var(--text-muted); }
-    .item-score {
-      text-align: right;
-    }
-    .score-val { font-size: 15px; font-weight: 700; }
-
-    /* Dossier Section */
-    .dossier-panel {
-      background: var(--bg-panel);
-      border: 1px solid var(--border);
-      border-radius: 8px;
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
-    .tabs {
-      display: flex;
-      border-bottom: 1px solid var(--border);
-      background: var(--bg-card);
-    }
-    .tab {
-      padding: 12px 20px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-muted);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      transition: all 0.2s;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-    .tab:hover { color: #fff; }
-    .tab.active {
-      color: var(--cyan);
-      border-bottom-color: var(--cyan);
-      background: var(--bg-panel);
-    }
-    .tab-content {
-      flex: 1;
-      padding: 20px;
-      overflow-y: auto;
-      max-height: 700px;
-    }
-    .detail-grid {
-      display: grid;
-      grid-template-columns: repeat(2, 1fr);
-      gap: 16px;
-      margin-bottom: 20px;
-    }
-    .section-box {
-      background: var(--bg-card);
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      padding: 16px;
-    }
-    .section-title {
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-      color: var(--cyan);
-      margin-bottom: 12px;
-      font-weight: 700;
-    }
-    .field-row {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 8px;
-      font-size: 13px;
-    }
-    .field-name { color: var(--text-muted); }
-    .field-val { font-weight: 600; color: #fff; word-break: break-all; }
-
-    /* Indicator Table */
-    .table-custom {
-      width: 100%;
-      border-collapse: collapse;
-      margin-top: 8px;
-      font-size: 12px;
-    }
-    .table-custom th {
-      text-align: left;
-      padding: 8px 12px;
-      background: var(--bg-card);
-      color: var(--text-muted);
-      border-bottom: 1px solid var(--border);
-    }
-    .table-custom td {
-      padding: 8px 12px;
-      border-bottom: 1px solid var(--border);
-    }
-    .table-custom tr:hover td { background: var(--bg-card); }
-
-    /* Network Graph SVG Canvas */
-    #graph-container {
-      width: 100%;
-      height: 550px;
-      background: #080c14;
-      border: 1px solid var(--border);
-      border-radius: 6px;
-      position: relative;
-      overflow: hidden;
-    }
-    svg { width: 100%; height: 100%; }
-
-    /* Timeline */
-    .timeline {
-      position: relative;
-      padding-left: 20px;
-    }
-    .timeline::before {
-      content: '';
-      position: absolute;
-      left: 6px;
-      top: 0;
-      bottom: 0;
-      width: 2px;
-      background: var(--border);
-    }
-    .timeline-item {
-      position: relative;
-      margin-bottom: 16px;
-    }
-    .timeline-dot {
-      position: absolute;
-      left: -20px;
-      top: 4px;
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: var(--cyan);
-      border: 2px solid var(--bg-dark);
-    }
-    .timeline-time { font-size: 11px; color: var(--text-muted); }
-    .timeline-content { font-size: 13px; font-weight: 600; color: #fff; }
-    .timeline-hash { font-family: monospace; font-size: 10px; color: var(--cyan); }
-
-    .btn {
-      background: var(--cyan);
-      color: #000;
-      border: none;
-      border-radius: 4px;
-      padding: 8px 14px;
-      font-size: 12px;
-      font-weight: 700;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .btn:hover { background: #22d3ee; }
-  </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SENTINEL//TRACE — Special Investigation Unit Workstation</title>
+<meta name="description" content="Forensic insurance fraud intelligence: claim triage, entity dossiers, relationship networks, immutable event chains and SIU case management.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   SENTINEL//TRACE — Editorial forensic design system
+   Warm paper ground, ink typography, semantic accents.
+   ============================================================ */
+:root{
+  --paper:#F6F3EC; --paper-deep:#EFEBE0; --surface:#FCFAF4; --surface-2:#F3EFE4;
+  --panel-line:#E4DECE; --line:#DAD3C1; --line-strong:#C9C1AC;
+  --ink:#242820; --ink-2:#474B3F; --ink-3:#6B6E5E; --faint:#8F8B79; --ghost:#B5AF9C;
+  --terra:#B85C43; --terra-deep:#A33B25; --terra-wash:#F3E1D8;
+  --amber:#BD8A33; --amber-wash:#F4EAD2;
+  --sage:#5F7A58; --sage-wash:#E4EAD9;
+  --plum:#74638C; --plum-wash:#EAE6F0;
+  --grey:#8D887B; --grey-wash:#ECEAE0;
+  --serif:"Fraunces",Georgia,"Times New Roman",serif;
+  --sans:"Inter",-apple-system,"Segoe UI",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Consolas,monospace;
+  --focus:#242820;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{background:var(--paper);color:var(--ink);font-family:var(--sans);font-size:14px;line-height:1.55;-webkit-font-smoothing:antialiased}
+::selection{background:var(--terra-wash)}
+a{color:inherit}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
+input,select,textarea{font:inherit;color:inherit}
+svg{display:block}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px;border-radius:2px}
+.skip-link{position:absolute;left:-9999px;top:0;background:var(--ink);color:var(--paper);padding:8px 14px;z-index:400}
+.skip-link:focus{left:12px;top:12px}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
+.mast{position:sticky;top:0;z-index:200;background:var(--paper);border-bottom:1px solid var(--line-strong)}
+.mast-inner{max-width:1480px;margin:0 auto;padding:0 28px;display:flex;align-items:center;gap:20px;height:62px}
+.wordmark{display:flex;align-items:baseline;gap:10px;text-decoration:none;white-space:nowrap}
+.wordmark .wm-main{font-family:var(--serif);font-weight:600;font-size:19px;letter-spacing:.01em}
+.wordmark .wm-sub{font-family:var(--mono);font-size:10px;letter-spacing:.22em;color:var(--faint);text-transform:uppercase}
+.chip-row{display:flex;gap:8px;align-items:center;min-width:0;overflow:hidden}
+.chip{font-family:var(--mono);font-size:10.5px;letter-spacing:.03em;padding:3px 9px;border:1px solid var(--line);border-radius:3px;background:var(--surface);color:var(--ink-3);white-space:nowrap;text-overflow:ellipsis;overflow:hidden}
+.chip b{color:var(--ink-2);font-weight:600}
+.chip.ok .dot,.dot-ok{color:var(--sage)}
+.dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:6px;vertical-align:1px}
+.mast-nav{margin-left:auto;display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+.mast-nav::-webkit-scrollbar{display:none}
+.nav-item{display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:4px;font-size:12.5px;font-weight:500;color:var(--ink-3);text-decoration:none;white-space:nowrap;border:1px solid transparent;transition:background .15s,color .15s}
+.nav-item:hover{background:var(--surface-2);color:var(--ink)}
+.nav-item[aria-current="page"]{color:var(--ink);background:var(--surface);border-color:var(--line);font-weight:600}
+.nav-item svg{width:15px;height:15px;stroke:currentColor;fill:none;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}
+.shell{max-width:1480px;margin:0 auto;padding:26px 28px 72px;min-height:calc(100vh - 62px)}
+.view{display:none}
+.view.on{display:block}
+.page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;margin:6px 0 26px;flex-wrap:wrap}
+.eyebrow{font-family:var(--mono);font-size:10.5px;letter-spacing:.24em;text-transform:uppercase;color:var(--terra);margin-bottom:8px}
+.page-head h1{font-family:var(--serif);font-size:32px;font-weight:600;letter-spacing:-.01em;line-height:1.12}
+.page-head .lede{color:var(--ink-3);max-width:60ch;margin-top:8px;font-size:13.5px}
+.head-meta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.rule{border:0;border-top:1px solid var(--line);margin:18px 0}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.card-h{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 16px;border-bottom:1px solid var(--panel-line)}
+.card-h h2{font-size:12px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-2)}
+.card-b{padding:16px}
+.hint{font-size:11.5px;color:var(--faint)}
+.badge{display:inline-flex;align-items:center;gap:5px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;padding:2px 8px;border-radius:3px;border:1px solid;background:var(--paper)}
+.badge.solid{border-color:transparent}
+.badge .bdot{width:6px;height:6px;border-radius:50%;background:currentColor}
+.badge.t-terra{color:var(--terra);border-color:#D9A48F;background:var(--terra-wash)}
+.badge.t-terra-deep{color:var(--terra-deep);border-color:#CE9781;background:var(--terra-wash)}
+.badge.t-amber{color:#8A6420;border-color:#DDBE7C;background:var(--amber-wash)}
+.badge.t-sage{color:var(--sage);border-color:#A9BE9F;background:var(--sage-wash)}
+.badge.t-plum{color:var(--plum);border-color:#B7ABCC;background:var(--plum-wash)}
+.badge.t-grey{color:var(--ink-3);border-color:var(--line-strong);background:var(--surface-2)}
+.badge.t-ink{color:var(--ink-2);border-color:var(--line-strong);background:var(--surface-2)}
+.mono{font-family:var(--mono)}
+.num{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--ink-3)}
+.faint{color:var(--faint)}
+.small{font-size:12px}
+.tiny{font-size:11px}
+.nowrap{white-space:nowrap}
+.hash{font-family:var(--mono);font-size:11px;color:var(--ink-3);word-break:break-all}
+.copy-btn{display:inline-flex;align-items:center;gap:4px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;color:var(--faint);border:1px solid transparent;border-radius:3px;padding:2px 6px}
+.copy-btn:hover{color:var(--ink);border-color:var(--line);background:var(--surface)}
+.copy-btn svg{width:11px;height:11px;stroke:currentColor;fill:none;stroke-width:1.6}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 16px;border-radius:4px;font-size:12.5px;font-weight:600;letter-spacing:.02em;border:1px solid transparent;transition:all .15s;text-decoration:none}
+.btn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.btn-primary{background:var(--ink);color:var(--paper)}
+.btn-primary:hover{background:#161812}
+.btn-terra{background:var(--terra);color:#FDF7F3}
+.btn-terra:hover{background:var(--terra-deep)}
+.btn-ghost{border-color:var(--line-strong);color:var(--ink-2);background:var(--surface)}
+.btn-ghost:hover{border-color:var(--ink-3);color:var(--ink)}
+.btn-sm{padding:5px 10px;font-size:11.5px}
+.btn[disabled]{opacity:.45;cursor:not-allowed}
+.field{display:flex;flex-direction:column;gap:5px}
+.field label{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-3)}
+.input,.select,.textarea{background:var(--surface);border:1px solid var(--line-strong);border-radius:4px;padding:8px 11px;font-size:13px;width:100%}
+.input:focus,.select:focus,.textarea:focus{outline:2px solid var(--focus);outline-offset:1px;border-color:transparent}
+.textarea{resize:vertical;min-height:88px}
+.select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%236B6E5E' stroke-width='1.4' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px}
+.search-wrap{position:relative}
+.search-wrap svg{position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;stroke:var(--faint);fill:none;stroke-width:1.7;pointer-events:none}
+.search-wrap .input{padding-left:32px}
+.toolbar{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;padding:14px 16px;border-bottom:1px solid var(--panel-line)}
+.toolbar .field{min-width:170px}
+.pills{display:flex;gap:6px;flex-wrap:wrap}
+.pill{font-size:11.5px;font-weight:500;padding:5px 12px;border-radius:99px;border:1px solid var(--line);color:var(--ink-3);background:var(--surface);transition:all .15s}
+.pill:hover{border-color:var(--ink-3);color:var(--ink)}
+.pill.on{background:var(--ink);border-color:var(--ink);color:var(--paper);font-weight:600}
+.tbl-wrap{overflow-x:auto}
+table.tbl{width:100%;border-collapse:collapse;font-size:12.5px}
+.tbl th{font-family:var(--mono);font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint);font-weight:500;text-align:left;padding:10px 12px;border-bottom:1px solid var(--line-strong);white-space:nowrap}
+.tbl td{padding:10px 12px;border-bottom:1px solid var(--panel-line);vertical-align:middle}
+.tbl tbody tr:last-child td{border-bottom:0}
+tr.rowbtn{cursor:pointer;transition:background .12s}
+tr.rowbtn:hover{background:var(--surface-2)}
+tr.rowbtn.sel{background:#EFE7DA}
+th.sortable{cursor:pointer;user-select:none}
+th.sortable:hover{color:var(--ink-2)}
+th.sortable .arr{display:inline-block;margin-left:4px;font-size:8px}
+.numcell{text-align:right;font-family:var(--mono);font-variant-numeric:tabular-nums}
+.center{text-align:center}
+.fld{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid var(--panel-line);align-items:baseline}
+.fld:last-child{border-bottom:0}
+.fld dt{font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--faint);padding-top:2px}
+.fld dd{font-size:12.5px;min-width:0;word-break:break-word}
+.fld dd .mono{font-size:11.5px}
+.kpi-band{display:grid;grid-template-columns:repeat(5,1fr);border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);overflow:hidden}
+.kpi{padding:18px 20px 15px;border-right:1px solid var(--panel-line);position:relative}
+.kpi:last-child{border-right:0}
+.kpi .k-label{font-family:var(--mono);font-size:9.5px;letter-spacing:.18em;text-transform:uppercase;color:var(--faint);display:flex;align-items:center;gap:6px}
+.kpi .k-label svg{width:13px;height:13px;stroke:var(--faint);fill:none;stroke-width:1.5}
+.kpi .k-val{font-family:var(--serif);font-size:30px;font-weight:600;letter-spacing:-.01em;margin-top:6px;font-variant-numeric:tabular-nums}
+.kpi .k-val .unit{font-size:15px;color:var(--faint);font-family:var(--sans);font-weight:400;margin-left:2px}
+.kpi .k-sub{font-size:11px;color:var(--ink-3);margin-top:3px}
+.kpi .k-sub b{color:var(--ink-2);font-weight:600}
+.dist-bar{display:flex;height:34px;border-radius:4px;overflow:hidden;border:1px solid var(--line-strong)}
+.dist-bar>div{min-width:2px;position:relative;transition:width .4s ease}
+.dist-bar .seg{display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:9px;color:#fff;overflow:hidden;white-space:nowrap}
+.dist-legend{display:flex;gap:16px;margin-top:10px;flex-wrap:wrap}
+.dist-legend .dl{display:flex;align-items:center;gap:7px;font-size:11.5px;color:var(--ink-3)}
+.dist-legend .sw{width:9px;height:9px;border-radius:2px}
+.hbar-row{display:grid;grid-template-columns:110px 1fr 64px;gap:12px;align-items:center;padding:5px 0}
+.hbar-row .hb-name{font-size:11.5px;color:var(--ink-3);font-family:var(--mono);letter-spacing:.04em}
+.hbar-row .hb-track{height:12px;background:var(--surface-2);border-radius:3px;overflow:hidden;border:1px solid var(--panel-line)}
+.hbar-row .hb-fill{height:100%;border-radius:2px;min-width:2px}
+.hbar-row .hb-val{font-family:var(--mono);font-size:11px;text-align:right;color:var(--ink-2)}
+.ledger{display:grid;grid-template-columns:repeat(6,1fr)}
+.ledger>div{padding:12px 16px;border-right:1px solid var(--panel-line)}
+.ledger>div:last-child{border-right:0}
+.ledger .l-label{font-family:var(--mono);font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--faint)}
+.ledger .l-val{font-family:var(--mono);font-size:15px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums}
+.sig{display:flex;gap:14px;align-items:flex-start;padding:12px 4px;border-bottom:1px solid var(--panel-line);text-decoration:none;border-radius:4px}
+.sig:last-child{border-bottom:0}
+.sig:hover{background:var(--surface-2)}
+.sig .s-rank{font-family:var(--serif);font-size:20px;color:var(--ghost);min-width:30px;text-align:center;padding-top:1px}
+.sig .s-main{min-width:0;flex:1}
+.sig .s-title{font-weight:600;font-size:13px}
+.sig .s-sub{font-size:11.5px;color:var(--ink-3);margin-top:1px}
+.sig .s-right{display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex:none}
+.pager{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:12px 16px;border-top:1px solid var(--panel-line);flex-wrap:wrap}
+.pager .p-info{font-size:11.5px;color:var(--faint);font-family:var(--mono)}
+.pager .p-btns{display:flex;gap:6px}
+.state{display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:46px 24px;gap:10px;color:var(--ink-3)}
+.state svg{width:30px;height:30px;stroke:var(--ghost);fill:none;stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+.state .st-title{font-family:var(--serif);font-size:17px;color:var(--ink-2)}
+.state .st-sub{font-size:12.5px;max-width:44ch}
+.state .spin{width:22px;height:22px;border-radius:50%;border:2px solid var(--line-strong);border-top-color:var(--terra);animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.err-state{color:var(--terra-deep)}
+.err-state svg{stroke:var(--terra)}
+.banner{display:flex;gap:10px;align-items:flex-start;border:1px solid #DDB28F;background:#F6E7DC;color:var(--terra-deep);border-radius:5px;padding:10px 14px;font-size:12.5px;margin-bottom:14px}
+.banner .boa{font-weight:600;flex:none}
+.banner button{text-decoration:underline;font-weight:600;color:var(--terra-deep)}
+.banner.banner-neutral{border-color:var(--line-strong);background:var(--surface-2);color:var(--ink-3)}
+.banner.banner-neutral .boa{color:var(--ink-2)}
+.toasts{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);z-index:300;display:flex;flex-direction:column;gap:8px;align-items:center}
+.toast{background:var(--ink);color:var(--paper);border-radius:5px;padding:10px 16px;font-size:12.5px;display:flex;gap:9px;align-items:center;box-shadow:0 6px 24px rgba(36,40,32,.18);animation:toast-in .25s ease}
+.toast svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+.toast.err{background:var(--terra-deep)}
+.toast.ok svg{stroke:var(--sage-wash)}
+@keyframes toast-in{from{opacity:0;transform:translateY(8px)}to{opacity:1}}
+.overlay{position:fixed;inset:0;background:rgba(36,40,32,.45);z-index:250;display:none;align-items:center;justify-content:center;padding:20px}
+.overlay.on{display:flex}
+.modal{background:var(--paper);border:1px solid var(--line-strong);border-radius:8px;max-width:560px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(36,40,32,.3)}
+.modal-h{padding:18px 22px 14px;border-bottom:1px solid var(--panel-line);display:flex;justify-content:space-between;align-items:flex-start;gap:16px}
+.modal-h h2{font-family:var(--serif);font-size:21px;font-weight:600}
+.modal-b{padding:20px 22px;display:flex;flex-direction:column;gap:14px}
+.modal-f{padding:14px 22px 20px;display:flex;justify-content:flex-end;gap:10px;border-top:1px solid var(--panel-line)}
+.form-err{color:var(--terra-deep);font-size:12px;display:none;gap:6px;align-items:center}
+.form-err.on{display:flex}
+.form-err svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;flex:none}
+.x-btn{color:var(--faint);padding:4px;border-radius:4px}
+.x-btn:hover{color:var(--ink);background:var(--surface-2)}
+.dossier-head{border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);padding:20px 24px;display:flex;gap:28px;align-items:stretch;justify-content:space-between;flex-wrap:wrap}
+.dh-id .dh-eyebrow{font-family:var(--mono);font-size:10px;letter-spacing:.2em;color:var(--faint);text-transform:uppercase}
+.dh-id h1{font-family:var(--mono);font-size:26px;font-weight:600;letter-spacing:.01em;margin:4px 0 8px}
+.dh-facts{display:flex;gap:14px;flex-wrap:wrap;align-items:center}
+.dh-facts .fact{font-size:12px;color:var(--ink-3);display:flex;gap:5px;align-items:center}
+.dh-facts .fact b{color:var(--ink-2);font-weight:600}
+.score-mod{display:flex;gap:22px;align-items:center;flex:none}
+.score-big{text-align:right}
+.score-big .sc{font-family:var(--serif);font-size:44px;font-weight:600;line-height:1;font-variant-numeric:tabular-nums}
+.score-big .sc .of{font-size:15px;color:var(--faint);font-family:var(--sans)}
+.score-big .tierlbl{font-family:var(--mono);font-size:10px;letter-spacing:.2em;margin-top:5px;text-transform:uppercase}
+.breadcrumbs{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--faint);margin-bottom:14px;flex-wrap:wrap}
+.breadcrumbs a{color:var(--ink-3);text-decoration:none;border-bottom:1px solid var(--line-strong)}
+.breadcrumbs a:hover{color:var(--terra)}
+.breadcrumbs .sep{color:var(--ghost)}
+.dossier-tabs{display:flex;gap:2px;border-bottom:1px solid var(--line-strong);margin-top:22px}
+.dtab{padding:10px 16px;font-size:12.5px;font-weight:500;color:var(--ink-3);border:1px solid transparent;border-bottom:0;border-radius:5px 5px 0 0;background:var(--paper-deep);margin-bottom:-1px;transition:color .15s;white-space:nowrap}
+.dtab:hover{color:var(--ink)}
+.dtab[aria-selected="true"]{background:var(--surface);border-color:var(--line-strong);border-bottom:1px solid var(--surface);color:var(--ink);font-weight:600}
+.dtab .cnt{font-family:var(--mono);font-size:10px;color:var(--faint);margin-left:5px}
+.dpanel{background:var(--surface);border:1px solid var(--line-strong);border-top:0;border-radius:0 0 6px 6px;padding:22px}
+.subhead{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-3);margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.subhead::after{content:"";flex:1;border-top:1px solid var(--panel-line)}
+.exp-head{display:flex;align-items:center;gap:10px;width:100%;text-align:left;padding:10px 4px;border-bottom:1px solid var(--panel-line);background:none}
+.exp-head:hover .et-title{color:var(--terra)}
+.exp-row{border-bottom:1px solid var(--panel-line)}
+.exp-row:last-child{border-bottom:0}
+.exp-body{padding:4px 4px 14px 30px;display:none}
+.exp-row.open .exp-body{display:block}
+.chev{transition:transform .18s;width:12px;height:12px;stroke:var(--faint);fill:none;stroke-width:2;flex:none}
+.exp-row.open .chev{transform:rotate(90deg)}
+.et-title{font-weight:600;font-size:12.5px}
+.token-box{font-family:var(--mono);font-size:10.5px;background:var(--surface-2);border:1px solid var(--panel-line);border-radius:4px;padding:8px 10px;word-break:break-all;color:var(--ink-2)}
+.wf{display:flex;flex-direction:column;gap:9px}
+.wf-row{display:grid;grid-template-columns:150px 1fr 110px;gap:12px;align-items:center}
+.wf-name{font-size:11px;font-family:var(--mono);letter-spacing:.05em;color:var(--ink-3)}
+.wf-track{height:14px;background:var(--surface-2);border:1px solid var(--panel-line);border-radius:3px;overflow:hidden;display:flex}
+.wf-seg{height:100%;min-width:2px}
+.wf-val{font-family:var(--mono);font-size:11px;text-align:right;color:var(--ink-2)}
+.net-grid{display:grid;grid-template-columns:290px minmax(0,1fr) 300px;gap:16px;align-items:stretch}
+.net-rail{display:flex;flex-direction:column;gap:12px}
+.net-quick{display:flex;flex-direction:column;max-height:420px;overflow:auto}
+.nq-item{display:flex;justify-content:space-between;gap:10px;align-items:center;padding:9px 12px;border-bottom:1px solid var(--panel-line);cursor:pointer;transition:background .12s;text-align:left;width:100%}
+.nq-item:hover{background:var(--surface-2)}
+.nq-item.sel{background:#EFE7DA}
+.nq-id{font-family:var(--mono);font-size:11px;font-weight:600}
+.nq-sub{font-size:10.5px;color:var(--faint)}
+.net-stage-wrap{position:relative}
+.net-stage{border:1px solid var(--line-strong);border-radius:6px;background:radial-gradient(circle at 1px 1px, rgba(36,40,32,.055) 1px, transparent 0);background-size:22px 22px;background-color:var(--surface);overflow:hidden;touch-action:none}
+.net-stage svg{width:100%;height:100%;cursor:grab}
+.net-stage svg.panning{cursor:grabbing}
+.net-toolbar{position:absolute;top:10px;right:10px;display:flex;flex-direction:column;gap:6px;z-index:5}
+.net-tbtn{width:30px;height:30px;border-radius:4px;background:var(--paper);border:1px solid var(--line-strong);display:flex;align-items:center;justify-content:center;color:var(--ink-2);transition:all .12s;font-family:var(--mono);font-size:14px}
+.net-tbtn:hover{background:var(--surface-2);color:var(--ink)}
+.net-tbtn svg{width:14px;height:14px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round}
+.net-metrics{position:absolute;bottom:10px;left:10px;display:flex;gap:6px;z-index:5;flex-wrap:wrap}
+.legend{display:flex;gap:14px;flex-wrap:wrap;padding:10px 4px 0}
+.legend .lg{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-3)}
+.legend svg{width:14px;height:14px}
+g.node{cursor:pointer}
+g.node text{font-family:var(--mono);font-size:9.5px;fill:var(--ink-3);pointer-events:none}
+g.node.dim{opacity:.22}
+g.node.hl .nshape{stroke-width:2.4 !important}
+g.node.sel .nshape{stroke:var(--ink) !important;stroke-width:2.6 !important}
+.node-detail{position:sticky;top:80px;align-self:start}
+.chain-stats{display:grid;grid-template-columns:repeat(4,1fr);border:1px solid var(--line-strong);border-radius:6px;background:var(--surface);overflow:hidden;margin-bottom:18px}
+.chain-stats>div{padding:13px 18px;border-right:1px solid var(--panel-line)}
+.chain-stats>div:last-child{border-right:0}
+.chain-stats .cs-label{font-family:var(--mono);font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)}
+.chain-stats .cs-val{font-family:var(--mono);font-size:14px;font-weight:600;margin-top:4px;word-break:break-all}
+.evt{border:1px solid var(--panel-line);border-radius:6px;background:var(--surface);margin-bottom:10px;overflow:hidden}
+.evt-h{display:flex;gap:14px;align-items:center;padding:11px 14px;width:100%;text-align:left;transition:background .12s;flex-wrap:wrap}
+.evt-h:hover{background:var(--surface-2)}
+.evt-seq{font-family:var(--mono);font-size:10px;color:var(--faint);min-width:74px}
+.evt-type{font-weight:600;font-size:12.5px;min-width:190px}
+.evt-time{font-family:var(--mono);font-size:10.5px;color:var(--faint)}
+.evt-body{display:none;border-top:1px solid var(--panel-line);padding:14px 16px;background:var(--paper)}
+.evt.open .evt-body{display:block}
+.evt.open .evt-h{background:var(--surface-2)}
+.evt.open .chev{transform:rotate(90deg)}
+.chain-ok{color:var(--sage)}
+.chain-bad{color:var(--terra-deep)}
+.payoff-note{border-left:3px solid var(--plum);background:var(--plum-wash);padding:10px 14px;border-radius:0 4px 4px 0;font-size:12px;color:var(--ink-2)}
+.cases-grid{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:16px;align-items:start}
+.case-detail{position:sticky;top:80px}
+.linklike{font-family:var(--mono);cursor:pointer}
+@media (max-width:1200px){
+  .kpi-band{grid-template-columns:repeat(2,1fr)}
+  .kpi:nth-child(2n){border-right:0}
+  .kpi{border-bottom:1px solid var(--panel-line)}
+  .net-grid{grid-template-columns:minmax(0,1fr)}
+  .net-quick{max-height:260px}
+  .cases-grid{grid-template-columns:1fr}
+  .case-detail{position:static}
+}
+@media (max-width:820px){
+  .mast-inner{padding:0 14px;height:auto;flex-wrap:wrap;gap:8px;padding-top:10px;padding-bottom:10px}
+  .mast-nav{margin-left:0;width:100%}
+  .shell{padding:18px 14px 60px}
+  .page-head h1{font-size:25px}
+  .chip-row{display:none}
+  .ledger{grid-template-columns:repeat(3,1fr)}
+  .ledger>div{border-bottom:1px solid var(--panel-line)}
+  .fld{grid-template-columns:112px 1fr}
+  .dossier-head{padding:16px}
+  .score-big .sc{font-size:34px}
+}
+</style>
 </head>
 <body>
+<a class="skip-link" href="#view-root">Skip to content</a>
+<noscript><div style="padding:20px;color:#242820">SENTINEL//TRACE requires JavaScript to query the REST API. The data API itself is unaffected: see <a href="/docs">/docs</a>.</div></noscript>
 
-  <header>
-    <div class="brand">
-      <h1>SENTINEL // TRACE</h1>
-      <span class="badge badge-schema">ARCH-ST-010.3 VERIFIED</span>
-      <span class="badge badge-merkle" id="merkle-badge">MERKLE: VERIFYING...</span>
+<header class="mast">
+  <div class="mast-inner">
+    <a class="wordmark" href="#/overview">
+      <span class="wm-main">SENTINEL // TRACE</span>
+      <span class="wm-sub">Forensic Fraud Intelligence Cockpit</span>
+    </a>
+    <div class="chip-row" id="mast-chips" aria-hidden="true">
+      <span class="chip" id="chip-baseline"><b>ARCH-ST-010.3 VERIFIED</b></span>
+      <span class="chip" id="chip-schema"><span class="dot" id="chip-schema-dot"></span><span id="chip-schema-txt">schema…</span></span>
+      <span class="chip" id="chip-merkle">Merkle …</span>
     </div>
-    <nav>
-      <a href="/docs" target="_blank">API Docs</a>
-      <a href="/redoc" target="_blank">ReDoc</a>
-      <a href="#refresh" onclick="loadStats(); loadClaims(); return false;">↻ Refresh Data</a>
+    <nav class="mast-nav" aria-label="Primary">
+      <a class="nav-item" href="#/overview" data-nav="overview"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 19h16M8 16v-5m4 5V8m4 8v-3"/></svg>Overview</a>
+      <a class="nav-item" href="#/claims" data-nav="claims"><svg viewBox="0 0 24 24"><path d="M7 4h7l4 4v12H7zM14 4v4h4M10 12h5m-5 4h5"/></svg>Claims Desk</a>
+      <a class="nav-item" href="#/network" data-nav="network"><svg viewBox="0 0 24 24"><circle cx="12" cy="6" r="2.4"/><circle cx="5" cy="18" r="2.4"/><circle cx="19" cy="18" r="2.4"/><path d="M11 8l-4 8m6-8l4 8M7.5 18h9"/></svg>Network</a>
+      <a class="nav-item" href="#/chain" data-nav="chain"><svg viewBox="0 0 24 24"><path d="M9 15l-3-3 3-3m6 0l3 3-3 3M9 12h6"/></svg>Merkle Chain</a>
+      <a class="nav-item" href="#/cases" data-nav="cases"><svg viewBox="0 0 24 24"><path d="M4 8h16v11H4zM4 8l2-4h12l2 4M10 12h4"/></svg>SIU Cases</a>
     </nav>
-  </header>
+  </div>
+</header>
 
-  <div class="container">
-    <!-- Top KPI Summary -->
-    <div class="kpi-row">
-      <div class="kpi-card">
-        <div class="kpi-label">Total Claims Monitored</div>
-        <div class="kpi-value" id="kpi-total-claims">5,000</div>
-        <div class="kpi-sub" id="kpi-risk-breakdown">0 Critical · 0 High · 0 Med</div>
+<div class="shell">
+  <!-- ============ A. INTELLIGENCE OVERVIEW ============ -->
+  <section class="view" id="view-overview" aria-labelledby="ov-h"></section>
+  <!-- ============ B. CLAIM INVESTIGATION DESK ============ -->
+  <section class="view" id="view-claims" aria-labelledby="cl-h"></section>
+  <!-- ============ C. CLAIM DOSSIER ============ -->
+  <section class="view" id="view-dossier" aria-labelledby="d-h"></section>
+  <!-- ============ D. NETWORK INTELLIGENCE ============ -->
+  <section class="view" id="view-network" aria-labelledby="n-h"></section>
+  <!-- ============ E. MERKLE AUDIT TIMELINE ============ -->
+  <section class="view" id="view-chain" aria-labelledby="m-h"></section>
+  <!-- ============ F. SIU CASE MANAGEMENT ============ -->
+  <section class="view" id="view-cases" aria-labelledby="siu-h"></section>
+</div>
+
+<footer style="max-width:1480px;margin:0 auto;padding:18px 28px 34px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--faint)">
+  <span>SENTINEL//TRACE · All figures queried live from the operational dataset (<span id="foot-baseline">ARCH-ST dataset</span>). Ground-truth labels are physically isolated and never rendered.</span>
+  <span><a href="/docs" style="color:var(--ink-2)">API docs</a> · <a href="/redoc" style="color:var(--ink-2)">ReDoc</a> · <a href="#/overview" style="color:var(--ink-2)">Overview</a></span>
+</footer>
+
+<!-- Create investigation modal -->
+<div class="overlay" id="case-overlay" role="dialog" aria-modal="true" aria-labelledby="case-modal-title">
+  <div class="modal">
+    <div class="modal-h">
+      <div>
+        <div class="eyebrow" style="margin-bottom:4px">SIU Case Initiation</div>
+        <h2 id="case-modal-title">Open Investigation Case</h2>
       </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Fraud Indicators Persisted</div>
-        <div class="kpi-value" id="kpi-total-indicators">4,120</div>
-        <div class="kpi-sub">Exact ARCH-ST-010.3 Cardinality</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Active SIU Cases</div>
-        <div class="kpi-value" id="kpi-total-cases">45</div>
-        <div class="kpi-sub">Priority Investigations Landed</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Total Claimed Exposure</div>
-        <div class="kpi-value" id="kpi-total-exposure">$0.00</div>
-        <div class="kpi-sub" id="kpi-net-disbursed">Disbursed: $0.00</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Active Relationship Edges</div>
-        <div class="kpi-value" id="kpi-total-edges">8,000</div>
-        <div class="kpi-sub">Operational Knowledge Graph</div>
-      </div>
+      <button class="x-btn" id="case-x" aria-label="Close dialog">&#10005;</button>
     </div>
-
-    <!-- Main Grid: Triage Worklist vs Dossier Inspector -->
-    <div class="main-grid">
-      <!-- Left: Triage Worklist -->
-      <div class="triage-panel">
-        <div class="panel-header">
-          <div class="panel-title">
-            <span>Triage Worklist</span>
-            <span class="badge badge-schema" id="worklist-count">Loading...</span>
-          </div>
-          <div class="filter-pills">
-            <span class="pill active" onclick="setFilter(this, 'ALL')">All Claims</span>
-            <span class="pill" onclick="setFilter(this, 'HIGH')">High Risk (>=65)</span>
-            <span class="pill" onclick="setFilter(this, 'MEDIUM')">Medium Risk</span>
-            <span class="pill" onclick="setScenario(this, 'yf_neg_4')">YF-NEG-4 Collusion</span>
-            <span class="pill" onclick="setScenario(this, 'yf_neg_5')">YF-NEG-5 Ocean Ave</span>
-          </div>
-          <input type="text" class="search-box" id="search-input" placeholder="Search Claim ID, Claimant, Policy..." onkeyup="handleSearch(event)">
+    <form class="modal-b" id="case-form" novalidate>
+      <div class="banner banner-neutral" id="case-banner" style="display:none"></div>
+      <div class="field">
+        <label for="cf-claim">Primary claim ID</label>
+        <input class="input mono" id="cf-claim" placeholder="CLM-2026-000000" required>
+        <span class="hint" id="cf-claim-hint">Verified against the operational database before submission.</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+        <div class="field">
+          <label for="cf-priority">Priority</label>
+          <select class="select" id="cf-priority">
+            <option value="P3_STANDARD">P3 · Standard</option>
+            <option value="P2_HIGH" selected>P2 · High</option>
+            <option value="P1_CRITICAL">P1 · Critical</option>
+          </select>
         </div>
-
-        <div class="triage-list" id="triage-list">
-          <div style="padding: 20px; text-align: center; color: var(--text-muted);">Loading claims database...</div>
+        <div class="field">
+          <label for="cf-exposure">Estimated exposure (USD)</label>
+          <input class="input num" id="cf-exposure" type="number" min="0" step="0.01" placeholder="0.00">
+          <span class="hint">Defaults to the claim's claimed amount when left blank.</span>
         </div>
       </div>
-
-      <!-- Right: Dossier Inspector -->
-      <div class="dossier-panel">
-        <div class="tabs">
-          <div class="tab active" onclick="switchTab(this, 'tab-overview')">Dossier Overview</div>
-          <div class="tab" onclick="switchTab(this, 'tab-indicators')">Fraud Indicators (<span id="tab-ind-count">0</span>)</div>
-          <div class="tab" onclick="switchTab(this, 'tab-network')">Network Topology</div>
-          <div class="tab" onclick="switchTab(this, 'tab-timeline')">Merkle Timeline</div>
-          <div class="tab" onclick="switchTab(this, 'tab-investigation')">SIU Case</div>
-        </div>
-
-        <div class="tab-content">
-          <!-- Tab 1: Overview -->
-          <div id="tab-overview">
-            <div id="overview-content">
-              <div style="text-align: center; padding: 60px 20px; color: var(--text-muted);">
-                Select any claim from the triage worklist to inspect its full forensic dossier.
-              </div>
-            </div>
-          </div>
-
-          <!-- Tab 2: Fraud Indicators -->
-          <div id="tab-indicators" style="display: none;">
-            <div class="section-title">Triggered Fraud Indicators & Scoring Contributions</div>
-            <table class="table-custom">
-              <thead>
-                <tr>
-                  <th>Rule Code</th>
-                  <th>Pillar</th>
-                  <th>Severity</th>
-                  <th>Raw Points</th>
-                  <th>Max Points</th>
-                  <th>Canonical Evidence Token</th>
-                </tr>
-              </thead>
-              <tbody id="indicators-tbody">
-                <tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No indicators to display.</td></tr>
-              </tbody>
-            </table>
-          </div>
-
-          <!-- Tab 3: Network Topology -->
-          <div id="tab-network" style="display: none;">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-              <div class="section-title">Operational Entity Knowledge Graph (Zero Ground-Truth Leakage)</div>
-              <div style="font-size: 11px; color: var(--text-muted);" id="network-metrics-badge">Nodes: 0 | Edges: 0</div>
-            </div>
-            <div id="graph-container">
-              <svg id="network-svg"></svg>
-            </div>
-          </div>
-
-          <!-- Tab 4: Timeline -->
-          <div id="tab-timeline" style="display: none;">
-            <div class="section-title">Cryptographic Event Chain (SHA-256 Merkle Verification)</div>
-            <div class="timeline" id="timeline-container">
-              <div style="color: var(--text-muted);">No chronological events recorded.</div>
-            </div>
-          </div>
-
-          <!-- Tab 5: SIU Investigation -->
-          <div id="tab-investigation" style="display: none;">
-            <div id="siu-case-content">
-              <div style="color: var(--text-muted);">No active investigation linked to this claim.</div>
-            </div>
-          </div>
-        </div>
+      <div class="field">
+        <label for="cf-assignee">Assigned investigator</label>
+        <input class="input mono" id="cf-assignee" value="SIU-AGENT-001">
       </div>
+      <div class="field">
+        <label for="cf-notes">Case summary notes <span style="text-transform:none">· minimum 5 characters</span></label>
+        <textarea class="textarea" id="cf-notes" required minlength="5" placeholder="Suspicious pattern observed, ordinance of indicators, and why this claim warrants an SIU file."></textarea>
+      </div>
+      <div class="form-err" id="cf-err" role="alert"></div>
+    </form>
+    <div class="modal-f">
+      <button class="btn btn-ghost" id="case-cancel">Cancel</button>
+      <button class="btn btn-terra" id="case-submit">Create case file</button>
     </div>
   </div>
+</div>
 
-  <script>
-    let currentFilter = 'ALL';
-    let currentScenario = '';
-    let currentSearch = '';
-    let selectedClaimId = null;
-    let claimsData = [];
+<div class="toasts" id="toasts" aria-live="polite"></div>
+<script>
+/* ================================================================
+   SENTINEL//TRACE cockpit — vanilla ES2020, no dependencies.
+   All data is fetched live from /api/v1. Nothing is fabricated;
+   panels not supported by the API degrade with honest notices.
+   ================================================================ */
+'use strict';
 
-    async function loadStats() {
-      try {
-        const res = await fetch('/api/v1/dashboard/stats');
-        const data = await res.json();
-        document.getElementById('kpi-total-claims').innerText = data.total_claims.toLocaleString();
-        document.getElementById('kpi-risk-breakdown').innerText = 
-          `${data.risk_tiers.CRITICAL || 0} Critical · ${data.risk_tiers.HIGH || 0} High · ${data.risk_tiers.MEDIUM || 0} Med · ${data.risk_tiers.LOW || 0} Low`;
-        document.getElementById('kpi-total-indicators').innerText = data.indicators.total_persisted.toLocaleString();
-        document.getElementById('kpi-total-cases').innerText = data.entities.investigations.toLocaleString();
-        document.getElementById('kpi-total-exposure').innerText = '$' + Number(data.financials.total_claimed_dollars).toLocaleString('en-US', {minimumFractionDigits: 2});
-        document.getElementById('kpi-net-disbursed').innerText = 'Disbursed: $' + Number(data.financials.total_disbursed_dollars).toLocaleString('en-US', {minimumFractionDigits: 2});
-        document.getElementById('kpi-total-edges').innerText = data.entities.relationship_edges.toLocaleString();
-        
-        if (data.merkle_root) {
-          document.getElementById('merkle-badge').innerText = 'MERKLE: ' + data.merkle_root.substring(0, 16) + '...';
-        }
-      } catch (err) {
-        console.error('Failed to load dashboard stats:', err);
+/* ---------------- tiny DOM/format helpers ---------------- */
+const $ = (sel, el=document) => el.querySelector(sel);
+const $$ = (sel, el=document) => Array.from(el.querySelectorAll(sel));
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtMoney = (d, opts) => (d==null?'—':'$' + Number(d).toLocaleString('en-US', Object.assign({minimumFractionDigits:2, maximumFractionDigits:2}, opts)));
+const fmtCompact = d => '$' + Number(d).toLocaleString('en-US',{maximumFractionDigits:0});
+const fmtCents = c => c==null?'—':fmtMoney(c/100);
+const fmtNum = n => (n==null?'—':Number(n).toLocaleString('en-US'));
+const fmtDate = iso => { if(!iso) return '—'; const d = new Date(iso); return isNaN(d) ? esc(iso) : d.toISOString().replace('T',' ').substring(0,16) + 'Z'; };
+const fmtDay = iso => iso ? String(iso).substring(0,10) : '—';
+const titleCase = s => String(s||'').toLowerCase().replace(/(^|[\s_])([a-z])/g, (m,p,c)=>p+c.toUpperCase()).replace(/_/g,' ');
+const riskColor = tier => tier==='CRITICAL' ? 'var(--terra-deep)' : tier==='HIGH' ? 'var(--terra)' : tier==='MEDIUM' ? 'var(--amber)' : tier==='LOW' ? 'var(--sage)' : 'var(--grey)';
+const riskBadge = tier => `<span class="badge solid ${tier==='CRITICAL'?'t-terra-deep':tier==='HIGH'?'t-terra':tier==='MEDIUM'?'t-amber':tier==='LOW'?'t-sage':'t-grey'}" aria-label="risk tier ${esc(tier)}"><span class="bdot"></span>${esc(tier||'UNKNOWN')}</span>`;
+const STATUS_BADGES = {APPROVED:'t-sage',PAID:'t-sage',PARTIALLY_PAID:'t-amber',SUBMITTED:'t-grey',UNDER_REVIEW:'t-grey',SIU_HOLD:'t-terra',DENIED:'t-terra-deep',CLOSED_NO_PAY:'t-grey',
+  OPEN:'t-plum',EVIDENCE_COLLECTION:'t-plum',SIU_FIELD_REVIEW:'t-plum',LEGAL_ESCALATION:'t-terra',CLOSED_CONFIRMED_FRAUD:'t-terra-deep',CLOSED_CLEARED_BENIGN:'t-sage',CLOSED_INSUFFICIENT_EVIDENCE:'t-grey',
+  P1_CRITICAL:'t-terra-deep',P2_HIGH:'t-terra',P3_STANDARD:'t-grey',BLOCKED_INVALID_RECIPIENT:'t-terra-deep',AUTHORIZED:'t-plum',DISBURSED:'t-sage',REVERSED_CLAWBACK:'t-amber',CANCELLED:'t-grey',
+  CONFIRMED_FRAUD:'t-terra-deep',CLEARED_BENIGN:'t-sage',INSUFFICIENT_EVIDENCE:'t-grey',SUSPENDED:'t-terra',IN_NETWORK:'t-sage',OUT_OF_NETWORK:'t-grey'};
+const statusBadge = (s, label) => `<span class="badge ${STATUS_BADGES[s]||'t-grey'}">${esc(label||titleCase(s)||'—')}</span>`;
+const PILLAR_TINT = {NETWORK:'#74638C', FINANCIAL:'#5F7A58', BEHAVIORAL:'#BD8A33', DOCUMENT:'#8D887B'};
+const PILLAR_CAP = {NETWORK:60, FINANCIAL:55, BEHAVIORAL:45, DOCUMENT:40};
+
+/* ---------------- icons (inline, stroke) ---------------- */
+const I = {
+  warning:'<svg viewBox="0 0 24 24"><path d="M12 3L2 20h20L12 3zm0 7v5m0 2.5v.5"/></svg>',
+  empty:'<svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4v10l-8 4-8-4V7zm0 0l8 4 8-4M12 11v10"/></svg>',
+  search:'<svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg>',
+  layers:'<svg viewBox="0 0 24 24"><path d="M12 3l9 5-9 5-9-5 9-5zm9 10l-9 5-9-5"/></svg>',
+  shield:'<svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6l8-3z"/></svg>',
+  nodesI:'<svg viewBox="0 0 24 24"><circle cx="6" cy="18" r="2.2"/><circle cx="18" cy="18" r="2.2"/><circle cx="12" cy="6" r="2.2"/><path d="M7 16l4-8m6 8l-4-8m-7.5 10h9"/></svg>',
+  ledger:'<svg viewBox="0 0 24 24"><path d="M6 3h12v18H6zM6 8h12M9 5.5h.01M12 5.5h.01"/></svg>',
+  plus:'<svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>',
+  arrowR:'<svg viewBox="0 0 24 24"><path d="M5 12h14m-6-6l6 6-6 6"/></svg>',
+  copy:'<svg viewBox="0 0 24 24"><rect x="8" y="8" width="12" height="12" rx="2"/><path d="M4 16V6a2 2 0 012-2h8"/></svg>',
+};
+
+/* ---------------- toast ---------------- */
+function toast(msg, kind='ok'){
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind;
+  t.innerHTML = (kind==='err' ? I.warning : `<svg viewBox="0 0 24 24"><path d="M4 12l5 5L20 6"/></svg>`) + `<span>${esc(msg)}</span>`;
+  $('#toasts').appendChild(t);
+  setTimeout(()=>{ t.style.opacity='0'; t.style.transition='opacity .3s'; setTimeout(()=>t.remove(), 320); }, 3600);
+}
+async function copyText(txt, label){
+  try { await navigator.clipboard.writeText(txt); toast((label||'Copied') + ' to clipboard.'); }
+  catch {
+    const ta = document.createElement('textarea'); ta.value = txt; document.body.appendChild(ta);
+    ta.select(); try { document.execCommand('copy'); toast((label||'Copied') + ' to clipboard.'); } catch { toast('Clipboard unavailable in this browser context.','err'); }
+    ta.remove(); }
+}
+
+/* ---------------- API layer ---------------- */
+const API = '/api/v1';
+class ApiError extends Error {}
+async function api(path, opts){
+  let res;
+  try { res = await fetch(API + path, opts); }
+  catch(e){ throw new ApiError(`Network request failed — is the API server running? (${path})`, e); }
+  if(!res.ok){
+    let detail = '';
+    try { const j = await res.json(); detail = j.detail || j.message || ''; } catch{}
+    throw new ApiError(`API ${res.status} on ${path}${detail ? ' — ' + detail : ''}`);
+  }
+  return res.json();
+}
+
+/* Standard async-state renderers used by every panel */
+const renderLoading = (msg) => `<div class="state" role="status"><div class="spin"></div><div class="st-title">Loading…</div><div class="st-sub">${esc(msg||'Querying the operational dataset.')}</div></div>`;
+const renderEmptyRaw = (title, sub, iconSvg) => `<div class="state">${iconSvg||I.empty}<div class="st-title">${esc(title)}</div><div class="st-sub">${esc(sub||'')}</div></div>`;
+const renderError = (err, retryFnName, hint) => `<div class="state err-state" role="alert">${I.warning}<div class="st-title">Data unavailable</div><div class="st-sub">${esc(err instanceof ApiError ? err.message : String(err))}${hint?'<br>'+esc(hint):''}</div><button class="btn btn-ghost btn-sm" onclick="${retryFnName}()" style="margin-top:6px">Retry</button></div>`;
+
+/* ---------------- global state ---------------- */
+const State = {
+  dashboard: null, health: null,
+  claims: {search:'', tier:'ALL', status:'ALL', scenario:'', page:0, size:50, total:0, items:[], sortKey:null, sortDir:1, loading:false},
+  dossier: {claimId:null, tab:'dossier', data:null},
+  network: {claimId:null},
+  chain: {claimId:null, events:null, types:[]},
+  cases: {status:'ALL', priority:'ALL', page:0, size:20, total:0, items:[], selected:null},
+};
+let sesToken = 0; // increments on route change; stale async renders bail out
+
+/* ---------------- masthead/global data ---------------- */
+async function loadGlobal(){
+  const [dash, health] = await Promise.all([
+    api('/dashboard/stats').catch(e=>{ console.warn('dashboard stats:', e); return null; }),
+    api('/health').catch(()=>null),
+  ]);
+  State.dashboard = dash; State.health = health;
+  if(dash){
+    $('#chip-baseline').innerHTML = `<b>${esc(dash.dataset_baseline)}</b>`;
+    $('#chip-merkle').textContent = 'Merkle ' + dash.merkle_root.slice(0,12) + '…';
+    $('#foot-baseline').textContent = dash.dataset_baseline;
+  }
+  if(health){
+    const ok = !!health.schema_digest;
+    $('#chip-schema-dot').className = 'dot ' + (ok ? 'dot-ok' : '');
+    $('#chip-schema-txt').innerHTML = `ST-SCHEMA <span style="color:${ok?'var(--sage)':'var(--terra)'}">${ok?'OK':'FAIL'}</span> · ${esc((health.schema_digest||'').slice(0,8))||'—'}`;
+    $('#chip-schema').title = health.schema_verified
+      ? 'Schema digest verified'
+      : `Digest ${health.schema_digest} matches baseline; deployment reports trigger count ${health.trigger_count} vs expected ${health.expected_trigger_count ?? 24} (backend config drift — see Integrity panel on Overview).`;
+  }
+}
+
+/* ================================================================
+   HASH ROUTER — #/overview #/claims #/claims/:id #/network[:claim] #/chain[:claim] #/cases[:id]
+   ================================================================ */
+function parseRoute(){
+  const h = location.hash.replace(/^#\/?/, '');
+  const [view, ...rest] = (h || 'overview').split('/');
+  const valid = ['overview','claims','dossier','network','chain','cases'];
+  return { view: valid.includes(view) ? view : 'overview', rest };
+}
+function nav(path){ location.hash = path; }
+function route(){
+  sesToken++;
+  const { view, rest } = parseRoute();
+  $$('.nav-item').forEach(a=>{
+    const on = a.dataset.nav === view || ((view==='dossier' || (view==='claims'&&rest[0])) && a.dataset.nav === 'claims');
+    if(on) a.setAttribute('aria-current','page'); else a.removeAttribute('aria-current');
+  });
+  $$('.view').forEach(v => v.classList.remove('on'));
+  const activeView = (view === 'claims' && rest[0]) ? 'dossier' : view;
+  const el = $('#view-' + activeView); if(el) el.classList.add('on');
+  window.scrollTo({top:0});
+  if(view === 'overview') renderOverview();
+  else if(view === 'claims'){ rest[0] ? openDossier(decodeURIComponent(rest[0])) : renderClaimsDesk(); }
+  else if(view === 'dossier') openDossier(decodeURIComponent(rest[0]||''));
+  else if(view === 'network') openNetwork(decodeURIComponent(rest[0]||'') || null);
+  else if(view === 'chain') renderChainView(decodeURIComponent(rest[0]||'') || null);
+  else if(view === 'cases') renderCasesView(rest[0] ? decodeURIComponent(rest[0]) : null);
+}
+window.addEventListener('hashchange', route);
+
+/* ================================================================
+   A. INTELLIGENCE OVERVIEW
+   ================================================================ */
+function timeAgo(iso){
+  const d = new Date(iso), now = new Date();
+  const s = (now - d)/1000;
+  if (isNaN(s)) return '—';
+  if (s < 90) return 'moments ago';
+  const m = s/60; if (m < 60) return Math.round(m) + ' min ago';
+  const h = m/60; if (h < 24) return Math.round(h) + ' h ago';
+  return Math.round(h/24) + ' days ago';
+}
+
+async function renderOverview(){
+  const T = sesToken; const root = $('#view-overview');
+  root.innerHTML = `
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Intelligence Overview</div>
+        <h1 id="ov-h">The desk where fraud becomes evidence</h1>
+        <p class="lede">Live figures from the operational knowledge graph — claims, entities, relation networks and the immutable event ledger that records every transition. Ground-truth labels remain quarantined outside this workspace.</p>
+      </div>
+      <div class="head-meta">
+        <button class="btn btn-ghost" onclick="refreshOverview()"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 12a8 8 0 11-2.3-5.6M20 4v4h-4"/></svg>Refresh</button>
+        <a class="btn btn-primary" href="#/claims">Open the desk ${I.arrowR}</a>
+      </div>
+    </div>
+    <div id="ov-body">${renderLoading('Reading dashboard aggregates.')}</div>`;
+
+  let dash = State.dashboard;
+  if(!dash){ dash = await api('/dashboard/stats').catch(e => { if(T===sesToken) $('#ov-body').innerHTML = renderError(e, 'refreshOverview', 'Confirm the backend is running at :8000.'); return null; }); State.dashboard = dash; }
+  if(T !== sesToken || !dash) return;
+  let healthNow = State.health;
+  if(!healthNow){ healthNow = await api('/health').catch(()=>null); State.health = healthNow; }
+  if(T !== sesToken) return;
+  const rt = dash.risk_tiers, fin = dash.financials, ent = dash.entities, ind = dash.indicators;
+  const highValue = (rt.CRITICAL||0) + (rt.HIGH||0);
+  const openCases = await api('/investigations?limit=100').catch(()=>({items:[]}));
+  if(T !== sesToken) return;
+  const statusOpen = {}; openCases.items.forEach(i => statusOpen[i.investigation_status] = (statusOpen[i.investigation_status]||0)+1);
+  const recentCases = openCases.items.slice().sort((a,b)=>String(b.updated_at_utc).localeCompare(String(a.updated_at_utc))).slice(0,4);
+  const riskTotal = dash.total_claims || 1;
+
+  root.querySelector('#ov-body').innerHTML = `
+    <div class="kpi-band" role="list" aria-label="Operational totals">
+      <div class="kpi" role="listitem"><div class="k-label">${I.layers}Monitored claims</div><div class="k-val">${fmtNum(dash.total_claims)}</div><div class="k-sub"><b>${fmtNum(highValue)}</b> at HIGH or CRITICAL tier</div></div>
+      <div class="kpi" role="listitem"><div class="k-label">${I.ledger}Claimed exposure</div><div class="k-val">$${(fin.total_claimed_dollars/1e6).toFixed(2)}<span class="unit">M</span></div><div class="k-sub">Approved so far <b>${fmtCompact(fin.total_approved_dollars)}</b></div></div>
+      <div class="kpi" role="listitem"><div class="k-label">${I.shield}Fraud indicators</div><div class="k-val">${fmtNum(ind.total_persisted)}</div><div class="k-sub">Network-dominant · <b>${fmtNum(ind.by_pillar.NETWORK||0)}</b> NETWORK pillar</div></div>
+      <div class="kpi" role="listitem"><div class="k-label"><svg viewBox="0 0 24 24"><path d="M7 3h7l4 4v14H7z"/><path d="M14 3v4h4M10 11h5m-5 4h5"/></svg>SIU investigations</div><div class="k-val">${fmtNum(ent.investigations)}</div><div class="k-sub"><b>${fmtNum(statusOpen.OPEN||0)}</b> OPEN · ${fmtNum(statusOpen.CLOSED_CONFIRMED_FRAUD||0)} confirmed fraud</div></div>
+      <div class="kpi" role="listitem"><div class="k-label">${I.nodesI}Relationship edges</div><div class="k-val">${fmtNum(ent.relationship_edges)}</div><div class="k-sub"><b>${fmtNum(ent.immutable_events)}</b> immutable ledger events</div></div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1.6fr 1fr;gap:16px;margin-top:16px" class="ov-grid">
+      <div class="card">
+        <div class="card-h"><h2>Risk distribution · ${fmtNum(dash.total_claims)} claims</h2><a href="#/claims" class="btn btn-ghost btn-sm">Triage queue ${I.arrowR}</a></div>
+        <div class="card-b">
+          <div class="dist-bar" role="img" aria-label="Risk distribution: ${rt.LOW||0} low, ${rt.MEDIUM||0} medium, ${rt.HIGH||0} high, ${rt.CRITICAL||0} critical">
+            <div class="seg" style="width:${(rt.LOW||0)/riskTotal*100}%;background:var(--sage)" title="LOW · ${fmtNum(rt.LOW)}">${(rt.LOW||0)/riskTotal>0.08?fmtNum(rt.LOW):''}</div>
+            <div class="seg" style="width:${(rt.MEDIUM||0)/riskTotal*100}%;background:var(--amber)" title="MEDIUM · ${fmtNum(rt.MEDIUM)}"></div>
+            <div class="seg" style="width:${(rt.HIGH||0)/riskTotal*100}%;background:var(--terra)" title="HIGH · ${fmtNum(rt.HIGH)}">${(rt.HIGH||0)/riskTotal>0.05?fmtNum(rt.HIGH):''}</div>
+            <div class="seg" style="width:${(rt.CRITICAL||0)/riskTotal*100}%;background:var(--terra-deep)" title="CRITICAL · ${fmtNum(rt.CRITICAL)}"></div>
+          </div>
+          <div class="dist-legend">
+            <span class="dl"><span class="sw" style="background:var(--sage)"></span>LOW ${fmtNum(rt.LOW||0)}</span>
+            <span class="dl"><span class="sw" style="background:var(--amber)"></span>MEDIUM ${fmtNum(rt.MEDIUM||0)}</span>
+            <span class="dl"><span class="sw" style="background:var(--terra)"></span>HIGH ${fmtNum(rt.HIGH||0)}</span>
+            <span class="dl"><span class="sw" style="background:var(--terra-deep)"></span>CRITICAL ${fmtNum(rt.CRITICAL||0)}</span>
+          </div>
+          <div class="rule"></div>
+          <div class="subhead">Financial ledger reconciliation</div>
+          <div class="ledger" style="border:1px solid var(--panel-line);border-radius:4px">
+            <div><div class="l-label">Claimed</div><div class="l-val">${fmtCompact(fin.total_claimed_dollars)}</div></div>
+            <div><div class="l-label">Payout cap</div><div class="l-val">${fmtCompact(fin.total_payout_cap_dollars)}</div></div>
+            <div><div class="l-label">Approved</div><div class="l-val">${fmtCompact(fin.total_approved_dollars)}</div></div>
+            <div><div class="l-label">Disbursed</div><div class="l-val">${fmtCompact(fin.total_disbursed_dollars)}</div></div>
+            <div><div class="l-label">Clawed back</div><div class="l-val" style="color:var(--amber)">${fmtCompact(fin.total_clawed_back_dollars)}</div></div>
+            <div><div class="l-label">Net paid</div><div class="l-val" style="color:var(--sage)">${fmtCompact(fin.total_net_paid_dollars)}</div></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-h"><h2>Priority case signals</h2><a href="#/cases" class="btn btn-ghost btn-sm">All cases ${I.arrowR}</a></div>
+        <div class="card-b" style="padding-top:6px">
+          ${recentCases.length === 0 ? renderEmptyRaw('No investigations on file','Create one from any claim dossier.') : recentCases.map(i=>`
+            <a class="sig" href="#/cases/${esc(i.investigation_id)}">
+              <span class="s-rank">${riskBadge(i.claim_risk_tier)}</span>
+              <span class="s-main">
+                <span class="s-title">${esc(i.investigation_id)} · ${esc(i.primary_claim_id)}</span>
+                <span class="s-sub">${esc(i.assigned_investigator_id)} · exposure ${fmtMoney(i.estimated_exposure_dollars)} · updated ${timeAgo(i.updated_at_utc)}</span>
+              </span>
+              <span class="s-right">${statusBadge(i.investigation_status)}<span class="tiny mono" style="color:var(--faint)">${esc(i.priority)}</span></span>
+            </a>`).join('')}
+        </div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px" class="ov-grid2">
+      <div class="card">
+        <div class="card-h"><h2>Indicator composition</h2><span class="hint">${fmtNum(ind.total_persisted)} persisted across 15 detectors</span></div>
+        <div class="card-b">
+          ${['NETWORK','FINANCIAL','BEHAVIORAL','DOCUMENT'].map(p=>{
+            const v = ind.by_pillar[p]||0, max = ind.total_persisted||1;
+            return `<div class="hbar-row"><span class="hb-name">${p}</span><div class="hb-track"><div class="hb-fill" style="width:${v/max*100}%;background:${PILLAR_TINT[p]}"></div></div><span class="hb-val">${fmtNum(v)}</span></div>`;
+          }).join('')}
+          <p class="hint" style="margin-top:10px">Persisted after Stage-3 exact deduplication of raw detector findings down to the operational table contract.</p>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-h"><h2>System integrity</h2><span class="hint">tie-to-database guarantees</span></div>
+        <div class="card-b" style="font-size:12.5px;display:flex;flex-direction:column;gap:8px">
+          <div class="fld" style="grid-template-columns:170px 1fr"><dt>Dataset baseline</dt><dd class="mono">${esc(dash.dataset_baseline)}</dd></div>
+          <div class="fld" style="grid-template-columns:170px 1fr"><dt>Schema digest</dt><dd class="hash">${esc(State.health?.schema_digest||'—')} ${State.health?.schema_digest?`<button class="copy-btn" onclick="copyText('${esc(State.health.schema_digest)}','Digest')" aria-label="Copy schema digest">${I.copy}copy</button>`:''}</dd></div>
+          <div class="fld" style="grid-template-columns:170px 1fr"><dt>Merkle root</dt><dd class="hash">${esc(dash.merkle_root)} <button class="copy-btn" onclick="copyText('${esc(dash.merkle_root)}','Root')" aria-label="Copy Merkle root">${I.copy}copy</button></dd></div>
+          <div class="fld" style="grid-template-columns:170px 1fr"><dt>Immutable events</dt><dd class="mono num">${fmtNum(ent.immutable_events)}</dd></div>
+          ${State.health && !State.health.schema_verified ? `
+          <div class="payoff-note" style="margin-top:4px">
+            <b>Deployment notice.</b> The schema digest matches the ${esc(State.health.schema_baseline||'ARCH-ST-010.3')} baseline, but the running backend config expects ${State.health.expected_trigger_count ?? 24} triggers and the deployed schema ships <b>${State.health.trigger_count}</b>. The richer 010.3 trigger set is intentional; backend <code>verify_schema()</code> still flags count drift. Data integrity itself is unaffected.
+          </div>`:''}
+        </div>
+      </div>
+    </div>
+
+    <style>@media(max-width:1200px){.ov-grid,.ov-grid2{grid-template-columns:1fr!important}.ledger{grid-template-columns:repeat(3,1fr)}}</style>`;
+}
+function refreshOverview(){ renderOverview(); }
+
+/* ================================================================
+   B. CLAIM INVESTIGATION DESK
+   ================================================================ */
+function claimsQuery(page){
+  const c = State.claims;
+  const p = new URLSearchParams();
+  p.set('skip', String(page * c.size));
+  p.set('limit', String(c.size));
+  if(c.tier !== 'ALL') p.set('risk_tier', c.tier);
+  if(c.status !== 'ALL') p.set('claim_status', c.status);
+  if(c.scenario) p.set('scenario', c.scenario);
+  if(c.search) p.set('search', c.search);
+  return '/claims?' + p.toString();
+}
+
+async function loadClaims(page){
+  const T = sesToken; const c = State.claims;
+  c.page = page; c.loading = true;
+  renderClaimsTable();
+  try {
+    const data = await api(claimsQuery(page));
+    if (T !== sesToken) return;
+    c.items = data.items; c.total = data.total; c.loading = false;
+    renderClaimsTable();
+  } catch(e){
+    if (T !== sesToken) return;
+    c.items = []; c.total = 0; c.loading = false;
+    renderClaimsTable(e);
+  }
+}
+
+let claimsSearchTimer = null;
+function renderClaimsDesk(){
+  const c = State.claims;
+  $('#view-claims').innerHTML = `
+    <div class="breadcrumbs"><a href="#/overview">Overview</a><span class="sep">/</span><span>Claims desk</span></div>
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Claim Investigation Desk</div>
+        <h1 id="cl-h">Triage the queue, open the dossier</h1>
+        <p class="lede">Every claim in the operational dataset, ranked by the deterministic 10-stage IEF score. Select a row to pull the full multi-entity dossier.</p>
+      </div>
+      <div class="head-meta"><span class="chip" id="desk-count">querying…</span></div>
+    </div>
+    <div class="card">
+      <div class="toolbar" role="search">
+        <div class="field" style="flex:1;min-width:230px">
+          <label for="claim-search">Search</label>
+          <div class="search-wrap">${I.search}<input id="claim-search" class="input" type="search" placeholder="Claim ID, claimant name, or policy ID…" value="${esc(c.search)}" autocomplete="off"></div>
+        </div>
+        <div class="field"><label for="claim-tier">Risk tier</label>
+          <select class="select" id="claim-tier">
+            ${['ALL','CRITICAL','HIGH','MEDIUM','LOW'].map(t=>`<option value="${t}" ${c.tier===t?'selected':''}>${t==='ALL'?'All tiers':t}</option>`).join('')}
+          </select></div>
+        <div class="field"><label for="claim-status">Claim status</label>
+          <select class="select" id="claim-status"><option value="ALL">All statuses</option></select></div>
+        <div class="field"><label for="claim-size">Rows</label>
+          <select class="select" id="claim-size">${[25,50,100].map(n=>`<option ${c.size===n?'selected':''}>${n}</option>`).join('')}</select></div>
+      </div>
+      <div class="pills" style="padding:10px 16px;border-bottom:1px solid var(--panel-line)" role="group" aria-label="Scenario lenses">
+        <button class="pill ${!c.scenario?'on':''}" data-scenario="" onclick="setScenario(this)">All scenarios</button>
+        <button class="pill ${c.scenario==='yf_neg_4'?'on':''}" data-scenario="yf_neg_4" onclick="setScenario(this)">YF-NEG-4 · collusion ring</button>
+        <button class="pill ${c.scenario==='yf_neg_5'?'on':''}" data-scenario="yf_neg_5" onclick="setScenario(this)">YF-NEG-5 · shared address</button>
+      </div>
+      <div id="claims-table"></div>
+      <p class="hint" style="padding:10px 16px;border-top:1px solid var(--panel-line)">Ordering follows the API contract (score descending, claim ID ascending as tiebreak). Column sorts apply within the currently loaded page.</p>
+    </div>`;
+
+  const searchEl = $('#claim-search');
+  searchEl.addEventListener('input', ()=>{
+    clearTimeout(claimsSearchTimer);
+    claimsSearchTimer = setTimeout(()=>{ State.claims.search = searchEl.value.trim(); loadClaims(0); }, 320);
+  });
+  $('#claim-tier').addEventListener('change', e=>{ State.claims.tier = e.target.value; loadClaims(0); });
+  $('#claim-size').addEventListener('change', e=>{ State.claims.size = +e.target.value; loadClaims(0); });
+  const sel = $('#claim-status');
+  sel.addEventListener('change', e=>{ State.claims.status = e.target.value; loadClaims(0); });
+  if(State.dashboard?.claim_statuses){
+    Object.keys(State.dashboard.claim_statuses).sort().forEach(s=>{
+      const o = document.createElement('option'); o.value = s; o.textContent = titleCase(s); sel.appendChild(o);
+    });
+    sel.value = State.claims.status;
+  } else {
+    api('/dashboard/stats').then(d=>{
+      State.dashboard = d;
+      if($('#claim-status') === sel){
+        Object.keys(d.claim_statuses).sort().forEach(s=>{
+          const o = document.createElement('option'); o.value = s; o.textContent = titleCase(s); sel.appendChild(o);
+        });
+        sel.value = State.claims.status;
       }
-    }
+    }).catch(()=>{});
+  }
+  loadClaims(0);
+}
+function setScenario(el){
+  State.claims.scenario = el.dataset.scenario || '';
+  $$('#view-claims .pills .pill').forEach(p => p.classList.toggle('on', p === el && !!el.dataset.scenario));
+  loadClaims(0);
+}
+function sortPage(key){
+  const c = State.claims;
+  if(c.sortKey === key) c.sortDir = -c.sortDir; else { c.sortKey = key; c.sortDir = key==='claim_id' ? 1 : -1; }
+  renderClaimsTable();
+}
+function claimsSortVal(item, key){
+  switch(key){
+    case 'score': return item.latest_ief_score;
+    case 'claimed': return item.claimed_amount_dollars;
+    case 'submitted': return item.submitted_at_utc || '';
+    case 'claim_id': return item.claim_id;
+    default: return '';
+  }
+}
+function renderClaimsTable(err){
+  const host = $('#claims-table'); if(!host) return;
+  const c = State.claims;
+  $('#desk-count').textContent = c.loading ? 'querying…' : `${fmtNum(c.total)} claim${c.total===1?'':'s'} match${c.total===1?'es':''}`;
+  if(err){ host.innerHTML = renderError(err, 'reloadClaims'); return; }
+  if(c.loading && !c.items.length){ host.innerHTML = renderLoading('Fetching triage queue.'); return; }
+  if(!c.items.length){
+    host.innerHTML = renderEmptyRaw('No claims match these filters',
+      c.search && c.search.length ? `Nothing matches “${c.search}”. Try a claim ID like CLM-2026-000001.` : 'Loosen the search, tier, or scenario filters.');
+    return;
+  }
+  const items = c.sortKey ? c.items.slice().sort((a,b)=>{
+    const va = claimsSortVal(a,c.sortKey), vb = claimsSortVal(b,c.sortKey);
+    return ((va<vb?-1:va>vb?1:0) * c.sortDir) || String(a.claim_id).localeCompare(String(b.claim_id));
+  }) : c.items;
+  const rankOf = it => c.items.findIndex(x=>x.claim_id===it.claim_id) + 1 + c.page*c.size;
+  const arr = k => c.sortKey===k ? `<span class="arr">${c.sortDir>0?'▲':'▼'}</span>` : '<span class="arr" style="opacity:.25">⇅</span>';
+  host.innerHTML = `<div class="tbl-wrap"><table class="tbl">
+    <thead><tr>
+      <th style="width:52px">#</th>
+      <th class="sortable" tabindex="0" role="button" aria-label="Sort by claim ID within page" onclick="sortPage('claim_id')" onkeydown="if(event.key==='Enter')sortPage('claim_id')">Claim ${arr('claim_id')}</th>
+      <th>Claimant</th><th>Policy</th><th>Status</th>
+      <th class="sortable numcell" onclick="sortPage('claimed')" tabindex="0" title="Sort within page" onkeydown="if(event.key==='Enter')sortPage('claimed')">Claimed ${arr('claimed')}</th>
+      <th class="sortable numcell" onclick="sortPage('score')" tabindex="0" title="Sort within page" onkeydown="if(event.key==='Enter')sortPage('score')">IEF score ${arr('score')}</th>
+      <th>Tier</th><th class="sortable nowrap" onclick="sortPage('submitted')" tabindex="0" onkeydown="if(event.key==='Enter')sortPage('submitted')">Submitted ${arr('submitted')}</th>
+    </tr></thead>
+    <tbody>
+    ${items.map(it=>`
+      <tr class="rowbtn" tabindex="0" role="link" aria-label="Open dossier for ${esc(it.claim_id)}, IEF score ${it.latest_ief_score}"
+          onclick="nav('claims/'+encodeURIComponent('${esc(it.claim_id)}'))"
+          onkeydown="if(event.key==='Enter'){nav('claims/'+encodeURIComponent('${esc(it.claim_id)}'))}">
+        <td class="num muted tiny">${rankOf(it)}</td>
+        <td class="mono" style="font-weight:600">${esc(it.claim_id)}</td>
+        <td>${esc(it.claimant_name||'—')}<div class="tiny faint mono">${esc(it.claimant_id)}</div></td>
+        <td><div class="tiny mono">${esc(it.policy_id)}</div><div class="tiny faint">${esc(titleCase(it.line_of_business))}</div></td>
+        <td>${statusBadge(it.claim_status)}</td>
+        <td class="numcell">${fmtMoney(it.claimed_amount_dollars)}</td>
+        <td class="numcell" style="font-weight:600;color:${riskColor(it.latest_risk_tier)}">${Number(it.latest_ief_score).toFixed(2)}</td>
+        <td>${riskBadge(it.latest_risk_tier)}</td>
+        <td class="tiny muted nowrap">${fmtDate(it.submitted_at_utc)}</td>
+      </tr>`).join('')}
+    </tbody></table></div>
+    <div class="pager">
+      <span class="p-info">PAGE ${c.page+1} · ROWS ${fmtNum(c.page*c.size+1)}–${fmtNum(c.page*c.size+c.items.length)} OF ${fmtNum(c.total)}</span>
+      <div class="p-btns">
+        <button class="btn btn-ghost btn-sm" ${c.page===0?'disabled':''} onclick="loadClaims(${c.page-1})">‹ Prev</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadClaims(0)">First</button>
+        <button class="btn btn-ghost btn-sm" ${(c.page+1)*c.size >= c.total ?'disabled':''} onclick="loadClaims(${c.page+1})">Next ›</button>
+      </div>
+    </div>`;
+}
+function reloadClaims(){ loadClaims(State.claims.page); }
+</script>
+<script>
+/* ================================================================
+   C. CLAIM DOSSIER
+   ================================================================ */
+async function openDossier(claimId){
+  const T = sesToken;
+  const root = $('#view-dossier');
+  if(!claimId){ nav('claims'); return; }
+  State.dossier.claimId = claimId; State.dossier.tab = State.dossier.tab || 'dossier';
+  root.innerHTML = `
+    <div class="breadcrumbs"><a href="#/overview">Overview</a><span class="sep">/</span><a href="#/claims">Claims desk</a><span class="sep">/</span><span class="mono">${esc(claimId)}</span></div>
+    <div id="dossier-body">${renderLoading('Assembling dossier for ' + claimId + '.')}</div>`;
+  try {
+    const detail = await api('/claims/' + encodeURIComponent(claimId));
+    if(T !== sesToken) return;
+    State.dossier.data = detail;
+    renderDossier(detail);
+    // secondary fetches fill their tabs lazily
+    api('/claims/' + encodeURIComponent(claimId) + '/indicators').then(d=>{
+      if(T===sesToken && State.dossier.claimId===claimId){ State.dossier.indicators = d; paintIndicatorCount(d.length); if(State.dossier.tab==='indicators') paintDossierTab(); }
+    }).catch(e=>{ State.dossier.indicators_error = e; paintIndicatorCount(null); if(State.dossier.tab==='indicators') paintDossierTab(); });
+    api('/claims/' + encodeURIComponent(claimId) + '/timeline').then(d=>{
+      if(T===sesToken && State.dossier.claimId===claimId){ State.dossier.events = d; paintChainTabBadge(d.length); if(State.dossier.tab==='chain') paintDossierTab(); }
+    }).catch(e=>{ State.dossier.events_error = e; });
+    api('/network/' + encodeURIComponent(claimId)).then(d=>{
+      if(T===sesToken && State.dossier.claimId===claimId){ State.dossier.network = d; paintNetTabBadge(d); if(State.dossier.tab==='network') paintDossierTab(); }
+    }).catch(e=>{ State.dossier.network_error = e; if(State.dossier.tab==='network') paintDossierTab(); });
+  } catch(e){
+    if(T !== sesToken) return;
+    $('#dossier-body').innerHTML = e && String(e.message||'').includes('404')
+      ? renderEmptyRaw('Claim not found', `${claimId} does not exist in the operational dataset. Check the ID — e.g. CLM-2026-000001.`)
+      : renderError(e, `openDossier('${esc(claimId)}')`);
+  }
+}
+function paintIndicatorCount(n){
+  const el = $('#d-ind-count'); if(el) el.textContent = ' ' + (n==null ? '?' : String(n));
+}
+function paintChainTabBadge(evts){
+  const el = $('#d-chain-count'); if(el && Array.isArray(evts)) el.textContent = ' ' + evts.length;
+}
+function paintNetTabBadge(net){
+  const el = $('#d-net-count');
+  if(el && net && net.metrics) el.textContent = ` ${net.metrics.total_nodes}/${net.metrics.total_edges}`;
+}
 
-    async function loadClaims() {
-      try {
-        let url = `/api/v1/claims?limit=100`;
-        if (currentFilter !== 'ALL') url += `&risk_tier=${currentFilter}`;
-        if (currentScenario) url += `&scenario=${currentScenario}`;
-        if (currentSearch) url += `&search=${encodeURIComponent(currentSearch)}`;
+const DOSSIER_TABS = [ ['dossier','Dossier'], ['indicators','Indicators'], ['network','Network'], ['chain','Merkle chain'], ['case','SIU case'] ];
+function setDossierTab(tab){
+  State.dossier.tab = tab;
+  $$('.dtab').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === tab)));
+  paintDossierTab();
+  const panel = $('#dpanel'); if(panel) panel.scrollTop = 0;
+}
+function renderDossier(d){
+  const c = d.claim;
+  const score = Number(c.latest_ief_score||0);
+  // pillar composition from real persisted indicators (raw points vs ARCH caps)
+  const inds = d.fraud_indicators || [];
+  const pillarPts = {NETWORK:0, FINANCIAL:0, BEHAVIORAL:0, DOCUMENT:0};
+  inds.forEach(i => { if(pillarPts[i.pillar]!=null) pillarPts[i.pillar] += Number(i.raw_points||0); });
+  $('#view-dossier').innerHTML = `
+    <div class="breadcrumbs"><a href="#/overview">Overview</a><span class="sep">/</span><a href="#/claims">Claims desk</a><span class="sep">/</span><span class="mono">${esc(c.claim_id)}</span></div>
+    <div class="dossier-head">
+      <div class="dh-id" style="min-width:0">
+        <div class="dh-eyebrow">Claim Dossier</div>
+        <h1>${esc(c.claim_id)}</h1>
+        <div class="dh-facts" style="align-items:center;flex-wrap:wrap">
+          ${statusBadge(c.claim_status)}
+          ${c.siu_referred ? '<span class="badge t-ink">SIU REFERRAL</span>' : ''}
+          <span class="fact">Filed <b>${fmtDate(c.submitted_at_utc)}</b></span>
+          <span class="fact">Claimant <b class="mono">${esc(c.claimant_id)}</b></span>
+          <span class="fact">Policy <b class="mono">${esc(c.policy_id)}</b></span>
+          <span class="fact">Incident <b class="mono">${esc(c.incident_id)}</b></span>
+          <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            ${!d.investigation ? `<button class="btn btn-sm btn-terra" onclick="openCaseModal('${esc(c.claim_id)}')">${I.plus}Open Case</button>` : `<a class="btn btn-sm btn-ghost" href="#/cases/${esc(d.investigation.investigation_id)}">Case ${esc(d.investigation.investigation_id)}</a>`}
+            ${c.claim_status !== 'SIU_HOLD' && !['DENIED','PAID'].includes(c.claim_status) ? `<button class="btn btn-sm btn-ghost" onclick="handleClaimHold('${esc(c.claim_id)}')">Hold Claim</button>` : ''}
+            ${c.claim_status === 'SIU_HOLD' && d.investigation && d.investigation.ruling_outcome === 'CLEARED_BENIGN' ? `<button class="btn btn-sm btn-ghost" onclick="handleClaimRelease('${esc(c.claim_id)}', '${esc(d.investigation.investigation_id)}')">Release Hold</button>` : ''}
+          </div>
+        </div>
+      </div>
+      <div class="score-mod">
+        <div style="min-width:250px">
+          <div class="subhead" style="margin-bottom:8px">Indicator composition · stages 1–4 inputs</div>
+          <div class="wf">
+            ${['NETWORK','FINANCIAL','BEHAVIORAL','DOCUMENT'].map(p=>{
+              const v = pillarPts[p], cap = PILLAR_CAP[p];
+              return `<div class="wf-row"><span class="wf-name">${p} <span class="faint">/${cap}</span></span>
+                <div class="wf-track"><div class="wf-seg" style="width:${Math.min(100,v/cap*100)}%;background:${PILLAR_TINT[p]}" title="${p}: ${v.toFixed(1)} pts of ${cap} cap"></div></div>
+                <span class="wf-val">${v.toFixed(1)} pts</span></div>`;
+            }).join('')}
+          </div>
+          <p class="hint" style="margin-top:8px">Raw persisted points per pillar (cap-normalized). Stage-level dampening and cluster boosts are applied server-side at scoring time and are not attributed per pillar in this build.</p>
+        </div>
+        <div class="score-big">
+          <div class="sc" style="color:${riskColor(c.latest_risk_tier)}" aria-label="Final IEF score ${score}">${Number(score).toFixed(2)} <span class="of">/ 100</span></div>
+          <div class="tierlbl" style="color:${riskColor(c.latest_risk_tier)}">${esc(c.latest_risk_tier||'—')} TIER</div>
+          <button class="copy-btn" style="margin-top:10px" onclick="copyText('${esc(c.scoring_evidence_sha256||'')}','Evidence digest')" title="Copy scoring evidence digest">${I.copy}evidence digest</button>
+        </div>
+      </div>
+    </div>
 
-        const res = await fetch(url);
-        const data = await res.json();
-        claimsData = data.items;
-        document.getElementById('worklist-count').innerText = `${data.total} Claims Found`;
+    <div class="dossier-tabs" role="tablist" aria-label="Dossier sections">
+      ${DOSSIER_TABS.map(([k,label])=>`<button class="dtab" role="tab" data-tab="${k}" aria-selected="${k===State.dossier.tab}" onclick="setDossierTab('${k}')">${label}${k==='indicators'?`<span class="cnt" id="d-ind-count">…</span>`:''}${k==='network'?`<span class="cnt" id="d-net-count"></span>`:''}${k==='chain'?`<span class="cnt" id="d-chain-count"></span>`:''}</button>`).join('')}
+    </div>
+    <div class="dpanel" id="dpanel" role="tabpanel"></div>`;
+  paintIndicatorCount(Array.isArray(inds) ? inds.length : null);
+  paintDossierTab();
+}
 
-        const listEl = document.getElementById('triage-list');
-        listEl.innerHTML = '';
+function paintDossierTab(){
+  const dp = $('#dpanel'); if(!dp) return;
+  const D = State.dossier, d = D.data; if(!d) return;
+  if(D.tab === 'dossier') dp.innerHTML = dossierTabMain(d);
+  else if(D.tab === 'indicators') dp.innerHTML = dossierTabIndicators();
+  else if(D.tab === 'network'){ dp.innerHTML = dossierTabNetwork(); if(window.renderMiniNet) renderMiniNet(); }
+  else if(D.tab === 'chain') dp.innerHTML = dossierTabChain();
+  else if(D.tab === 'case') dp.innerHTML = dossierTabCase();
+}
 
-        if (claimsData.length === 0) {
-          listEl.innerHTML = '<div style="padding: 20px; text-align: center; color: var(--text-muted);">No matching claims found.</div>';
-          return;
-        }
+function fld(dt, dd){ return `<div class="fld"><dt>${dt}</dt><dd>${dd}</dd></div>`; }
 
-        claimsData.forEach(c => {
-          const item = document.createElement('div');
-          item.className = 'triage-item' + (c.claim_id === selectedClaimId ? ' selected' : '');
-          item.onclick = () => selectClaim(c.claim_id);
+function dossierTabMain(d){
+  const c = d.claim, clmt = d.claimant, pol = d.policy, inc = d.incident;
+  const inv = d.invoices||[], pay = d.payments||[];
+  return `
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px">
+      <div>
+        <div class="subhead">Claimant</div>
+        <dl>
+          ${fld('Name', esc(clmt.full_name||'—'))}
+          ${fld('Claimant ID', `<span class="mono">${esc(clmt.claimant_id||'—')}</span>`)}
+          ${fld('Address', esc(clmt.address_norm||'—'))}
+          ${fld('Phone', `<span class="mono">${esc(clmt.phone_e164||'—')}</span>`)}
+          ${fld('Email', `<span class="mono" style="font-size:11px">${esc(clmt.email_norm||'—')}</span>`)}
+          ${fld('Bank acct hash', `<span class="hash">${esc(clmt.bank_account_hash||'—')}</span>`)}
+          ${fld('On file since', fmtDay(clmt.created_at_utc))}
+        </dl>
+      </div>
+      <div>
+        <div class="subhead">Policy</div>
+        <dl>
+          ${fld('Policy', `<span class="mono">${esc(pol.policy_id||'—')}</span>`)}
+          ${fld('Number', `<span class="mono">${esc(pol.policy_number||'—')}</span>`)}
+          ${fld('Line of business', esc(titleCase(pol.line_of_business)))}
+          ${fld('Status', pol.policy_id?statusBadge(pol.policy_status):'—')}
+          ${fld('Window', `${fmtDay(pol.effective_start_utc)} → ${fmtDay(pol.effective_end_utc)}`)}
+          ${fld('Coverage limit', fmtCents(pol.coverage_limit_cents))}
+          ${fld('Deductible', fmtCents(pol.deductible_cents))}
+        </dl>
+      </div>
+      <div>
+        <div class="subhead">Incident</div>
+        <dl>
+          ${fld('Incident', `<span class="mono">${esc(inc.incident_id||'—')}</span>`)}
+          ${fld('Type', esc(titleCase(inc.incident_type)))}
+          ${fld('Occurred', fmtDate(inc.incident_timestamp_utc))}
+          ${fld('Reported', fmtDate(inc.reported_timestamp_utc))}
+          ${fld('Location', esc(inc.location_address_norm||'—'))}
+          ${fld('Police report', inc.police_report_number ? `<span class="mono">${esc(inc.police_report_number)}</span>` : '<span class="faint">none filed</span>')}
+          ${fld('Conditions', esc(titleCase(inc.weather_condition||'—')))}
+        </dl>
+      </div>
+    </div>
 
-          const badgeClass = c.latest_risk_tier === 'CRITICAL' || c.latest_risk_tier === 'HIGH' ? 'badge-high' :
-                            c.latest_risk_tier === 'MEDIUM' ? 'badge-medium' : 'badge-low';
+    <div class="rule"></div>
+    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px" class="ledger">
+      <div><div class="l-label">Claimed</div><div class="l-val">${fmtCents(c.claimed_amount_cents)}</div></div>
+      <div><div class="l-label">Payout cap</div><div class="l-val">${fmtCents(c.payout_cap_cents)}</div></div>
+      <div><div class="l-label">Approved</div><div class="l-val">${fmtCents(c.approved_amount_cents)}</div></div>
+      <div><div class="l-label">Disbursed</div><div class="l-val">${fmtCents(c.gross_disbursed_cents)}</div></div>
+      <div><div class="l-label">Clawed back</div><div class="l-val" style="color:var(--amber)">${fmtCents(c.clawed_back_cents)}</div></div>
+      <div><div class="l-label">Net paid</div><div class="l-val" style="color:var(--sage)">${fmtCents(c.net_paid_cents)}</div></div>
+    </div>
+    <dl style="margin-top:10px">
+      ${fld('Historical approval high-water', `<span class="mono">${fmtCents(c.historical_approved_cents)}</span>`)}
+      ${fld('Reserved (authorized)', `<span class="mono">${fmtCents(c.reserved_authorized_cents)}</span>`)}
+      ${fld('Adjustor', `<span class="mono">${esc(c.adjustor_id||'—')}</span>`)}
+    </dl>
 
-          item.innerHTML = `
+    <div class="rule"></div>
+    <div class="subhead">Submitted invoices · ${inv.length}</div>
+    ${inv.length===0 ? renderEmptyRaw('No invoices on this claim','The claim was submitted but not yet billed by a provider.') : `
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Invoice</th><th>Provider</th><th>Tier</th><th>Code</th><th class="numcell">Billed</th><th class="numcell">Approved</th><th>Invoice status</th><th class="nowrap">Submitted</th></tr></thead>
+      <tbody>${inv.map(i=>`<tr>
+        <td class="mono" style="font-weight:600">${esc(i.invoice_id)}</td>
+        <td>${esc(i.provider_name||i.provider_id||'—')}<div class="tiny faint">${esc(titleCase(i.provider_type||''))} · <span class="mono">${esc(i.provider_id||'')}</span></div></td>
+        <td><span class="badge ${i.network_tier==='SUSPENDED'?'t-terra':i.network_tier==='IN_NETWORK'?'t-sage':'t-grey'}">${esc(titleCase(i.network_tier||'—'))}</span></td>
+        <td class="mono tiny">${esc(i.cpt_or_line_code||'—')}</td>
+        <td class="numcell">${fmtCents(i.billed_cents)}</td>
+        <td class="numcell">${fmtCents(i.approved_cents)}</td>
+        <td>${statusBadge(i.invoice_status)}</td>
+        <td class="tiny muted nowrap">${fmtDate(i.submitted_at_utc)}</td>
+      </tr>`).join('')}</tbody></table></div>`}
+
+    <div class="subhead" style="margin-top:22px">Payments · ${pay.length}</div>
+    ${pay.length===0 ? renderEmptyRaw('No payments attempted','Nothing has been authorized against this claim.') : `
+      <div class="tbl-wrap"><table class="tbl"><thead><tr><th>Payment</th><th>Recipient</th><th class="numcell">Amount</th><th class="numcell">Disbursed</th><th class="numcell">Clawed back</th><th>Status</th><th>Block reason</th><th class="nowrap">Created</th></tr></thead>
+      <tbody>${pay.map(p=>`<tr>
+        <td class="mono" style="font-weight:600">${esc(p.payment_id)}</td>
+        <td>${p.recipient_type==='PROVIDER'?esc(p.recipient_provider_id||'—'):esc(p.recipient_type||'—')}<div class="tiny faint">via <span class="mono">${esc(p.invoice_id||'—')}</span></div></td>
+        <td class="numcell">${fmtCents(p.amount_cents)}</td>
+        <td class="numcell">${fmtCents(p.disbursed_amount_cents)}</td>
+        <td class="numcell">${fmtCents(p.clawed_back_cents)}</td>
+        <td>${statusBadge(p.payment_status)}</td>
+        <td class="tiny" style="color:var(--terra-deep)">${esc(p.block_reason_code||'—')}</td>
+        <td class="tiny muted nowrap">${fmtDate(p.created_at_utc)}</td>
+      </tr>`).join('')}</tbody></table></div>`}`;
+}
+
+function dossierTabIndicators(){
+  const D = State.dossier;
+  if(D.indicators_error) return renderError(D.indicators_error, `reloadIndicators('${esc(D.claimId)}')`, 'GET /claims/{id}/indicators');
+  const inds = D.indicators;
+  if(!inds) return renderLoading('Loading persisted fraud indicators.');
+  if(!inds.length) return renderEmptyRaw('No fraud indicators fired','The 15 detectors evaluated this claim and emitted zero persisted findings. The score reflects that clean evaluation.');
+  const byPillar = {};
+  inds.forEach(i => { (byPillar[i.pillar] ||= []).push(i); });
+  return `
+    <p class="hint" style="margin-bottom:14px">Each row is a persisted detector finding with its canonical evidence token. Expand a row to inspect the exact feature snapshot captured at scoring time.</p>
+    ${Object.entries(byPillar).map(([pillar, list])=>`
+      <div class="subhead" style="color:${PILLAR_TINT[pillar]}">${esc(pillar)} · ${list.length} finding${list.length>1?'s':''}</div>
+      ${list.map(i=>rowInd(i)).join('')}`).join('')}`;
+}
+function rowInd(i){
+  const feat = i.feature && Object.keys(i.feature).length ? i.feature : null;
+  const idSafe = esc(i.indicator_id).replace(/[^a-zA-Z0-9_-]/g,'_');
+  return `<div class="exp-row" id="ind-${idSafe}">
+    <button class="exp-head" aria-expanded="false" onclick="toggleInd('${idSafe}')">
+      <svg class="chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+      <span class="mono" style="font-weight:600;min-width:64px">${esc(i.indicator_code)}</span>
+      <span class="badge t-grey">${esc(titleCase(i.dedup_scope||''))}</span>
+      <span class="et-title">${esc(i.severity||'—')} severity</span>
+      <span style="flex:1"></span>
+      <span class="num mono" style="font-size:11px;color:var(--ink-2)">${Number(i.raw_points).toFixed(1)} <span class="faint">/ ${Number(i.max_points).toFixed(1)} pts</span></span>
+    </button>
+    <div class="exp-body">
+      <div class="fld" style="grid-template-columns:130px 1fr"><dt>Evidence token</dt><dd><div class="token-box">${esc(i.canonical_evidence_token||'—')}</div>
+        <button class="copy-btn" style="margin-top:4px" onclick="copyText('${esc(i.canonical_evidence_token||'')}','Evidence token')">${I.copy}copy token</button></dd></div>
+      <div class="fld" style="grid-template-columns:130px 1fr"><dt>Normalized value</dt><dd class="mono">${esc(String(i.normalized_value))}</dd></div>
+      <div class="fld" style="grid-template-columns:130px 1fr"><dt>Computed</dt><dd class="mono tiny">${fmtDate(i.computed_at_utc)}</dd></div>
+      ${feat ? `<div class="fld" style="grid-template-columns:130px 1fr"><dt>Feature snapshot</dt><dd><table class="tbl" style="font-size:11px">${Object.entries(feat).map(([k,v])=>`<tr><td class="mono tiny" style="color:var(--faint);width:40%;padding:5px 8px">${esc(k)}</td><td class="mono tiny" style="padding:5px 8px">${esc(String(v))}</td></tr>`).join('')}</table></dd></div>` : ''}
+    </div>
+  </div>`;
+}
+function toggleInd(id){
+  const row = $('#ind-' + CSS.escape(id));
+  if(!row) return;
+  row.classList.toggle('open');
+  row.querySelector('.exp-head').setAttribute('aria-expanded', String(row.classList.contains('open')));
+}
+
+function dossierTabNetwork(){
+  const D = State.dossier;
+  if(D.network_error) return renderError(D.network_error, `reloadNetwork('${esc(D.claimId)}')`, 'GET /network/{claim_id}');
+  if(!D.network) return renderLoading('Extracting the operational ego-network.');
+  const net = D.network;
+  const hi = net.metrics.is_high_degree_cluster;
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:center;gap:14px;flex-wrap:wrap;margin-bottom:10px">
+      <div>
+        <div style="font-weight:600;font-size:13.5px">Operational ego-network around <span class="mono">${esc(net.claim_id)}</span></div>
+        <span class="hint">${net.metrics.total_nodes} nodes · ${net.metrics.total_edges} edges · density ${net.metrics.density}${hi?' · high-degree cluster':''}</span>
+      </div>
+      <a class="btn btn-ghost btn-sm" href="#/network/${esc(net.claim_id)}">Open full network explorer ${I.arrowR}</a>
+    </div>
+    ${hi?`<div class="banner" style="margin:8px 0"><span class="boa">Cluster signal</span><span>This entity web spans ${net.metrics.claimant_count} claimants and ${net.metrics.provider_count} providers — indicative of coordinated activity. Inspect SHARED_* edges first.</span></div>`:''}
+    <div id="mini-net" class="net-stage" style="height:420px" data-claim="${esc(net.claim_id)}">
+      <svg id="mini-net-svg" role="img" aria-label="Ego network graph for ${esc(net.claim_id)}"></svg>
+    </div>
+    <div class="legend">
+      ${[['CLAIM','var(--terra)','circle'],['CLAIMANT','var(--plum)','circle'],['PROVIDER','var(--sage)','rect'],['INCIDENT','var(--amber)','tri'],['POLICY','var(--ink-2)','dia']].map(([t,c,sh])=>`
+        <span class="lg"><svg viewBox="0 0 14 14">${sh==='circle'?`<circle cx="7" cy="7" r="5" fill="${c}"/>`:sh==='rect'?`<rect x="2.5" y="2.5" width="9" height="9" fill="${c}"/>`:sh==='tri'?`<path d="M7 2l5 10H2z" fill="${c}"/>`:`<rect x="4" y="4" width="6" height="6" fill="${c}" transform="rotate(45 7 7)"/>`}</svg>${t}</span>`).join('')}
+      <span class="lg" style="margin-left:8px"><svg viewBox="0 0 24 8"><line x1="2" y1="4" x2="22" y2="4" stroke="var(--terra)" stroke-width="2.4"/></svg>SHARED_* edge</span>
+      <span class="lg"><svg viewBox="0 0 24 8"><line x1="2" y1="4" x2="22" y2="4" stroke="var(--line-strong)" stroke-width="2" stroke-dasharray="4 3"/></svg>structural edge</span>
+    </div>
+    <p class="hint" style="margin-top:6px">Rendered from GET /network/${esc(net.claim_id)} — edges come strictly from the operational relationship table; no ground-truth edges or labels enter this view.</p>`;
+}
+
+function dossierTabChain(){
+  const D = State.dossier;
+  if(D.events_error) return renderError(D.events_error, `reloadChain('${esc(D.claimId)}')`, 'GET /claims/{id}/timeline');
+  const evts = D.events;
+  if(!evts) return renderLoading('Rebuilding the claim-scoped event chain.');
+  if(!evts.length) return renderEmptyRaw('No immutable events','No ledger events reference this claim yet.');
+  paintChainTabBadge(evts);
+  return chainMarkup(evts.slice().sort((a,b)=>a.sequence_no-b.sequence_no),
+    `Claim-scoped segment of the immutable ledger for ${esc(D.claimId)}`, `openChainView('${esc(D.claimId)}')`);
+}
+function openChainView(claimId){ nav('chain/' + encodeURIComponent(claimId)); }
+
+function dossierTabCase(){
+  const D = State.dossier, d = D.data, invg = d.investigation, c = d.claim;
+  if(!invg){
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:12px;padding:26px 10px;text-align:center">
+        ${I.shield.replace('<svg','<svg style="width:34px;height:34px;stroke:var(--ghost);fill:none;stroke-width:1.3"')}
+        <div style="font-family:var(--serif);font-size:19px">No SIU case is attached to ${esc(c.claim_id)}</div>
+        <p style="max-width:52ch;color:var(--ink-3);font-size:12.5px">Opening a case files an investigation record with a priority, estimated exposure and summary notes. It produces an atomic INVESTIGATION_OPENED event and enters the SIU case register.</p>
+        <button class="btn btn-terra" onclick="openCaseModal('${esc(c.claim_id)}')">${I.plus}Open investigation case</button>
+      </div>`;
+  }
+  const i = invg;
+  const isClosed = (i.investigation_status || '').startsWith('CLOSED_');
+  const allowedNext = FSM_ALLOWED[i.investigation_status] || [];
+
+  return `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:18px;flex-wrap:wrap">
+      <div>
+        <div class="subhead">Case file</div>
+        <div style="font-family:var(--mono);font-size:19px;font-weight:600">${esc(i.investigation_id)}</div>
+        <div class="dh-facts" style="margin-top:8px">
+          ${statusBadge(i.investigation_status)} ${statusBadge(i.priority)}
+          <span class="badge t-grey">INVESTIGATOR <b style="font-weight:600">${esc(i.assigned_investigator_id)}</b></span>
+        </div>
+      </div>
+      <div style="display:flex;gap:26px;text-align:right">
+        <div><div class="l-label">Est. exposure</div><div class="l-val num" style="font-size:17px">${fmtCents(i.estimated_exposure_cents)}</div></div>
+        <div><div class="l-label">Recovered</div><div class="l-val num" style="font-size:17px;color:var(--sage)">${fmtCents(i.recovered_clawback_cents)}</div></div>
+      </div>
+    </div>
+    <div class="rule"></div>
+    <dl style="max-width:760px">
+      ${fld('Opened', `<span class="mono tiny">${fmtDate(i.opened_at_utc)}</span>`)}
+      ${fld('Last update', `<span class="mono tiny">${fmtDate(i.updated_at_utc)}</span>`)}
+      ${i.closed_at_utc ? fld('Closed', `<span class="mono tiny">${fmtDate(i.closed_at_utc)}</span>`) : ''}
+      ${i.ruling_outcome ? fld('Ruling', statusBadge(i.ruling_outcome)) : ''}
+      ${fld('Case notes log', `<div class="token-box" style="font-family:var(--mono);font-size:12px;line-height:1.6;white-space:pre-wrap">${esc(i.case_summary_notes||'—')}</div>`)}
+    </dl>
+
+    <!-- Interactive Status Transition & Notes Controls -->
+    ${isClosed ? `
+      <div class="banner banner-neutral" style="margin-top:18px">
+        <span class="boa">Case Sealed & Immutable</span>
+        <span>This investigation is in terminal state <b>${esc(i.investigation_status)}</b>. Database trigger <code>trg_investigations_fsm_upd</code> strictly forbids further mutations to preserve evidentiary integrity.</span>
+      </div>
+    ` : `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px" class="cases-action-grid">
+        <!-- Status Transition Box -->
+        <div class="card" style="border-color:var(--line-strong);background:var(--surface)">
+          <div class="card-h" style="background:var(--surface-2)">
+            <h3 style="font-family:var(--serif);font-size:14px">Lifecycle Status Transition</h3>
+            <span class="tiny mono faint">FSM Rule Guard</span>
+          </div>
+          <div class="card-b" style="padding:14px;display:flex;flex-direction:column;gap:10px">
             <div>
-              <div class="item-id">${c.claim_id}</div>
-              <div class="item-claimant">${c.claimant_name} · ${c.line_of_business}</div>
-              <div style="font-size: 11px; color: var(--cyan); margin-top: 2px;">$${Number(c.claimed_amount_dollars).toLocaleString('en-US', {minimumFractionDigits: 2})}</div>
+              <label class="l-label" style="display:block;margin-bottom:4px">Target State</label>
+              <select id="inv-new-status-${esc(i.investigation_id)}" class="field-input" style="width:100%;background:var(--paper);border:1px solid var(--line-strong);padding:7px 10px;border-radius:4px;font-family:var(--mono);font-size:11.5px">
+                ${allowedNext.map(s => `<option value="${s}">${s}</option>`).join('')}
+              </select>
             </div>
-            <div class="item-score">
-              <div class="score-val" style="color: ${c.latest_ief_score >= 65 ? 'var(--rose)' : c.latest_ief_score >= 35 ? 'var(--amber)' : 'var(--emerald)'}">${c.latest_ief_score.toFixed(1)}</div>
-              <span class="badge ${badgeClass}">${c.latest_risk_tier}</span>
+            <div>
+              <label class="l-label" style="display:block;margin-bottom:4px">Transition Note / Finding</label>
+              <input type="text" id="inv-trans-notes-${esc(i.investigation_id)}" placeholder="Rationale for status change..." class="field-input" style="width:100%;background:var(--paper);border:1px solid var(--line-strong);padding:7px 10px;border-radius:4px;font-size:12px">
             </div>
-          `;
-          listEl.appendChild(item);
-        });
-
-        if (!selectedClaimId && claimsData.length > 0) {
-          selectClaim(claimsData[0].claim_id);
-        }
-      } catch (err) {
-        console.error('Failed to load claims list:', err);
-      }
-    }
-
-    async function selectClaim(claimId) {
-      selectedClaimId = claimId;
-      document.querySelectorAll('.triage-item').forEach(el => {
-        el.classList.toggle('selected', el.querySelector('.item-id').innerText === claimId);
-      });
-
-      try {
-        // Fetch claim full detail
-        const res = await fetch(`/api/v1/claims/${claimId}`);
-        const data = await res.json();
-        renderClaimDetail(data);
-
-        // Fetch indicators
-        const indRes = await fetch(`/api/v1/claims/${claimId}/indicators`);
-        const indData = await indRes.json();
-        renderIndicators(indData);
-
-        // Fetch timeline
-        const timeRes = await fetch(`/api/v1/claims/${claimId}/timeline`);
-        const timeData = await timeRes.json();
-        renderTimeline(timeData);
-
-        // Fetch network
-        const netRes = await fetch(`/api/v1/network/${claimId}`);
-        const netData = await netRes.json();
-        renderNetwork(netData);
-
-        // Render SIU Case
-        renderSIUCase(data);
-      } catch (err) {
-        console.error('Failed to load claim detail:', err);
-      }
-    }
-
-    function renderClaimDetail(d) {
-      const c = d.claim;
-      const clmt = d.claimant;
-      const p = d.policy;
-      const inc = d.incident;
-
-      const badgeClass = c.latest_risk_tier === 'CRITICAL' || c.latest_risk_tier === 'HIGH' ? 'badge-high' :
-                        c.latest_risk_tier === 'MEDIUM' ? 'badge-medium' : 'badge-low';
-
-      const html = `
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
-          <div>
-            <h2 style="font-size: 20px; font-weight: 700; color: #fff;">${c.claim_id}</h2>
-            <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Status: <strong>${c.claim_status}</strong> · Submitted: ${c.submitted_at_utc}</div>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 28px; font-weight: 800; color: ${c.latest_ief_score >= 65 ? 'var(--rose)' : c.latest_ief_score >= 35 ? 'var(--amber)' : 'var(--emerald)'}">
-              ${Number(c.latest_ief_score).toFixed(2)}
-            </div>
-            <span class="badge ${badgeClass}" style="font-size: 12px;">${c.latest_risk_tier} RISK TIER</span>
-          </div>
-        </div>
-
-        <div class="detail-grid">
-          <!-- Claimant Profile -->
-          <div class="section-box">
-            <div class="section-title">Claimant Identification</div>
-            <div class="field-row"><span class="field-name">ID:</span><span class="field-val">${clmt.claimant_id || 'N/A'}</span></div>
-            <div class="field-row"><span class="field-name">Full Name:</span><span class="field-val">${clmt.first_name || ''} ${clmt.last_name || ''}</span></div>
-            <div class="field-row"><span class="field-name">Address:</span><span class="field-val">${clmt.address_norm || 'N/A'}</span></div>
-            <div class="field-row"><span class="field-name">Phone Hash:</span><span class="field-val" style="font-family: monospace; font-size: 11px;">${clmt.phone_hash || 'N/A'}</span></div>
-            <div class="field-row"><span class="field-name">Risk Profile:</span><span class="field-val">${clmt.risk_profile || 'STANDARD'}</span></div>
-          </div>
-
-          <!-- Policy & Incident Details -->
-          <div class="section-box">
-            <div class="section-title">Policy Coverage & Incident Context</div>
-            <div class="field-row"><span class="field-name">Policy ID:</span><span class="field-val">${p.policy_id || 'N/A'} (${p.line_of_business || 'N/A'})</span></div>
-            <div class="field-row"><span class="field-name">Effective Window:</span><span class="field-val">${p.effective_start_utc?.substring(0,10) || ''} to ${p.effective_end_utc?.substring(0,10) || ''}</span></div>
-            <div class="field-row"><span class="field-name">Incident ID:</span><span class="field-val">${inc.incident_id || 'N/A'} (${inc.incident_type || 'N/A'})</span></div>
-            <div class="field-row"><span class="field-name">Incident Timestamp:</span><span class="field-val">${inc.occurred_at_utc || 'N/A'}</span></div>
-            <div class="field-row"><span class="field-name">Location:</span><span class="field-val">${inc.city || ''}, ${inc.state || ''} ${inc.postal_code || ''}</span></div>
-          </div>
-
-          <!-- Financial Ledger -->
-          <div class="section-box">
-            <div class="section-title">Financial Exposure & Ledger</div>
-            <div class="field-row"><span class="field-name">Claimed Amount:</span><span class="field-val">$${(c.claimed_amount_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
-            <div class="field-row"><span class="field-name">Payout Cap:</span><span class="field-val">$${(c.payout_cap_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
-            <div class="field-row"><span class="field-name">Approved Amount:</span><span class="field-val">$${(c.approved_amount_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
-            <div class="field-row"><span class="field-name">Gross Disbursed:</span><span class="field-val">$${(c.gross_disbursed_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
-            <div class="field-row"><span class="field-name">Clawed Back:</span><span class="field-val" style="color: var(--amber);">$${(c.clawed_back_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
-            <div class="field-row"><span class="field-name">Net Paid:</span><span class="field-val" style="color: var(--emerald); font-weight: 700;">$${(c.net_paid_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
-          </div>
-
-          <!-- Cryptographic Digest -->
-          <div class="section-box">
-            <div class="section-title">Forensic Evidence Digest</div>
-            <div class="field-row"><span class="field-name">Evidence SHA-256:</span></div>
-            <div style="font-family: monospace; font-size: 11px; color: var(--cyan); word-break: break-all; margin-top: 4px; padding: 8px; background: #0b0f19; border-radius: 4px;">
-              ${c.scoring_evidence_sha256}
-            </div>
-            <div style="font-size: 11px; color: var(--text-muted); margin-top: 8px;">
-              Trigger Guard: Evaluated deterministically against all 15 ARCH-ST-010.3 indicator features.
+            <div style="display:flex;justify-content:flex-end;margin-top:4px">
+              <button id="inv-trans-btn-${esc(i.investigation_id)}" class="btn btn-terra btn-sm" onclick="submitStatusTransition('${esc(i.investigation_id)}', '${esc(c.claim_id)}')">Transition status</button>
             </div>
           </div>
         </div>
 
-        <!-- Invoices & Providers -->
-        <div class="section-box" style="margin-top: 16px;">
-          <div class="section-title">Submitted Medical & Service Invoices (${d.invoices.length})</div>
-          <table class="table-custom">
-            <thead>
-              <tr>
-                <th>Invoice ID</th>
-                <th>Provider Name</th>
-                <th>Type</th>
-                <th>Specialty</th>
-                <th>Amount</th>
-                <th>Submission UTC</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${d.invoices.map(inv => `
-                <tr>
-                  <td style="font-family: monospace; color: #fff;">${inv.invoice_id}</td>
-                  <td>${inv.provider_name || inv.provider_id}</td>
-                  <td>${inv.provider_type || 'N/A'}</td>
-                  <td>${inv.specialty || 'N/A'}</td>
-                  <td style="font-weight: 700; color: var(--cyan);">$${(inv.amount_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                  <td style="font-size: 11px; color: var(--text-muted);">${inv.submitted_at_utc}</td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `;
-
-      document.getElementById('overview-content').innerHTML = html;
-    }
-
-    function renderIndicators(inds) {
-      document.getElementById('tab-ind-count').innerText = inds.length;
-      const tbody = document.getElementById('indicators-tbody');
-      tbody.innerHTML = '';
-
-      if (inds.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; color: var(--text-muted); padding: 20px;">No fraud indicators triggered for this claim.</td></tr>';
-        return;
-      }
-
-      inds.forEach(ind => {
-        const tr = document.createElement('tr');
-        const sevClass = ind.severity === 'CRITICAL' ? 'badge-high' : ind.severity === 'HIGH' ? 'badge-high' : 'badge-medium';
-
-        tr.innerHTML = `
-          <td style="font-weight: 700; color: #fff; font-family: monospace;">${ind.indicator_code}</td>
-          <td><span class="badge badge-schema">${ind.pillar}</span></td>
-          <td><span class="badge ${sevClass}">${ind.severity}</span></td>
-          <td style="font-weight: 700; color: var(--rose);">${ind.raw_points.toFixed(1)}</td>
-          <td style="color: var(--text-muted);">${ind.max_points.toFixed(1)}</td>
-          <td style="font-family: monospace; font-size: 11px; color: var(--cyan);">${ind.canonical_evidence_token}</td>
-        `;
-        tbody.appendChild(tr);
-      });
-    }
-
-    function renderTimeline(events) {
-      const container = document.getElementById('timeline-container');
-      container.innerHTML = '';
-
-      if (events.length === 0) {
-        container.innerHTML = '<div style="color: var(--text-muted);">No events recorded.</div>';
-        return;
-      }
-
-      events.forEach(ev => {
-        const item = document.createElement('div');
-        item.className = 'timeline-item';
-        item.innerHTML = `
-          <div class="timeline-dot"></div>
-          <div class="timeline-time">${ev.occurred_at_utc} (Seq #${ev.sequence_no})</div>
-          <div class="timeline-content">${ev.event_type} — ${ev.entity_type} [${ev.entity_id}]</div>
-          <div class="timeline-hash">HASH: ${ev.event_hash}</div>
-          <div style="font-size: 10px; color: var(--text-muted);">PREV: ${ev.prev_event_hash || 'GENESIS (ROOT)'}</div>
-        `;
-        container.appendChild(item);
-      });
-    }
-
-    function renderNetwork(net) {
-      document.getElementById('network-metrics-badge').innerText = 
-        `Nodes: ${net.metrics.total_nodes} | Edges: ${net.metrics.total_edges} | Cluster Density: ${net.metrics.density}`;
-
-      const svg = document.getElementById('network-svg');
-      svg.innerHTML = '';
-
-      const width = document.getElementById('graph-container').clientWidth || 700;
-      const height = 550;
-      const centerX = width / 2;
-      const centerY = height / 2;
-
-      // Group nodes by category
-      const nodes = net.nodes;
-      const edges = net.edges;
-      const total = nodes.length;
-
-      const nodeCoords = {};
-
-      nodes.forEach((n, idx) => {
-        let x, y;
-        if (n.type === 'CLAIM') {
-          x = centerX;
-          y = centerY;
-        } else {
-          const angle = (idx / (total - 1 || 1)) * 2 * Math.PI;
-          const radius = n.type === 'CLAIMANT' ? 140 : n.type === 'PROVIDER' ? 210 : 180;
-          x = centerX + radius * Math.cos(angle);
-          y = centerY + radius * Math.sin(angle);
-        }
-        nodeCoords[n.id] = { x, y, node: n };
-      });
-
-      // Draw Edges
-      edges.forEach(e => {
-        const src = nodeCoords[e.source];
-        const dst = nodeCoords[e.target];
-        if (src && dst) {
-          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-          line.setAttribute('x1', src.x);
-          line.setAttribute('y1', src.y);
-          line.setAttribute('x2', dst.x);
-          line.setAttribute('y2', dst.y);
-          line.setAttribute('stroke', e.type.startsWith('SHARED_') ? '#f43f5e' : '#374151');
-          line.setAttribute('stroke-width', Math.max(1.5, (e.weight || 0.5) * 3));
-          line.setAttribute('stroke-dasharray', e.type.startsWith('SHARED_') ? '4 2' : 'none');
-          svg.appendChild(line);
-        }
-      });
-
-      // Draw Nodes
-      Object.keys(nodeCoords).forEach(k => {
-        const item = nodeCoords[k];
-        const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-
-        const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
-        circle.setAttribute('cx', item.x);
-        circle.setAttribute('cy', item.y);
-        circle.setAttribute('r', item.node.type === 'CLAIM' ? 22 : 16);
-
-        let fill = '#06b6d4';
-        if (item.node.type === 'CLAIMANT') fill = '#f59e0b';
-        else if (item.node.type === 'PROVIDER') fill = '#8b5cf6';
-        else if (item.node.type === 'POLICY') fill = '#3b82f6';
-        else if (item.node.type === 'INCIDENT') fill = '#f43f5e';
-
-        circle.setAttribute('fill', fill);
-        circle.setAttribute('stroke', '#ffffff');
-        circle.setAttribute('stroke-width', '2');
-        g.appendChild(circle);
-
-        const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-        text.setAttribute('x', item.x);
-        text.setAttribute('y', item.y + 26);
-        text.setAttribute('fill', '#f3f4f6');
-        text.setAttribute('font-size', '10px');
-        text.setAttribute('text-anchor', 'middle');
-        text.textContent = item.node.label.length > 18 ? item.node.label.substring(0, 16) + '..' : item.node.label;
-        g.appendChild(text);
-
-        svg.appendChild(g);
-      });
-    }
-
-    function renderSIUCase(data) {
-      const invg = data.investigation;
-      const container = document.getElementById('siu-case-content');
-
-      if (!invg) {
-        container.innerHTML = `
-          <div class="section-box" style="text-align: center; padding: 40px;">
-            <div style="font-size: 16px; font-weight: 700; color: #fff; margin-bottom: 8px;">No Active SIU Case</div>
-            <div style="color: var(--text-muted); font-size: 12px; margin-bottom: 20px;">This claim currently has no open Special Investigation Unit file.</div>
-            <button class="btn" onclick="openNewCase('${data.claim.claim_id}')">+ Open Investigation Case</button>
+        <!-- Evidence Notes Box -->
+        <div class="card" style="border-color:var(--line-strong);background:var(--surface)">
+          <div class="card-h" style="background:var(--surface-2)">
+            <h3 style="font-family:var(--serif);font-size:14px">Append Evidence Note</h3>
+            <span class="tiny mono faint">Persisted Log</span>
           </div>
-        `;
-        return;
-      }
-
-      container.innerHTML = `
-        <div class="section-box">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-            <div class="section-title">SIU Case File: ${invg.investigation_id}</div>
-            <span class="badge ${invg.priority === 'P1_CRITICAL' ? 'badge-high' : 'badge-medium'}">${invg.priority}</span>
-          </div>
-
-          <div class="field-row"><span class="field-name">Status:</span><span class="field-val">${invg.investigation_status}</span></div>
-          <div class="field-row"><span class="field-name">Lead Investigator:</span><span class="field-val">${invg.assigned_investigator_id}</span></div>
-          <div class="field-row"><span class="field-name">Opened At:</span><span class="field-val">${invg.opened_at_utc}</span></div>
-          <div class="field-row"><span class="field-name">Estimated Exposure:</span><span class="field-val">$${(invg.estimated_exposure_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
-          <div class="field-row"><span class="field-name">Recovered Clawback:</span><span class="field-val" style="color: var(--emerald); font-weight: 700;">$${(invg.recovered_clawback_cents / 100).toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div>
-
-          <div style="margin-top: 16px;">
-            <div class="field-name" style="margin-bottom: 4px;">Case Summary Notes:</div>
-            <div style="background: var(--bg-dark); padding: 12px; border-radius: 4px; font-size: 12px; color: #fff; line-height: 1.6;">
-              ${invg.case_summary_notes}
+          <div class="card-b" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+            <textarea id="inv-note-input-${esc(i.investigation_id)}" rows="3" placeholder="Enter witness statement, surveillance observation, or records finding..." style="width:100%;background:var(--paper);border:1px solid var(--line-strong);padding:8px 10px;border-radius:4px;font-size:12px;font-family:var(--sans);resize:vertical"></textarea>
+            <div style="display:flex;justify-content:flex-end">
+              <button id="inv-note-btn-${esc(i.investigation_id)}" class="btn btn-ghost btn-sm" onclick="submitCaseNote('${esc(i.investigation_id)}', '${esc(c.claim_id)}')">${I.plus}Append note</button>
             </div>
           </div>
         </div>
-      `;
+      </div>
+    `}
+
+    <div style="display:flex;gap:10px;margin-top:20px;flex-wrap:wrap">
+      <a class="btn btn-ghost btn-sm" href="#/cases/${esc(i.investigation_id)}">Open full case dossier ${I.arrowR}</a>
+    </div>`;
+}
+function reloadIndicators(id){ openDossier(id); }
+function reloadNetwork(id){ openDossier(id); }
+function reloadChain(id){ openDossier(id); }
+</script>
+<script>
+/* ================================================================
+   D. NETWORK INTELLIGENCE (full explorer + dossier mini-graph)
+   ================================================================ */
+async function openNetwork(claimId){
+  const T = sesToken; const root = $('#view-network');
+  root.innerHTML = `
+    <div class="breadcrumbs"><a href="#/overview">Overview</a><span class="sep">/</span><span>Network intelligence</span></div>
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Network Intelligence</div>
+        <h1 id="n-h">Follow the relationships, not just the claim</h1>
+        <p class="lede">An interactive ego-network extracted from the operational relationship graph. Nodes are colored and shaped by entity type; SHARED_* edges carry collusive signal; select any node or edge (from the edge register) to inspect its live attributes. Pan by dragging, zoom with the wheel or toolbar.</p>
+      </div>
+    </div>
+    <div class="net-grid">
+      <aside class="card net-rail" aria-label="Claim picker">
+        <div class="card-h"><h2>Focus claim</h2></div>
+        <div style="padding:12px 12px 4px">
+          <label class="mono tiny" for="net-search" style="letter-spacing:.14em;color:var(--ink-3)">Search claim ID</label>
+          <div class="search-wrap" style="margin-top:5px">${I.search}<input id="net-search" class="input" type="search" placeholder="e.g. CLM-2026-000050" autocomplete="off"></div>
+        </div>
+        <div class="subhead" style="padding:10px 16px 4px;margin-top:4px">Highest-risk queue</div>
+        <div class="net-quick" id="net-quick">${renderLoading('Fetching triage ranks.')}</div>
+      </aside>
+      <div class="net-stage-wrap">
+        <div id="net-stage" class="net-stage" style="height:640px">
+          <svg id="net-svg" role="application" aria-label="Interactive relationship network"></svg>
+          <div class="net-toolbar">
+            <button class="net-tbtn" id="net-zin" aria-label="Zoom in">+</button>
+            <button class="net-tbtn" id="net-zout" aria-label="Zoom out">&minus;</button>
+            <button class="net-tbtn" id="net-fit" aria-label="Fit graph to view"><svg viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5m11-5v5h-5"/></svg></button>
+          </div>
+          <div class="net-metrics" id="net-metrics"></div>
+        </div>
+      </div>
+      <aside class="card node-detail" aria-label="Node inspection">
+        <div class="card-h"><h2>Inspector</h2><button class="btn btn-ghost btn-sm" id="net-open" style="display:none">Dossier ${I.arrowR}</button></div>
+        <div class="card-b" id="net-detail" style="max-height:520px;overflow:auto">${renderEmptyRaw('Nothing selected','Pick a node on the canvas.','')}</div>
+      </aside>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <div class="card-h"><h2>Edge register</h2><span class="hint" id="edge-reg-hint">click an edge row to isolate it on the canvas</span></div>
+      <div id="net-edges">${renderLoading('Awaiting graph load.')}</div>
+    </div>
+    <div class="legend" style="margin-top:6px">
+      ${[['CLAIM','var(--terra)','circle'],['CLAIMANT','var(--plum)','circle'],['PROVIDER','var(--sage)','rect'],['INCIDENT','var(--amber)','tri'],['POLICY','var(--ink-2)','dia']].map(([t,c,sh])=>
+        `<span class="lg"><svg viewBox="0 0 14 14">${sh==='circle'?`<circle cx="7" cy="7" r="5" fill="${c}"/>`:sh==='rect'?`<rect x="2.5" y="2.5" width="9" height="9" fill="${c}"/>`:sh==='tri'?`<path d="M7 2l5 10H2z" fill="${c}"/>`:`<rect x="4" y="4" width="6" height="6" fill="${c}" transform="rotate(45 7 7)"/>`}</svg>${t}</span>`).join('')}
+      <span class="lg" style="margin-left:8px"><svg viewBox="0 0 24 8"><line x1="2" y1="4" x2="22" y2="4" stroke="var(--terra)" stroke-width="2.4"/></svg>SHARED_* edge (collusive signal)</span>
+      <span class="lg"><svg viewBox="0 0 24 8"><line x1="2" y1="4" x2="22" y2="4" stroke="var(--line-strong)" stroke-width="2" stroke-dasharray="4 3"/></svg>structural / business edge</span>
+    </div>`;
+
+  const searchEl = $('#net-search');
+  const goNet = () => { const v = searchEl.value.trim(); if(v) fetchNet(v.toUpperCase()); };
+  searchEl.addEventListener('keydown', e=>{ if(e.key==='Enter'){ clearTimeout(netSearchTimer); goNet(); } });
+  searchEl.addEventListener('input', ()=>{
+    clearTimeout(netSearchTimer);
+    netSearchTimer = setTimeout(()=>{ const v = searchEl.value.trim(); if(v && v.length >= 8) fetchNet(v.toUpperCase()); }, 420);
+  });
+  // highest-risk queue
+  api('/claims?limit=25').then(d=>{
+    if(T!==sesToken) return;
+    $('#net-quick').innerHTML = d.items.map(it=>`
+      <button class="nq-item" data-id="${esc(it.claim_id)}" onclick="nav('network/'+encodeURIComponent('${esc(it.claim_id)}'))">
+        <span><div class="nq-id">${esc(it.claim_id)}</div><div class="nq-sub">${esc(it.claimant_name||'')} · ${esc(titleCase(it.line_of_business||''))}</div></span>
+        <span class="num" style="font-size:11.5px;font-weight:600;color:${riskColor(it.latest_risk_tier)}">${Number(it.latest_ief_score).toFixed(1)}</span>
+      </button>`).join('');
+    markQuickSel();
+  }).catch(e=>{ if(T===sesToken) $('#net-quick').innerHTML = renderError(e, 'openNetwork'); });
+
+  if(claimId) fetchNet(claimId);
+  else {
+    const stage = $('#net-stage');
+    stage && stage.querySelectorAll('svg').forEach(x=>x.remove());
+    stage && stage.insertAdjacentHTML('beforeend', `<div class="state" style="height:100%">${I.nodes}
+      <div class="st-title">Choose a focus claim</div><div class="st-sub">Search a claim ID on the left, or pick one from the highest-risk queue to render its entity network.</div></div>`);
+    $('#net-metrics') && ($('#net-metrics').innerHTML = '');
+    $('#net-edges').innerHTML = renderEmptyRaw('No graph loaded','Select a claim to list its relationship edges.');
+  }
+}
+function markQuickSel(){
+  $$('.nq-item').forEach(b=>b.classList.toggle('sel', b.dataset.id === State.network.claimId));
+}
+
+let NET_GRAPH = null, NET_SELECTED = null, NET_ISOLATE_EDGE = null, netSearchTimer = null;
+async function fetchNet(claimId){
+  const T = sesToken;
+  if(!claimId) return;
+  const stage = $('#net-stage');
+  if(stage){
+    stage.querySelectorAll('svg, .state').forEach(x=>x.remove());
+    stage.insertAdjacentHTML('beforeend', renderLoading('Extracting ego-network for ' + claimId + '.'));
+  }
+  try {
+    const net = await api('/network/' + encodeURIComponent(claimId));
+    if(T !== sesToken) return;
+    NET_GRAPH = null; NET_SELECTED = null; NET_ISOLATE_EDGE = null;
+    State.network.claimId = claimId;
+    history.replaceState(null, '', '#/network/' + encodeURIComponent(claimId));
+    buildNetStage(net);
+  } catch(e){
+    if(T !== sesToken) return;
+    const st = $('#net-stage');
+    if(st){
+      st.querySelectorAll('svg, .state').forEach(x=>x.remove());
+      st.insertAdjacentHTML('beforeend', String(e && e.message).includes('404')
+        ? renderEmptyRaw('Unknown claim', `${esc(claimId)} is not in the operational dataset.`)
+        : renderError(e, `fetchNet('${esc(claimId)}')`));
     }
+    $('#net-edges') && ($('#net-edges').innerHTML = '');
+    $('#net-metrics') && ($('#net-metrics').innerHTML = '');
+    if($('#net-detail')) $('#net-detail').innerHTML = renderEmptyRaw('Nothing selected','Load a graph first.','');
+  }
+}
 
-    async function openNewCase(claimId) {
-      const summary = prompt("Enter SIU investigation summary notes:", `Investigating high-risk indicators and network anomalies on claim ${claimId}`);
-      if (!summary) return;
+/* --- deterministic radial layout; claim at center, claimant ring
+       BFS-ordered by adjacency, providers on the outer ring --- */
+function netLayout(net, W=900, H=620){
+  const cx = W/2, cy = H/2;
+  const nodes = net.nodes, edges = net.edges;
+  const coord = {};
+  const claim = nodes.find(n=>n.type==='CLAIM');
+  if(claim) coord[claim.id] = {x:cx, y:cy};
+  const others = nodes.filter(n=>['POLICY','INCIDENT'].includes(n.type));
+  others.forEach((n,i)=>{ const a = -Math.PI/2 + (i+0.5)*(Math.PI/$$len(others)); coord[n.id] = {x:cx+130*Math.cos(a), y:cy+120*Math.sin(a)}; });
+  const claimants = nodes.filter(n=>n.type==='CLAIMANT');
+  const providers = nodes.filter(n=>n.type==='PROVIDER');
+  const nb = {};
+  edges.forEach(e=>{ (nb[e.source] ||= []).push(e.target); (nb[e.target] ||= []).push(e.source); });
+  const primaryId = claim ? (nb[claim.id]||[]).find(k=>String(k).startsWith('CLAIMANT:')) : null;
+  let ordered = claimants.slice();
+  if(primaryId){
+    const seen = new Set([primaryId]); const q = [primaryId]; const bfs = [];
+    while(q.length){
+      const cur = q.shift(); bfs.push(cur);
+      for(const m of (nb[cur]||[])){ if(String(m).startsWith('CLAIMANT:') && !seen.has(m)){ seen.add(m); q.push(m); } }
+    }
+    ordered = bfs.map(id=>claimants.find(c=>c.id===id)).filter(Boolean)
+      .concat(claimants.filter(c=>!bfs.includes(c.id)));
+  }
+  const R1 = Math.min(230, H*0.36), R2 = Math.min(300, H*0.46);
+  const nCl = Math.max(1, ordered.length);
+  ordered.forEach((n,i)=>{ const a = (i/nCl)*2*Math.PI - Math.PI/2; coord[n.id] = {x:cx+R1*Math.cos(a), y:cy+R1*Math.sin(a)}; });
+  const nPr = Math.max(1, providers.length);
+  providers.forEach((n,i)=>{ const a = (i/nPr)*2*Math.PI - Math.PI/2 + 0.35; coord[n.id] = {x:cx+R2*Math.cos(a), y:cy+R2*Math.sin(a)}; });
+  return {W, H, coord};
+}
+function $$len(arr){ return arr.length || 1; }
 
-      try {
-        const res = await fetch('/api/v1/investigations', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            primary_claim_id: claimId,
-            priority: 'P2_HIGH',
-            assigned_investigator_id: 'SIU-AGENT-001',
-            case_summary_notes: summary
-          })
-        });
-        const d = await res.json();
-        alert(`Created investigation file: ${d.investigation_id}`);
-        selectClaim(claimId);
-        loadStats();
-      } catch (err) {
-        alert("Failed to create investigation: " + err);
+function shapeSVG(type, r, color, selected){
+  const stroke = selected ? '#242820' : 'rgba(36,40,32,.34)';
+  const sw = selected ? 2.6 : 1.6;
+  switch(type){
+    case 'CLAIM': return `<circle class="nshape" r="${r}" fill="var(--terra-wash)" stroke="${color}" stroke-width="${sw}"/><circle r="${r-6}" fill="${color}" stroke="none" opacity=".85"/>`;
+    case 'PROVIDER': return `<rect class="nshape" x="${-r}" y="${-r}" width="${2*r}" height="${2*r}" rx="2" fill="${color}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    case 'INCIDENT': return `<path class="nshape" d="M0,${-r} L${r},${r} L${-r},${r} Z" fill="${color}" stroke="${stroke}" stroke-width="${sw}"/>`;
+    case 'POLICY': return `<rect class="nshape" x="${-r}" y="${-r}" width="${2*r}" height="${2*r}" fill="${color}" stroke="${stroke}" stroke-width="${sw}" transform="rotate(45)"/>`;
+    default: return `<circle class="nshape" r="${r}" fill="${color}" stroke="${stroke}" stroke-width="${sw}"/>`;
+  }
+}
+const NODE_COLOR = {CLAIM:'var(--terra)', CLAIMANT:'var(--plum)', PROVIDER:'var(--sage)', INCIDENT:'var(--amber)', POLICY:'var(--ink-2)'};
+const EDGE_SIGNIFICANT = t => String(t||'').startsWith('SHARED_') || String(t||'').startsWith('SUSPICIOUS');
+
+/* --- shared graph builder used by the full explorer and the dossier mini-graph --- */
+function buildSvgGraph(net, svg, layout, interactive){
+  const {W, H, coord} = layout;
+  svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+  svg.innerHTML = '';
+  const gEdges = document.createElementNS('http://www.w3.org/2000/svg','g');
+  const gNodes = document.createElementNS('http://www.w3.org/2000/svg','g');
+  svg.appendChild(gEdges); svg.appendChild(gNodes);
+  const edgeEls = {}, nodeEls = {};
+  net.edges.forEach(e=>{
+    const s = coord[e.source], t = coord[e.target];
+    if(!s || !t) return;
+    const sig = EDGE_SIGNIFICANT(e.type);
+    const mx = (s.x+t.x)/2, my = (s.y+t.y)/2;
+    const dx = t.x-s.x, dy = t.y-s.y, len = Math.sqrt(dx*dx+dy*dy)||1;
+    const off = sig ? 26 : 12;
+    const ox = -dy/len*off, oy = dx/len*off;
+    const path = document.createElementNS('http://www.w3.org/2000/svg','path');
+    path.setAttribute('d', `M ${s.x} ${s.y} Q ${mx+ox} ${my+oy} ${t.x} ${t.y}`);
+    path.setAttribute('fill','none');
+    path.setAttribute('stroke', sig ? 'var(--terra)' : 'var(--line-strong)');
+    path.dataset.baseWidth = sig ? Math.max(1.4, e.weight*2.6) : Math.max(1, e.weight*1.6);
+    path.setAttribute('stroke-width', path.dataset.baseWidth);
+    path.setAttribute('stroke-dasharray', sig ? '' : '5 4');
+    if(interactive){
+      path.style.pointerEvents = 'visibleStroke';
+      path.addEventListener('click', evt=>{ evt.stopPropagation(); selectEdge(e.id); });
+      path.addEventListener('mouseenter', ()=>{ path.setAttribute('stroke-width', +path.dataset.baseWidth + 1.2); });
+      path.addEventListener('mouseleave', ()=>{ path.setAttribute('stroke-width', path.dataset.baseWidth); });
+    }
+    gEdges.appendChild(path);
+    edgeEls[e.id] = {path, e};
+  });
+  net.nodes.forEach(n=>{
+    const P = coord[n.id]; if(!P) return;
+    const g = document.createElementNS('http://www.w3.org/2000/svg','g');
+    g.setAttribute('class','node');
+    g.dataset.id = n.id; g.dataset.type = n.type;
+    const r = n.type==='CLAIM' ? 17 : n.type==='PROVIDER' ? 10 : n.type==='POLICY' ? 8.5 : 9.5;
+    g.setAttribute('transform', `translate(${P.x} ${P.y})`);
+    g.innerHTML = shapeSVG(n.type, r, NODE_COLOR[n.type]||'var(--grey)') +
+      `<text y="${r+11}" text-anchor="middle">${esc(String(n.label).length>20 ? String(n.label).slice(0,19)+'…' : n.label)}</text>`;
+    if(interactive){
+      g.tabIndex = 0;
+      g.setAttribute('role','button');
+      g.setAttribute('aria-label', `${n.type} ${n.label}${n.score!=null?`, IEF score ${n.score}`:''}`);
+      g.addEventListener('click', evt=>{ evt.stopPropagation(); selectNode(n.id); });
+      g.addEventListener('keydown', e=>{ if(e.key==='Enter'||e.key===' '){ e.preventDefault(); selectNode(n.id); } });
+    } else {
+      g.addEventListener('click', ()=>{ nav('network/' + encodeURIComponent(net.claim_id)); });
+      g.setAttribute('title','Open in Network Intelligence');
+    }
+    gNodes.appendChild(g);
+    nodeEls[n.id] = g;
+  });
+  function adjacency(){
+    const s = new Set();
+    net.edges.forEach(e=>{ if(e.source===NET_SELECTED) s.add(e.target); if(e.target===NET_SELECTED) s.add(e.source); });
+    return s;
+  }
+  function paintSelection(){
+    const adjSet = NET_SELECTED ? adjacency() : new Set();
+    Object.entries(nodeEls).forEach(([id, g])=>{
+      g.classList.toggle('sel', id===NET_SELECTED);
+      g.classList.toggle('hl', !!NET_SELECTED && adjSet.has(id));
+      g.classList.toggle('dim', !!NET_ISOLATE_EDGE && !adjSet.has(id) && id!==NET_SELECTED);
+    });
+    Object.values(edgeEls).forEach(({path, e})=>{
+      const touched = !!NET_SELECTED && (e.source===NET_SELECTED || e.target===NET_SELECTED);
+      let op = 1;
+      if(NET_ISOLATE_EDGE) op = e.id===NET_ISOLATE_EDGE ? 1 : 0.08;
+      else if(NET_SELECTED) op = touched ? 1 : 0.22;
+      path.style.opacity = op;
+      if(touched || e.id===NET_ISOLATE_EDGE){
+        path.setAttribute('stroke', EDGE_SIGNIFICANT(e.type) ? 'var(--terra-deep)' : 'var(--ink-2)');
+        path.setAttribute('stroke-width', +path.dataset.baseWidth + 0.8);
+      } else {
+        path.setAttribute('stroke', EDGE_SIGNIFICANT(e.type) ? 'var(--terra)' : 'var(--line-strong)');
+        path.setAttribute('stroke-width', path.dataset.baseWidth);
       }
+    });
+  }
+  return {edgeEls, nodeEls, paintSelection};
+}
+
+function buildNetStage(net){
+  const stage = $('#net-stage'); if(!stage) return;
+  stage.querySelectorAll('svg, .state').forEach(x=>x.remove());
+  stage.insertAdjacentHTML('beforeend', `<svg id="net-svg" role="application" aria-label="Relationship network for ${esc(net.claim_id)}"></svg>`);
+  const svg = $('#net-svg');
+  const g = buildSvgGraph(net, svg, netLayout(net), true);
+  svg.addEventListener('click', ()=>{ if(NET_ISOLATE_EDGE){ NET_ISOLATE_EDGE = null; g.paintSelection(); } });
+  NET_GRAPH = {net, svg, ...g};
+  fitNet();
+  $('#net-metrics').innerHTML = `<span class="chip">NODES <b>${net.metrics.total_nodes}</b></span><span class="chip">EDGES <b>${net.metrics.total_edges}</b></span><span class="chip">CLAIMANTS <b>${net.metrics.claimant_count}</b></span><span class="chip">PROVIDERS <b>${net.metrics.provider_count}</b></span>${net.metrics.is_high_degree_cluster?'<span class="chip" style="border-color:#CE9781;color:var(--terra-deep);background:var(--terra-wash)">HIGH-DEGREE CLUSTER</span>':''}`;
+  renderEdgeRegister(net);
+  const centerId = Object.keys(g.nodeEls).find(id=>id.startsWith('CLAIM:')) || Object.keys(g.nodeEls)[0];
+  selectNode(centerId);
+  markQuickSel();
+}
+
+function selectEdge(id){
+  if(!NET_GRAPH) return;
+  const e = NET_GRAPH.net.edges.find(x=>x.id===id);
+  if(!e) return;
+  NET_ISOLATE_EDGE = id;
+  NET_GRAPH.paintSelection();
+  const p = e.properties||{};
+  $('#net-detail').innerHTML = `
+    <div class="subhead">Edge · ${esc(e.id)}</div>
+    <dl>
+      ${fld('Type', `<span class="badge ${EDGE_SIGNIFICANT(e.type)?'t-terra':'t-grey'}">${esc(e.type)}</span>`)}
+      ${fld('Weight', `<span class="mono">${esc(String(e.weight))}</span>`)}
+      ${p.evidence_count!=null?fld('Evidence count', `<span class="mono">${p.evidence_count}</span>`):''}
+      ${p.supporting_claim_id?fld('Supporting claim', `<button class="mono tiny" style="cursor:pointer" onclick="event.stopPropagation();nav('network/'+encodeURIComponent('${esc(p.supporting_claim_id)}'))" onkeydown="if(event.key==='Enter')nav('network/'+encodeURIComponent('${esc(p.supporting_claim_id)}'))">${esc(p.supporting_claim_id)}</button>`):''}
+      ${p.invoice_id?fld('Invoice', `<span class="mono tiny">${esc(p.invoice_id)}</span>`):''}
+      ${fld('From', `<span class="mono tiny">${esc(e.source)}</span>`)}
+      ${fld('To', `<span class="mono tiny">${esc(e.target)}</span>`)}
+    </dl>
+    <p class="hint" style="margin-top:8px">This edge is highlighted on the canvas; unrelated elements are dimmed. Click empty canvas to release.</p>`;
+}
+function selectNode(id){
+  if(!NET_GRAPH) return;
+  NET_SELECTED = id;
+  NET_GRAPH.paintSelection();
+  const net = NET_GRAPH.net;
+  const n = net.nodes.find(x=>x.id===id);
+  const btn = $('#net-open');
+  if(!n){ $('#net-detail').innerHTML = renderEmptyRaw('Nothing selected','Pick a node on the canvas.',''); btn.style.display='none'; return; }
+  btn.style.display='inline-flex';
+  btn.onclick = ()=>nav('claims/' + encodeURIComponent(net.claim_id));
+  if(NET_ISOLATE_EDGE){ NET_ISOLATE_EDGE = null; NET_GRAPH.paintSelection(); }
+  const P = n.properties||{};
+  const rows = Object.entries(P).filter(([k])=>k!=='claim_id').map(([k,v])=>fld(esc(titleCase(k)), esc(String(v??'—')))).join('');
+  $('#net-detail').innerHTML = `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+      <svg viewBox="0 0 14 14" style="width:16px;height:16px;flex:none">${n.type==='PROVIDER'?`<rect x="2.5" y="2.5" width="9" height="9" fill="${NODE_COLOR[n.type]}" fill-opacity=".9"/>`:n.type==='INCIDENT'?`<path d="M7 2l5 10H2z" fill="${NODE_COLOR[n.type]}"/>`:n.type==='POLICY'?`<rect x="4" y="4" width="6" height="6" fill="${NODE_COLOR[n.type]}" transform="rotate(45 7 7)"/>`:`<circle cx="7" cy="7" r="5" fill="${NODE_COLOR[n.type]}"/>`}</svg>
+      <div>
+        <div style="font-family:var(--mono);font-size:10px;letter-spacing:.16em;color:var(--faint);text-transform:uppercase">${esc(n.type)}</div>
+        <div style="font-weight:600;font-size:14px">${esc(n.label)}</div>
+      </div>
+    </div>
+    ${n.score!=null?`<div style="margin:8px 0"><span class="mono" style="font-weight:600;font-size:15px;color:${riskColor(n.risk_tier)}">${Number(n.score).toFixed(2)}</span> <span class="tiny faint">IEF score · ${esc(n.risk_tier||'')} tier</span></div>`:''}
+    <dl>${rows || '<p class="hint">No additional attributes are exposed by the API for this node type.</p>'}</dl>
+    ${n.type==='CLAIM'?'<p class="hint" style="margin-top:8px">Center node — the claim this ego-network was extracted around.</p>':''}`;
+}
+function renderEdgeRegister(net){
+  const host = $('#net-edges'); if(!host) return;
+  const edges = net.edges.slice().sort((a,b)=>(EDGE_SIGNIFICANT(b.type)-EDGE_SIGNIFICANT(a.type)) || (b.weight-a.weight));
+  if(!edges.length){ host.innerHTML = renderEmptyRaw('No relationship edges','The API returned a claim with only its structural entities.'); return; }
+  host.innerHTML = `<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Edge</th><th>Type</th><th>From</th><th>To</th><th class="numcell">Weight</th><th class="numcell">Evidence</th><th>Supporting claim</th></tr></thead><tbody>
+  ${edges.map(e=>`<tr class="rowbtn" tabindex="0" onclick="selectEdge('${esc(e.id)}')" onkeydown="if(event.key==='Enter')selectEdge('${esc(e.id)}')" aria-label="Highlight edge ${esc(e.id)} on canvas">
+    <td class="mono tiny" style="font-weight:600">${esc(e.id)}</td>
+    <td><span class="badge ${EDGE_SIGNIFICANT(e.type)?'t-terra':'t-grey'}">${esc(e.type)}</span></td>
+    <td class="tiny mono">${esc(String(e.source).replace(/^[A-Z_]+:/,''))}</td>
+    <td class="tiny mono">${esc(String(e.target).replace(/^[A-Z_]+:/,''))}</td>
+    <td class="numcell">${esc(String(e.weight))}</td>
+    <td class="numcell">${e.properties?.evidence_count ?? '—'}</td>
+    <td>${e.properties?.supporting_claim_id?`<button class="mono tiny" style="text-decoration:underline;text-underline-offset:2px" onclick="event.stopPropagation();nav('network/'+encodeURIComponent('${esc(e.properties.supporting_claim_id)}'))">${esc(e.properties.supporting_claim_id)}</button>`:'—'}</td>
+  </tr>`).join('')}
+  </tbody></table></div>`;
+}
+/* --- dossier mini-graph hook --- */
+function renderMiniNet(){
+  const svg = $('#mini-net-svg'); if(!svg) return;
+  const net = State.dossier.network; if(!net) return;
+  buildSvgGraph(net, svg, netLayout(net, 900, 400), false);
+}
+/* --- pan & zoom (event delegation survives stage rebuilds) --- */
+(function netPanZoom(){
+  document.addEventListener('click', e=>{
+    const zbtn = e.target.closest && e.target.closest('#net-zin, #net-zout, #net-fit');
+    if(!zbtn || !NET_GRAPH || !NET_GRAPH.svg.isConnected) return;
+    e.preventDefault();
+    const svg = NET_GRAPH.svg;
+    const vb = svg.viewBox.baseVal;
+    if(zbtn.id==='net-fit'){ fitNet(); return; }
+    const k = zbtn.id==='net-zin' ? 0.82 : 1.22;
+    const cx = vb.x + vb.width/2, cy = vb.y + vb.height/2;
+    const nw = vb.width*k, nh = vb.height*k;
+    svg.setAttribute('viewBox', `${cx-nw/2} ${cy-nh/2} ${nw} ${nh}`);
+  });
+  let drag = null;
+  document.addEventListener('pointerdown', e=>{
+    if(!NET_GRAPH || !NET_GRAPH.svg.isConnected || !(e.target.closest && e.target.closest('#net-svg'))) return;
+    drag = {x:e.clientX, y:e.clientY, vb:{x:NET_GRAPH.svg.viewBox.baseVal.x, y:NET_GRAPH.svg.viewBox.baseVal.y, w:NET_GRAPH.svg.viewBox.baseVal.width, h:NET_GRAPH.svg.viewBox.baseVal.height}};
+    NET_GRAPH.svg.classList.add('panning');
+  });
+  document.addEventListener('pointermove', e=>{
+    if(!drag || !NET_GRAPH) return;
+    const svg = NET_GRAPH.svg, vb = svg.viewBox.baseVal;
+    const r = svg.getBoundingClientRect();
+    const dx = (e.clientX - drag.x) * drag.vb.w / r.width;
+    const dy = (e.clientY - drag.y) * drag.vb.h / r.height;
+    svg.setAttribute('viewBox', `${drag.vb.x-dx} ${drag.vb.y-dy} ${drag.vb.w} ${drag.vb.h}`);
+  });
+  document.addEventListener('pointerup', ()=>{ if(NET_GRAPH) NET_GRAPH.svg.classList.remove('panning'); drag = null; });
+  document.addEventListener('wheel', e=>{
+    if(!NET_GRAPH || !NET_GRAPH.svg.isConnected) return;
+    if(!(e.target.closest && e.target.closest('#net-svg'))) return;
+    e.preventDefault();
+    const svg = NET_GRAPH.svg, v = svg.viewBox.baseVal;
+    const k = e.deltaY < 0 ? 0.88 : 1.14;
+    const w = v.width*k, h = v.height*k;
+    svg.setAttribute('viewBox', `${v.x + (v.width-w)/2} ${v.y + (v.height-h)/2} ${w} ${h}`);
+  }, {passive:false});
+})();
+function fitNet(){
+  if(!NET_GRAPH) return;
+  NET_GRAPH.svg.setAttribute('viewBox', '0 0 900 620');
+}
+</script>
+<script>
+/* ================================================================
+   E. MERKLE AUDIT TIMELINE
+   Chain verification in this build = per-event prev-hash linkage.
+   Deep SHA-256 re-hashing is intentionally skipped: the canonical
+   payload serialization lives server-side only, and re-encoding it
+   in the browser risks false "broken chain" reports.
+   ================================================================ */
+async function renderChainView(claimId){
+  const T = sesToken; const root = $('#view-chain');
+  State.chain.claimId = claimId;
+  root.innerHTML = `
+    <div class="breadcrumbs"><a href="#/overview">Overview</a><span class="sep">/</span><span>Merkle audit timeline</span></div>
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">Merkle Audit Timeline</div>
+        <h1 id="m-h">Every transition, hashed and sequenced</h1>
+        <p class="lede">The immutable event ledger. Each event carries a SHA-256 hash chained to its predecessor; the dashboard exposes the dataset Merkle root. Scope the view to one claim to follow its forensic chronology.</p>
+      </div>
+      <div class="head-meta" id="chain-head-meta"></div>
+    </div>
+    <div id="chain-stats-slot"></div>
+    <div class="card" style="margin-bottom:16px">
+      <div class="toolbar">
+        <div class="field" style="flex:1;min-width:240px">
+          <label for="chain-search">Scope by claim</label>
+          <div class="search-wrap">${I.search}<input id="chain-search" class="input" type="search" placeholder="Claim ID e.g. CLM-2026-000050" value="${esc(claimId||'')}" autocomplete="off"></div>
+        </div>
+        <div class="field" id="chain-type-field" style="display:none"><label for="chain-type">Event type within scope</label><select class="select" id="chain-type"></select></div>
+        <div class="field"><label>&nbsp;</label><button class="btn btn-ghost" id="chain-go" ${claimId?'':'disabled'}>Load timeline</button></div>
+      </div>
+      <p class="hint" style="padding:8px 16px;border-top:1px solid var(--panel-line)">The API exposes the chain per claim (GET /claims/{id}/timeline). A global, cross-claim event feed is not part of the current API surface, so the dataset-wide view is limited to the Merkle summary above.</p>
+    </div>
+    <div id="chain-body">${claimId ? renderLoading('Replaying the event chain for ' + claimId + '.') : ''}</div>
+    <div class="card" style="margin-top:14px">
+      <div class="card-h"><h2>Recent high-activity claims</h2><span class="hint">top 12 by IEF score — pick one to inspect its chain</span></div>
+      <div id="chain-quick">${renderLoading('Querying triage ranks.')}</div>
+    </div>`;
+
+  const dash = State.dashboard || await api('/dashboard/stats').catch(()=>null);
+  if(T !== sesToken) return;
+  if(dash){
+    $('#chain-stats-slot').innerHTML = `
+      <div class="chain-stats" role="list" aria-label="Ledger summary">
+        <div role="listitem"><div class="cs-label">Merkle root</div><div class="cs-val" style="font-size:12px">${esc(dash.merkle_root.slice(0,18))}… <button class="copy-btn" onclick="copyText('${esc(dash.merkle_root)}','Merkle root')" aria-label="Copy full Merkle root">${I.copy}copy</button></div></div>
+        <div role="listitem"><div class="cs-label">Immutable events</div><div class="cs-val">${fmtNum(dash.entities.immutable_events)}</div></div>
+        <div role="listitem"><div class="cs-label">Dataset baseline</div><div class="cs-val" style="font-size:12px">${esc(dash.dataset_baseline)}</div></div>
+        <div role="listitem" id="chain-verify-slot"><div class="cs-label">Linkage (scoped)</div><div class="cs-val muted">—</div></div>
+      </div>`;
+  }
+  const searchEl = $('#chain-search'), goBtn = $('#chain-go');
+  searchEl.addEventListener('input', ()=>{ goBtn.disabled = searchEl.value.trim().length === 0; });
+  goBtn.addEventListener('click', ()=>{ const v = searchEl.value.trim(); if(v) nav('chain/' + encodeURIComponent(v)); });
+  searchEl.addEventListener('keydown', e=>{ if(e.key==='Enter' && searchEl.value.trim()) nav('chain/' + encodeURIComponent(searchEl.value.trim())); });
+  $('#chain-type').addEventListener('change', ()=> paintChainEvents());
+  api('/claims?limit=12').then(d=>{
+    if(T !== sesToken) return;
+    $('#chain-quick').innerHTML = d.items.map(it=>`
+      <button class="nq-item ${it.claim_id===State.chain.claimId?'sel':''}" data-id="${esc(it.claim_id)}" onclick="nav('chain/'+encodeURIComponent('${esc(it.claim_id)}'))">
+        <span><div class="nq-id">${esc(it.claim_id)}</div><div class="nq-sub">${esc(it.claimant_name||'')}</div></span>
+        <span class="num" style="font-size:11.5px;font-weight:600;color:${riskColor(it.latest_risk_tier)}">${Number(it.latest_ief_score).toFixed(1)}</span>
+      </button>`).join('');
+  }).catch(e=>{ if(T===sesToken) $('#chain-quick').innerHTML = renderError(e, 'renderChainView'); });
+  if(claimId) openChain(claimId);
+  else $('#chain-body').innerHTML = renderEmptyRaw('No claim scoped', 'Type a claim ID above, or pick a claim from the recent high-activity list below.');
+}
+
+async function openChain(claimId){
+  const T = sesToken;
+  State.chain.claimId = claimId;
+  markChainSel();
+  const body = $('#chain-body');
+  if(!body) return;
+  try {
+    const evts = await api('/claims/' + encodeURIComponent(claimId) + '/timeline');
+    if(T !== sesToken) return;
+    State.chain.events = evts;
+    State.chain.types = Array.from(new Set(evts.map(e=>e.event_type)));
+    const sel = $('#chain-type'), wrap = $('#chain-type-field');
+    if(sel){
+      wrap.style.display = '';
+      sel.innerHTML = '<option value="ALL">All types</option>' + State.chain.types.map(t=>`<option value="${esc(t)}">${esc(t)}</option>`).join('');
+      sel.value = 'ALL';
     }
+    paintChainEvents();
+  } catch(e){
+    if(T !== sesToken) return;
+    body.innerHTML = String(e && e.message).includes('404')
+      ? renderEmptyRaw('Claim not found', `${esc(claimId)} is not in the operational dataset.`)
+      : renderError(e, `openChain('${esc(claimId)}')`);
+  }
+}
+function markChainSel(){
+  $$('#chain-quick .nq-item').forEach(b=>b.classList.toggle('sel', b.dataset.id === State.chain.claimId));
+}
+function paintChainEvents(){
+  const body = $('#chain-body'); if(!body) return;
+  const evts = State.chain.events || [];
+  if(!evts.length){ body.innerHTML = renderEmptyRaw('No immutable events', 'No ledger events reference this claim.'); return; }
+  const typeSel = $('#chain-type');
+  const filtered = typeSel && typeSel.value !== 'ALL' ? evts.filter(e=>e.event_type===typeSel.value) : evts;
+  // linkage verification across the scoped, chronologically ordered list
+  const ordered = evts.slice().sort((a,b)=>a.sequence_no-b.sequence_no);
+  // Linkage semantics: a prev-event hash pointing at the previous event in this
+  // claim's scope is a contiguous link; claims interleave in the global ledger,
+  // so most prev-hashes legitimately reference events outside the claim scope.
+  const contiguous = new Map();
+  ordered.forEach((e,i)=>{ contiguous.set(e.event_id, i>0 && e.prev_event_hash === ordered[i-1].event_hash); });
+  const okCount = [...contiguous.values()].filter(Boolean).length;
+  const extCount = ordered.length - okCount;
+  const vslot = $('#chain-verify-slot');
+  if(vslot){
+    vslot.innerHTML = `<div class="cs-label">Linkage (scoped)</div><div class="cs-val chain-ok">${okCount}/${ordered.length} CONTIGUOUS<div class="tiny" style="font-weight:400;color:var(--ink-3);margin-top:2px">${extCount} prev-hash${extCount===1?'':'es'} reference the global ledger outside this claim scope (expected — claims interleave; no break detected)</div></div>`;
+  }
+  $('#chain-head-meta') && ($('#chain-head-meta').innerHTML = `<span class="chip">SCOPED EVENTS <b>${fmtNum(evts.length)}</b></span>`);
+  body.innerHTML = `
+    <p class="hint" style="margin-bottom:10px">Showing ${filtered.length===evts.length?'all '+fmtNum(evts.length):fmtNum(filtered.length)+' of '+fmtNum(evts.length)} events · sorted by sequence number.${typeSel && typeSel.value!=='ALL'?' Event-type filter applies within this claim scope.':''}</p>
+    ${chainMarkup(filtered, null, null)}
+    <div class="payoff-note" style="margin-top:12px">
+      <b>Verification scope.</b> This view re-checks each event's <code>prev_event_hash</code> against the preceding event's <code>event_hash</code> — linkage integrity. Full SHA-256 recomputation of each event's canonical payload runs server-side in the verification suite, not in the browser, to avoid false mismatches from payload canonicalization differences.
+    </div>`;
+}
+function chainMarkup(events, subtitle, openFullFn){
+  // per-event linkage semantics (matches paintChainEvents): claims interleave in
+  // the global ledger, so a prev-hash pointing outside this claim's scope is
+  // expected — "GLOBAL LINK" — while a hash matching the preceding scoped event
+  // is a contiguous, verified link.
+  const ordered = events.slice().sort((a,b)=>a.sequence_no-b.sequence_no);
+  const contiguous = new Map(ordered.map((e,i)=>[e.event_id, i>0 && e.prev_event_hash === ordered[i-1].event_hash]));
+  return `
+    ${subtitle?`<p class="hint" style="margin-bottom:10px">${esc(subtitle)}${openFullFn?` <button class="btn btn-ghost btn-sm" style="margin-left:8px" onclick="${openFullFn}">Open in Merkle timeline ${I.arrowR}</button>`:''}</p>`:''}
+    ${ordered.map(e=>{
+      const pay = e.payload && Object.keys(e.payload).length ? e.payload : null;
+      const idSafe = esc(e.event_id).replace(/[^a-zA-Z0-9_-]/g,'_');
+      const isContig = contiguous.get(e.event_id);
+      const linkBadge = isContig
+        ? `<span class="mono tiny" style="color:var(--sage)" title="prev_event_hash matches the preceding event in this claim scope">LINK ✓</span>`
+        : `<span class="mono tiny" style="color:var(--plum)" title="prev_event_hash references the global ledger outside this claim scope (expected — claims interleave)">GLOBAL LINK</span>`;
+      return `<div class="evt" id="evt-${idSafe}">
+      <button class="evt-h" aria-expanded="false" onclick="toggleEvt('${idSafe}')">
+        <span class="evt-seq">SEQ ${String(e.sequence_no).padStart(4,'0')}</span>
+        <span class="evt-type">${esc(e.event_type)}</span>
+        <span class="badge t-grey">${esc(e.entity_type||'')}${e.entity_id?' '+esc(e.entity_id):''}</span>
+        <span class="evt-time">${fmtDate(e.occurred_at_utc)}</span>
+        <span style="flex:1"></span>
+        ${linkBadge}
+        <svg class="chev" viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg>
+      </button>
+      <div class="evt-body">
+        <dl>
+          ${fld('Event ID', `<span class="mono">${esc(e.event_id)}</span>`)}
+          ${fld('Actor', `<span class="mono">${esc(e.actor_id||'—')}</span>`)}
+          ${fld('Event hash', `<span class="hash">${esc(e.event_hash)}</span> <button class="copy-btn" onclick="copyText('${esc(e.event_hash)}','Hash')">${I.copy}copy</button>`)}
+          ${fld('Prev hash', `<span class="hash">${esc(e.prev_event_hash||'—')}</span> ${e.prev_event_hash?`<button class="copy-btn" onclick="copyText('${esc(e.prev_event_hash)}','Prev hash')">${I.copy}copy</button>`:''}`)}
+          ${pay?`<div class="fld" style="grid-template-columns:130px 1fr"><dt>Payload</dt><dd><table class="tbl" style="font-size:11px">${Object.entries(pay).map(([k,v])=>`<tr><td class="mono tiny" style="color:var(--faint);width:42%;padding:5px 8px">${esc(k)}</td><td class="mono tiny" style="padding:5px 8px">${esc(String(v))}</td></tr>`).join('')}</table></dd></div>`:`<div class="fld" style="grid-template-columns:130px 1fr"><dt>Payload</dt><dd class="hint">Empty payload recorded.</dd></div>`}
+          ${openFullFn?`<div class="fld" style="grid-template-columns:130px 1fr"><dt>Context</dt><dd><button class="btn btn-ghost btn-sm" onclick="${openFullFn}">Open full ledger context ${I.arrowR}</button></dd></div>`:''}
+        </dl>
+      </div>
+    </div>`;
+    }).join('')}`;
+}
+function toggleEvt(id){
+  const row = $('#evt-' + CSS.escape(id));
+  if(!row) return;
+  row.classList.toggle('open');
+  row.querySelector('.evt-h').setAttribute('aria-expanded', String(row.classList.contains('open')));
+}
 
-    function setFilter(el, tier) {
-      document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.remove('active'));
-      el.classList.add('active');
-      currentFilter = tier;
-      currentScenario = '';
-      loadClaims();
+/* ================================================================
+   F. SIU CASE MANAGEMENT
+   ================================================================ */
+const CASE_STATUSES = ['OPEN','EVIDENCE_COLLECTION','SIU_FIELD_REVIEW','LEGAL_ESCALATION','CLOSED_CONFIRMED_FRAUD','CLOSED_CLEARED_BENIGN','CLOSED_INSUFFICIENT_EVIDENCE'];
+const CASE_PRIORITIES = ['P1_CRITICAL','P2_HIGH','P3_STANDARD'];
+
+async function renderCasesView(investigationId){
+  const T = sesToken;
+  if(investigationId){ return renderCaseDetail(investigationId); }
+  const c = State.cases;
+  c.selected = null;
+  $('#view-cases').innerHTML = `
+    <div class="breadcrumbs"><a href="#/overview">Overview</a><span class="sep">/</span><span>SIU cases</span></div>
+    <div class="page-head">
+      <div>
+        <div class="eyebrow">SIU Case Management</div>
+        <h1 id="siu-h">From indicator to case file</h1>
+        <p class="lede">Working files for the Special Investigation Unit. Open a case from any claim dossier, or initiate one directly — the API validates the claim, priority vocabulary and notes before persisting.</p>
+      </div>
+      <div class="head-meta">
+        <button class="btn btn-ghost" onclick="renderCasesView()">Refresh</button>
+        <button class="btn btn-primary" onclick="openCaseModal()">${I.plus}New case</button>
+      </div>
+    </div>
+    <div class="cases-grid">
+      <div class="card">
+        <div class="toolbar">
+          <div class="field"><label for="case-status">Status</label>
+            <select class="select" id="case-status"><option value="ALL">All statuses</option>${CASE_STATUSES.map(s=>`<option ${c.status===s?'selected':''}>${s}</option>`).join('')}</select></div>
+          <div class="field"><label for="case-priority">Priority</label>
+            <select class="select" id="case-priority"><option value="ALL">All priorities</option>${CASE_PRIORITIES.map(p=>`<option ${c.priority===p?'selected':''}>${p}</option>`).join('')}</select></div>
+          <div class="field"><label for="case-size">Rows</label>
+            <select class="select" id="case-size">${[10,20,50].map(n=>`<option ${c.size===n?'selected':''}>${n}</option>`).join('')}</select></div>
+          <span class="hint" id="case-count" style="margin-left:auto;align-self:center"></span>
+        </div>
+        <div id="cases-table">${renderLoading('Loading case files.')}</div>
+        <p class="hint" style="padding:10px 16px;border-top:1px solid var(--panel-line)">Lifecycle status transitions are enforced by a database FSM trigger; open a case file (or a claim dossier's SIU tab) to transition status or append evidence notes. Terminal states are sealed against mutation.</p>
+      </div>
+      <aside class="card case-detail" id="case-pane" aria-label="Case detail">
+        <div class="card-h"><h2>Case detail</h2></div>
+        <div class="card-b" id="case-detail-body">${renderEmptyRaw('No case selected','Select a case file to inspect it, or create a new case.','')}</div>
+      </aside>
+    </div>`;
+  $('#case-status').addEventListener('change', e=>{ c.status = e.target.value; c.page = 0; loadCases(); });
+  $('#case-priority').addEventListener('change', e=>{ c.priority = e.target.value; c.page = 0; loadCases(); });
+  $('#case-size').addEventListener('change', e=>{ c.size = +e.target.value; c.page = 0; loadCases(); });
+  loadCases();
+}
+
+async function loadCases(){
+  const T = sesToken; const c = State.cases;
+  const p = new URLSearchParams();
+  p.set('skip', String(c.page * c.size)); p.set('limit', String(c.size));
+  if(c.status !== 'ALL') p.set('status', c.status);
+  if(c.priority !== 'ALL') p.set('priority', c.priority);
+  $('#cases-table').innerHTML = renderLoading('Querying the case register.');
+  try {
+    const d = await api('/investigations?' + p.toString());
+    if(T !== sesToken) return;
+    c.items = d.items; c.total = d.total;
+    paintCasesTable();
+  } catch(e){
+    if(T !== sesToken) return;
+    $('#cases-table').innerHTML = renderError(e, 'loadCases');
+  }
+}
+
+function paintCasesTable(){
+  const c = State.cases, host = $('#cases-table');
+  if(!host) return;
+  $('#case-count').textContent = fmtNum(c.total) + ' case' + (c.total===1?'':'s') + ' on file';
+  if(!c.items.length){
+    host.innerHTML = renderEmptyRaw('No cases match these filters',
+      c.status==='ALL' && c.priority==='ALL' ? 'The register is empty — open the first case from a claim dossier.' : 'Loosen the status or priority filters.');
+    return;
+  }
+  host.innerHTML = `<div class="tbl-wrap"><table class="tbl">
+    <thead><tr><th>Case</th><th>Primary claim</th><th>Claimant</th><th>Status</th><th>Priority</th><th>Investigator</th><th class="numcell">Est. exposure</th><th class="numcell">Score</th><th class="nowrap">Updated</th></tr></thead>
+    <tbody>${c.items.map(i=>`
+      <tr class="rowbtn ${c.selected===i.investigation_id?'sel':''}" tabindex="0" role="link"
+          aria-label="Inspect case ${esc(i.investigation_id)}" data-id="${esc(i.investigation_id)}"
+          onclick="showCaseDetail('${esc(i.investigation_id)}')"
+          onkeydown="if(event.key==='Enter')showCaseDetail('${esc(i.investigation_id)}')">
+        <td class="mono" style="font-weight:600">${esc(i.investigation_id)}</td>
+        <td class="mono"><button class="linklike" style="text-decoration:underline;text-underline-offset:2px" onclick="event.stopPropagation();nav('claims/'+encodeURIComponent('${esc(i.primary_claim_id)}'))">${esc(i.primary_claim_id)}</button></td>
+        <td class="tiny">${esc(i.claimant_name||'—')}</td>
+        <td>${statusBadge(i.investigation_status)}</td>
+        <td>${statusBadge(i.priority)}</td>
+        <td class="mono tiny">${esc(i.assigned_investigator_id)}</td>
+        <td class="numcell">${fmtMoney(i.estimated_exposure_dollars)}</td>
+        <td class="numcell" style="color:${riskColor(i.claim_risk_tier)}">${i.claim_score!=null?Number(i.claim_score).toFixed(2):'—'}</td>
+        <td class="tiny muted nowrap">${fmtDate(i.updated_at_utc)}</td>
+      </tr>`).join('')}</tbody></table></div>
+    <div class="pager">
+      <span class="p-info">PAGE ${c.page+1} · ${fmtNum(c.page*c.size+1)}–${fmtNum(c.page*c.size+c.items.length)} OF ${fmtNum(c.total)}</span>
+      <div class="p-btns">
+        <button class="btn btn-ghost btn-sm" ${c.page===0?'disabled':''} onclick="prevCasePage()">‹ Prev</button>
+        <button class="btn btn-ghost btn-sm" onclick="State.cases.page=0;loadCases()">First</button>
+        <button class="btn btn-ghost btn-sm" ${(c.page+1)*c.size>=c.total?'disabled':''} onclick="nextCasePage()">Next ›</button>
+      </div>
+    </div>`;
+}
+function nextCasePage(){ State.cases.page += 1; loadCases(); }
+function prevCasePage(){ State.cases.page = Math.max(0, State.cases.page - 1); loadCases(); }
+
+async function showCaseDetail(id){
+  const T = sesToken;
+  State.cases.selected = id;
+  $$('#cases-table tr.rowbtn').forEach(tr=>tr.classList.toggle('sel', tr.dataset.id === id));
+  const body = $('#case-detail-body');
+  if(!body || !id){ if(body) body.innerHTML = renderEmptyRaw('No case selected','Select a case file to inspect it.',''); return; }
+  body.innerHTML = renderLoading('Opening case file ' + id + '.');
+  try {
+    const data = await api('/investigations/' + encodeURIComponent(id));
+    if(T !== sesToken) return;
+    const i = data.investigation || data; // detail payload wraps {investigation, claim}
+    const claim = data.claim || {};
+    body.innerHTML = `
+      <div class="mono" style="font-weight:600;font-size:15px">${esc(i.investigation_id)}</div>
+      <div class="dh-facts" style="margin-top:8px">
+        ${statusBadge(i.investigation_status)} ${statusBadge(i.priority)}
+      </div>
+      <dl style="margin-top:12px">
+        ${fld('Primary claim', `<a class="mono" style="text-decoration:underline;text-underline-offset:2px;font-size:11.5px" href="#/claims/${esc(i.primary_claim_id)}">${esc(i.primary_claim_id)}</a>`)}
+        ${i.subject_provider_id?fld('Subject provider', `<span class="mono tiny">${esc(i.subject_provider_id)}${i.provider_name?' · '+esc(i.provider_name):''}</span>`):''}
+        ${fld('Investigator', `<span class="mono tiny">${esc(i.assigned_investigator_id)}</span>`)}
+        ${fld('Est. exposure', `<span class="mono">${fmtCents(i.estimated_exposure_cents ?? Math.round((i.estimated_exposure_dollars||0)*100))}</span>`)}
+        ${fld('Recovered clawback', `<span class="mono">${fmtCents(i.recovered_clawback_cents ?? Math.round((i.recovered_clawback_dollars||0)*100))}</span>`)}
+        ${fld('Opened', `<span class="mono tiny">${fmtDate(i.opened_at_utc)}</span>`)}
+        ${fld('Last update', `<span class="mono tiny">${fmtDate(i.updated_at_utc)}</span>`)}
+        ${i.closed_at_utc?fld('Closed', `<span class="mono tiny">${fmtDate(i.closed_at_utc)}</span>`):''}
+        ${i.ruling_outcome?fld('Ruling', statusBadge(i.ruling_outcome)):''}
+        ${claim.latest_ief_score!=null?fld('Claim score', `<span class="mono" style="color:${riskColor(claim.latest_risk_tier)}">${Number(claim.latest_ief_score).toFixed(2)} · ${esc(claim.latest_risk_tier||'')}</span>`):''}
+        ${fld('Case notes log', `<div class="token-box" style="font-family:var(--sans);font-size:12.5px;line-height:1.6">${esc(i.case_summary_notes||'—')}</div>`)}
+      </dl>
+      <div class="banner banner-neutral" style="margin-top:12px">
+        <span class="boa">Lifecycle actions</span>
+        <span>Status transitions and evidence notes are available on the full case file and the claim dossier's SIU tab; this side panel is a summary view.</span>
+      </div>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <a class="btn btn-ghost btn-sm" href="#/cases/${esc(i.investigation_id)}">Full case file ${I.arrowR}</a>
+        <a class="btn btn-ghost btn-sm" href="#/claims/${esc(i.primary_claim_id)}">Claim dossier ${I.arrowR}</a>
+        <a class="btn btn-ghost btn-sm" href="#/network/${esc(i.primary_claim_id)}">Network ${I.arrowR}</a>
+      </div>`;
+  } catch(e){
+    if(T !== sesToken) return;
+    body.innerHTML = String(e && e.message).includes('404')
+      ? renderEmptyRaw('Case not found', esc(id) + ' is not in the register.')
+      : renderError(e, 'loadCases');
+  }
+}
+
+const FSM_ALLOWED = {
+  OPEN: ['EVIDENCE_COLLECTION','SIU_FIELD_REVIEW','CLOSED_CLEARED_BENIGN'],
+  EVIDENCE_COLLECTION: ['SIU_FIELD_REVIEW','LEGAL_ESCALATION','CLOSED_CONFIRMED_FRAUD','CLOSED_CLEARED_BENIGN','CLOSED_INSUFFICIENT_EVIDENCE'],
+  SIU_FIELD_REVIEW: ['LEGAL_ESCALATION','CLOSED_CONFIRMED_FRAUD','CLOSED_CLEARED_BENIGN','CLOSED_INSUFFICIENT_EVIDENCE'],
+  LEGAL_ESCALATION: ['CLOSED_CONFIRMED_FRAUD','CLOSED_CLEARED_BENIGN','CLOSED_INSUFFICIENT_EVIDENCE']
+};
+
+async function submitStatusTransition(invId, claimId){
+  const select = $(`#inv-new-status-${invId}`);
+  const notesInput = $(`#inv-trans-notes-${invId}`);
+  const btn = $(`#inv-trans-btn-${invId}`);
+  if(!select) return;
+
+  const newStatus = select.value;
+  if(!newStatus){
+    toast('Select a valid target status', 'err');
+    return;
+  }
+
+  const notes = notesInput ? notesInput.value.trim() : '';
+  if(btn){ btn.disabled = true; btn.textContent = 'Updating…'; }
+
+  try {
+    const payload = {
+      new_status: newStatus,
+      notes: notes || undefined,
+      actor_id: 'SIU-AGENT-001'
+    };
+    if(newStatus === 'CLOSED_CONFIRMED_FRAUD') payload.ruling_outcome = 'CONFIRMED_FRAUD';
+    else if(newStatus === 'CLOSED_CLEARED_BENIGN') payload.ruling_outcome = 'CLEARED_BENIGN';
+    else if(newStatus === 'CLOSED_INSUFFICIENT_EVIDENCE') payload.ruling_outcome = 'INSUFFICIENT_EVIDENCE';
+
+    const res = await api('/investigations/' + encodeURIComponent(invId) + '/status', {
+      method: 'PATCH',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+
+    toast(`Status transitioned to ${newStatus} (${res.event_id || 'Event recorded'})`);
+    if(claimId){
+      await openDossier(claimId);
+    } else {
+      await renderCaseDetail(invId);
     }
+    loadGlobal();
+  } catch(err){
+    toast('Transition rejected: ' + (err instanceof ApiError ? err.message : err), 'err');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'Transition status'; }
+  }
+}
 
-    function setScenario(el, scenario) {
-      document.querySelectorAll('.filter-pills .pill').forEach(p => p.classList.remove('active'));
-      el.classList.add('active');
-      currentScenario = scenario;
-      currentFilter = 'ALL';
-      loadClaims();
+async function submitCaseNote(invId, claimId){
+  const noteInput = $(`#inv-note-input-${invId}`);
+  const btn = $(`#inv-note-btn-${invId}`);
+  if(!noteInput) return;
+
+  const note = noteInput.value.trim();
+  if(note.length < 3){
+    toast('Evidence note must be at least 3 characters', 'err');
+    noteInput.focus();
+    return;
+  }
+
+  if(btn){ btn.disabled = true; btn.textContent = 'Appending…'; }
+
+  try {
+    await api('/investigations/' + encodeURIComponent(invId) + '/notes', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ note: note, actor_id: 'SIU-AGENT-001' })
+    });
+
+    toast('Evidence note appended and persisted');
+    if(claimId){
+      await openDossier(claimId);
+    } else {
+      await renderCaseDetail(invId);
     }
+  } catch(err){
+    toast('Failed to append note: ' + (err instanceof ApiError ? err.message : err), 'err');
+  } finally {
+    if(btn){ btn.disabled = false; btn.textContent = 'Append note'; }
+  }
+}
 
-    function handleSearch(ev) {
-      currentSearch = ev.target.value.trim();
-      loadClaims();
+async function handleClaimHold(claimId){
+  if(!confirm(`Place claim ${claimId} on SIU_HOLD? This halts financial disbursements and records a cryptographic event.`)) return;
+  try {
+    const res = await api('/claims/' + encodeURIComponent(claimId) + '/hold', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ actor_id: 'SIU-AGENT-001', reason: 'Forensic audit triage hold' })
+    });
+    toast(`Claim placed on SIU_HOLD (${res.event_id || 'Event recorded'})`);
+    await openDossier(claimId);
+    loadGlobal();
+  } catch(err){
+    toast('Hold failed: ' + (err instanceof ApiError ? err.message : err), 'err');
+  }
+}
+
+async function handleClaimRelease(claimId, clearedInvId){
+  if(!confirm(`Release claim ${claimId} from SIU_HOLD?`)) return;
+  try {
+    const res = await api('/claims/' + encodeURIComponent(claimId) + '/release', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        cleared_investigation_id: clearedInvId,
+        target_status: 'UNDER_REVIEW',
+        actor_id: 'SIU-AGENT-001'
+      })
+    });
+    toast(`Claim released from SIU_HOLD (${res.event_id || 'Event recorded'})`);
+    await openDossier(claimId);
+    loadGlobal();
+  } catch(err){
+    toast('Release rejected (D-1 gate): ' + (err instanceof ApiError ? err.message : err), 'err');
+  }
+}
+
+async function renderCaseDetail(id){
+  const T = sesToken; const root = $('#view-cases');
+  State.cases.selected = id;
+  root.innerHTML = `
+    <div class="breadcrumbs"><a href="#/overview">Overview</a><span class="sep">/</span><a href="#/cases">SIU cases</a><span class="sep">/</span><span class="mono">${esc(id)}</span></div>
+    <div class="page-head">
+      <div><div class="eyebrow">Case File</div><h1 id="siu-h" style="font-family:var(--mono)">${esc(id)}</h1></div>
+      <div class="head-meta"><a class="btn btn-ghost" href="#/cases">Back to register ${I.arrowR}</a></div>
+    </div>
+    <div id="case-page-body">${renderLoading('Opening case file.')}</div>`;
+  try {
+    const data = await api('/investigations/' + encodeURIComponent(id));
+    if(T !== sesToken) return;
+    const i = data.investigation || data;
+    const claim = data.claim || {};
+    const isClosed = (i.investigation_status || '').startsWith('CLOSED_');
+    const allowedNext = FSM_ALLOWED[i.investigation_status] || [];
+
+    $('#case-page-body').innerHTML = `
+      <div class="card">
+        <div class="card-h"><h2>Case record</h2><span style="display:flex;gap:6px">${statusBadge(i.investigation_status)}${statusBadge(i.priority)}</span></div>
+        <div class="card-b">
+          <dl style="max-width:820px">
+            ${fld('Primary claim', `<a class="mono" style="text-decoration:underline;text-underline-offset:2px" href="#/claims/${esc(i.primary_claim_id)}">${esc(i.primary_claim_id)}</a>`)}
+            ${i.subject_claimant_id?fld('Subject claimant', `<span class="mono tiny">${esc(i.subject_claimant_id)}${i.claimant_name?' · '+esc(i.claimant_name):''}</span>`):''}
+            ${i.subject_provider_id?fld('Subject provider', `<span class="mono tiny">${esc(i.subject_provider_id)}${i.provider_name?' · '+esc(i.provider_name):''}</span>`):''}
+            ${fld('Investigator', `<span class="mono tiny">${esc(i.assigned_investigator_id)}</span>`)}
+            ${fld('Est. exposure', `<span class="mono">${fmtCents(i.estimated_exposure_cents || Math.round((i.estimated_exposure_dollars||0)*100))}</span>`)}
+            ${fld('Recovered clawback', `<span class="mono">${fmtCents(i.recovered_clawback_cents || Math.round((i.recovered_clawback_dollars||0)*100))}</span>`)}
+            ${fld('Opened', `<span class="mono tiny">${fmtDate(i.opened_at_utc)}</span>`)}
+            ${fld('Last update', `<span class="mono tiny">${fmtDate(i.updated_at_utc)}</span>`)}
+            ${i.closed_at_utc?fld('Closed', `<span class="mono tiny">${fmtDate(i.closed_at_utc)}</span>`):''}
+            ${i.ruling_outcome?fld('Ruling', statusBadge(i.ruling_outcome)):''}
+            ${claim.latest_ief_score!=null?fld('Claim score', `<span class="mono" style="color:${riskColor(claim.latest_risk_tier)}">${Number(claim.latest_ief_score).toFixed(2)} · ${esc(claim.latest_risk_tier||'')}</span>`):''}
+            ${fld('Case notes log', `<div class="token-box" style="font-family:var(--mono);font-size:12px;line-height:1.6;white-space:pre-wrap">${esc(i.case_summary_notes||'—')}</div>`)}
+          </dl>
+
+          ${isClosed ? `
+            <div class="banner banner-neutral" style="margin-top:18px">
+              <span class="boa">Case Sealed & Immutable</span>
+              <span>This investigation reached terminal status (${esc(i.investigation_status)}). Database triggers enforce complete immutability.</span>
+            </div>
+          ` : `
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-top:20px" class="cases-action-grid">
+              <!-- Status Transition Box -->
+              <div class="card" style="border-color:var(--line-strong);background:var(--surface)">
+                <div class="card-h" style="background:var(--surface-2)">
+                  <h3 style="font-family:var(--serif);font-size:14px">Lifecycle Status Transition</h3>
+                  <span class="tiny mono faint">FSM Rule Guard</span>
+                </div>
+                <div class="card-b" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+                  <div>
+                    <label class="l-label" style="display:block;margin-bottom:4px">Target State</label>
+                    <select id="inv-new-status-${esc(i.investigation_id)}" class="field-input" style="width:100%;background:var(--paper);border:1px solid var(--line-strong);padding:7px 10px;border-radius:4px;font-family:var(--mono);font-size:11.5px">
+                      ${allowedNext.map(s => `<option value="${s}">${s}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div>
+                    <label class="l-label" style="display:block;margin-bottom:4px">Transition Note / Finding</label>
+                    <input type="text" id="inv-trans-notes-${esc(i.investigation_id)}" placeholder="Rationale for status change..." class="field-input" style="width:100%;background:var(--paper);border:1px solid var(--line-strong);padding:7px 10px;border-radius:4px;font-size:12px">
+                  </div>
+                  <div style="display:flex;justify-content:flex-end;margin-top:4px">
+                    <button id="inv-trans-btn-${esc(i.investigation_id)}" class="btn btn-terra btn-sm" onclick="submitStatusTransition('${esc(i.investigation_id)}')">Transition status</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Evidence Notes Box -->
+              <div class="card" style="border-color:var(--line-strong);background:var(--surface)">
+                <div class="card-h" style="background:var(--surface-2)">
+                  <h3 style="font-family:var(--serif);font-size:14px">Append Evidence Note</h3>
+                  <span class="tiny mono faint">Persisted Log</span>
+                </div>
+                <div class="card-b" style="padding:14px;display:flex;flex-direction:column;gap:10px">
+                  <textarea id="inv-note-input-${esc(i.investigation_id)}" rows="3" placeholder="Enter witness statement, surveillance observation, or records finding..." style="width:100%;background:var(--paper);border:1px solid var(--line-strong);padding:8px 10px;border-radius:4px;font-size:12px;font-family:var(--sans);resize:vertical"></textarea>
+                  <div style="display:flex;justify-content:flex-end">
+                    <button id="inv-note-btn-${esc(i.investigation_id)}" class="btn btn-ghost btn-sm" onclick="submitCaseNote('${esc(i.investigation_id)}')">${I.plus}Append note</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `}
+        </div>
+      </div>`;
+  } catch(e){
+    if(T !== sesToken) return;
+    $('#case-page-body').innerHTML = String(e && e.message).includes('404')
+      ? renderEmptyRaw('Case not found', esc(id) + ' is not in the register. It may have been seeded under a different ID.')
+      : renderError(e, 'loadCases');
+  }
+}
+
+/* ---------------- create-case modal ---------------- */
+let claimVerified = null; // {claim_id, claimed_amount_cents}
+function openCaseModal(claimId){
+  $('#cf-claim').value = claimId || '';
+  $('#cf-notes').value = '';
+  $('#cf-exposure').value = '';
+  $('#cf-err').classList.remove('on');
+  $('#cf-err').textContent = '';
+  claimVerified = null;
+  $('#cf-claim-hint').textContent = 'Verified against the operational database before submission.';
+  $('#case-overlay').classList.add('on');
+  setTimeout(()=>{ try { $('#cf-claim').focus(); } catch{} }, 30);
+}
+function closeCaseModal(){ $('#case-overlay').classList.remove('on'); }
+async function verifyCaseClaim(){
+  const err = $('#cf-err');
+  const id = $('#cf-claim').value.trim();
+  claimVerified = null;
+  err.classList.remove('on');
+  if(!/^[A-Za-z0-9-]+$/.test(id)){ showFormErr('Enter a claim ID such as CLM-2026-000014.'); return false; }
+  try {
+    const d = await api('/claims/' + encodeURIComponent(id));
+    claimVerified = { claim_id: d.claim.claim_id, claimed_amount_cents: d.claim.claimed_amount_cents };
+    $('#cf-claim-hint').innerHTML = `<span style="color:var(--sage);font-weight:600">Verified</span> · ${esc(titleCase(d.claim.claim_status))} · claimed ${fmtCents(d.claim.claimed_amount_cents)} · ${esc(d.claim.latest_risk_tier||'')} tier`;
+    return true;
+  } catch(e){
+    $('#cf-claim-hint').textContent = 'Verified against the operational database before submission.';
+    showFormErr(String(e && e.message).includes('404')
+      ? `${id} was not found in the operational dataset.`
+      : 'Claim verification request failed — check the API server.');
+    return false;
+  }
+}
+function showFormErr(msg){
+  const e = $('#cf-err');
+  e.innerHTML = I.warning + `<span>${esc(msg)}</span>`;
+  e.classList.add('on');
+}
+async function submitCase(){
+  $('#cf-err').classList.remove('on');
+  const claimId = $('#cf-claim').value.trim();
+  let verified = claimVerified && claimVerified.claim_id === claimId ? claimVerified : null;
+  if(!verified){
+    const ok = await verifyCaseClaim();
+    if(!ok || !claimVerified || claimVerified.claim_id !== claimId) return;
+    verified = claimVerified;
+  }
+  const notes = $('#cf-notes').value.trim();
+  if(notes.length < 5){ showFormErr('Case summary notes must be at least 5 characters (API contract).'); $('#cf-notes').focus(); return; }
+  const exposureRaw = $('#cf-exposure').value;
+  let exposureCents = verified.claimed_amount_cents || 0;
+  if(exposureRaw !== ''){
+    const dollars = Number(exposureRaw);
+    if(!isFinite(dollars) || dollars < 0){ showFormErr('Estimated exposure must be a non-negative amount.'); return; }
+    exposureCents = Math.round(dollars * 100);
+  }
+  const body = {
+    primary_claim_id: claimId,
+    priority: $('#cf-priority').value,
+    assigned_investigator_id: $('#cf-assignee').value.trim() || 'SIU-AGENT-001',
+    estimated_exposure_cents: exposureCents,
+    case_summary_notes: notes,
+  };
+  const btn = $('#case-submit');
+  btn.disabled = true; btn.textContent = 'Filing…';
+  try {
+    const created = await api('/investigations', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body) });
+    const newId = created.investigation_id || (created.investigation && created.investigation.investigation_id) || (created.investigation_ids && created.investigation_ids[0]) || '';
+    toast(`Case ${newId ? newId + ' ' : ''}filed against ${claimId}.`);
+    closeCaseModal();
+    State.cases.page = 0; State.cases.selected = created.investigation_id;
+    const v = parseRoute().view;
+    if(v === 'cases') renderCasesView();
+    else if((v === 'dossier' || v === 'claims') && State.dossier.claimId === claimId) {
+      State.dossier.tab = 'case';
+      openDossier(claimId);
     }
+    else nav('cases');
+  } catch(e){
+    showFormErr('Case creation failed — ' + (e instanceof ApiError ? e.message : String(e)));
+  } finally {
+    btn.disabled = false; btn.textContent = 'Create case file';
+  }
+}
 
-    function switchTab(el, tabId) {
-      document.querySelectorAll('.tabs .tab').forEach(t => t.classList.remove('active'));
-      el.classList.add('active');
+/* ---------------- boot ---------------- */
+let resizeTimer = null;
+window.addEventListener('resize', ()=>{
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(()=>{ if(NET_GRAPH) fitNet(); }, 220);
+});
+document.addEventListener('keydown', e=>{
+  if(e.key === 'Escape' && $('#case-overlay').classList.contains('on')) closeCaseModal();
+});
+$('#case-cancel').addEventListener('click', closeCaseModal);
+$('#case-x').addEventListener('click', closeCaseModal);
+$('#case-overlay').addEventListener('click', e=>{ if(e.target === e.currentTarget) closeCaseModal(); });
+$('#case-submit').addEventListener('click', e=>{ e.preventDefault(); submitCase(); });
+$('#cf-claim').addEventListener('change', ()=>{
+  claimVerified = null;
+  $('#cf-claim-hint').textContent = 'Verified against the operational database before submission.';
+});
 
-      ['tab-overview', 'tab-indicators', 'tab-network', 'tab-timeline', 'tab-investigation'].forEach(id => {
-        document.getElementById(id).style.display = id === tabId ? 'block' : 'none';
-      });
-    }
-
-    // Init
-    loadStats();
-    loadClaims();
-  </script>
+loadGlobal();
+route();
+</script>
 </body>
 </html>

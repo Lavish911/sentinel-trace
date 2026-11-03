@@ -22,23 +22,54 @@ logger = logging.getLogger("sentinel_trace")
 async def lifespan(app: FastAPI):
     """Application lifespan context for startup checks and graceful shutdown."""
     logger.info("Initializing %s (Baseline: %s)", settings.PROJECT_NAME, settings.SCHEMA_BASELINE)
+
+    # 1. Enforce database presence and prevent accidental empty file creation
+    db_path = Path(settings.DATABASE_PATH)
+    if settings.DATABASE_PATH != ":memory:":
+        if not db_path.is_file():
+            raise RuntimeError(
+                f"Canonical ARCH-ST-010.3 operational database not found at '{db_path}'. "
+                "Normal FastAPI startup does not create, initialize, or seed databases. "
+                "Please run explicit dataset generation: python scripts/generate_dataset.py"
+            )
+        if db_path.stat().st_size == 0:
+            raise RuntimeError(
+                f"Canonical database at '{db_path}' is an empty 0-byte file. "
+                "Please run explicit dataset generation: python scripts/generate_dataset.py"
+            )
+
+    conn = create_connection()
     try:
-        conn = create_connection()
         schema_info = verify_schema(conn)
-        if not schema_info["verified"] and schema_info["table_count"] == 0:
-            logger.info("Database empty; applying ARCH-ST-010.3 schema and triggers...")
-            schema_info = initialize_database(conn)
-        
+        if not schema_info["verified"]:
+            raise RuntimeError(
+                f"Database schema verification failed for '{settings.DATABASE_PATH}'. "
+                f"Expected {schema_info['expected_table_count']} tables, {schema_info['expected_trigger_count']} triggers, "
+                f"digest {schema_info['expected_schema_digest']}. "
+                f"Observed {schema_info['table_count']} tables, {schema_info['trigger_count']} triggers, "
+                f"digest {schema_info['schema_digest']}. "
+                "Normal startup does not alter or re-initialize databases. "
+                "Please run explicit setup: python scripts/generate_dataset.py"
+            )
+
+        # 2. Enforce that database is fully seeded with claims records
+        claims_count = conn.execute("SELECT COUNT(*) FROM claims").fetchone()[0]
+        if claims_count == 0:
+            raise RuntimeError(
+                f"Database at '{settings.DATABASE_PATH}' has schema but 0 claims (unseeded). "
+                "Normal startup does not seed records. "
+                "Please run explicit dataset generation: python scripts/generate_dataset.py"
+            )
+
         logger.info(
-            "Schema verification status: %s (Tables: %d/12, Triggers: %d/27, Digest: %s...)",
-            "PASS" if schema_info["verified"] else "FAIL",
+            "Schema verification status: PASS (Tables: %d/12, Triggers: %d/27, Claims: %d, Digest: %s...)",
             schema_info["table_count"],
             schema_info["trigger_count"],
+            claims_count,
             str(schema_info["schema_digest"])[:16],
         )
+    finally:
         conn.close()
-    except Exception as exc:
-        logger.warning("Database bootstrap/verification notice: %s", exc)
 
     yield
     logger.info("Shutting down %s", settings.PROJECT_NAME)
