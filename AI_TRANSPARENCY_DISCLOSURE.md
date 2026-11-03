@@ -14,7 +14,7 @@ In accordance with the YottaFlex Candidate Project Submission Guidelines and AI 
 The project leveraged AI assistance as an augmented pair programming and architectural verification partner under strict human-in-the-loop control. Every architectural invariant, database trigger, cryptographic schema digest, detector formula, and regression test was independently designed, verified, and executed against actual runtime SQLite databases.
 
 > **Candidate Oversight & Verification Declaration:**  
-> All AI-generated code, SQL DDL, mathematical formulations, graph algorithms, and tests were critically reviewed, verified, executed, and validated by the candidate (`Lavish911`). The candidate maintains full intellectual ownership, accountability, and comprehension of every file and line in this repository.
+> All AI-generated code, SQL DDL, mathematical formulations, graph algorithms, and tests were critically reviewed, verified, executed, and validated by the candidate (`Lavish911`). The candidate is responsible for the submitted implementation and should be prepared to explain its core logic, design choices, dependencies, tests, and limitations. This does not imply that every suggestion or every line was independently authored without assistance.
 
 ---
 
@@ -25,7 +25,7 @@ The project leveraged AI assistance as an augmented pair programming and archite
 - **Exploratory Ideation (GLM):** GLM was consulted during early preliminary architecture ideation. Verbatim session logs for those exploratory interactions were not captured in this local environment; in accordance with transparency principles, no transcripts have been fabricated, simulated, or backfilled.
 - **Preserved Summaries vs. Verbatim Logs:** Full programmatic trajectory logs for Antigravity are maintained locally in the development harness (`transcript.jsonl`), and human-distilled directive summaries across all project checkpoints are cataloged chronologically in Section 5 below.
 - **Human Candidate Ownership:** The candidate (`Lavish911`) maintained continuous editorial and technical authority. Every line of code, SQL trigger, schema constraint, and detector formula was verified, tested, and validated by the candidate, who takes full responsibility for explaining and defending the implementation.
-- **Other AI Models (ChatGPT / OpenAI):** ChatGPT and OpenAI models were not utilized at any point during the architecture, coding, testing, or evaluation of this project.
+- **Other AI Models (ChatGPT / OpenAI):** ChatGPT (OpenAI) was used during development for architecture discussions, implementation planning, repository review, debugging guidance, documentation review, and preparation of review prompts. This was development-time assistance; it does not by itself mean that the running application calls OpenAI APIs.
 - **Development Environment:** Python 3.13, SQLite 3.45+ (STRICT tables, WAL mode, foreign keys enforced, custom SHA-256 and JSON UDFs), FastAPI, Uvicorn, pytest, NetworkX, NumPy.
 
 ---
@@ -63,7 +63,7 @@ Development proceeded through five rigorous, controlled phases:
 
 ## 4. Human Verification & Quality Gates
 
-Every component in this repository has been subjected to rigorous human verification:
+The repository includes automated checks and recorded verification claims. The commands in the README allow a reviewer to reproduce the checks. An expected result is not a fresh test run unless a corresponding execution log is provided:
 1. **Schema Invariant:** SHA-256 digest `2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab` verified byte-for-byte (`test_schema_digest.py` and `db/test_suite.py::T-01`).
 2. **Deterministic Reproducibility:** Dataset dual-run bit-identity verified (DB SHA-256 checksum: `fd0620776a5070bf282680f625a824196ebc915a6a6ca6fb5a91a0f21f1b8716`).
 3. **Automated Test Suites:** 66/66 backend pytest tests passing 100% green; 20/20 ARCH-ST-010.3 validation tests passing; 8/8 transactional fault-injection tests passing [94 primary repository suite tests, with 8 separate targeted P0 hardening checks].
@@ -97,3 +97,12 @@ The table below catalogs the distilled intent and human directive summaries reco
 | **Step 3700** | 2026-11-03 11:45 IST | Checkpoint 1 Integration Gate | Canonical ARCH-ST-010.3 alignment on main, schema digest verification, and startup verification. |
 | **Step 3750** | 2026-11-03 12:05 IST | Checkpoints 2 & 3: Workflow | Implement investigation REST endpoints, SIU Hold/Release, append-only notes, and interactive Cockpit. |
 | **Step 3800** | 2026-11-03 12:35 IST | Checkpoint 4: Final Packaging | Clean-clone reproducibility, Playwright real browser verification, comprehensive audit, and README packaging. |
+
+
+## 6. ChatGPT Use and Prompt-History Availability
+
+ChatGPT was used in development discussions about architecture, implementation planning, repository review, debugging approaches, documentation, and preparation of audit/remediation prompts. The available conversation record supports these categories, but it is not a complete verbatim export of every ChatGPT prompt. See `docs/AI_PROMPT_HISTORY.md` for the current record and outstanding gaps.
+
+Existing Antigravity entries above are directive summaries, not verbatim prompts. The disclosure also records Argon and GLM use; their original prompts have not been recovered here. No missing prompt text has been reconstructed or presented as an exact transcript.
+
+Development-time AI assistance should be distinguished from runtime model/API integrations. Describe a provider as a runtime integration only if that integration is confirmed in the application source and configuration.
