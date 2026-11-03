@@ -11,7 +11,7 @@
 > **YottaFlex AI Candidate Project Submission**  
 > **Canonical Architecture Baseline:** **ARCH-ST-010.3**  
 > **Target Deadline:** November 4, 2026, 11:48:55 AM IST  
-> **Status:** **READY FOR EVALUATION** (66/66 backend pytest tests passing; 20/20 ARCH-ST-010.3 validation checks verified; 8/8 transactional fault-injection tests passing [94/94 primary repository suite tests]; 8 separate targeted P0 hardening checks passing; End-to-End Forensic Cockpit operational)
+> **Status:** Submission candidate. The repository documents 66 backend pytest tests, 20 database acceptance checks, 8 atomicity tests, and 8 additional P0 hardening checks. See the verification commands below; rerun them from a clean checkout before relying on these results.
 
 ---
 
@@ -24,7 +24,7 @@ In commercial claims portfolios, organized fraud networks inflict immense losses
 - **Provider Billing Mills:** Phantom services, unbundled billing, and duplicate invoices submitted across distinct claimants.
 - **Velocity Anomalies:** Rapid burst filings, post-policy-inception losses, and repeat injury profiles.
 
-SENTINEL//TRACE addresses these challenges by unifying an **operationally observed multi-entity knowledge graph**, an **explainable 10-stage scoring waterfall**, and a **cryptographically sealed append-only audit trail** that produces legally admissible evidence for Special Investigation Units (SIU).
+SENTINEL//TRACE addresses these challenges by unifying an **operationally observed multi-entity knowledge graph**, an **explainable 10-stage scoring waterfall**, and a **cryptographically sealed append-only audit trail** that supports traceable review by Special Investigation Units (SIU).
 
 ```mermaid
 flowchart TD
