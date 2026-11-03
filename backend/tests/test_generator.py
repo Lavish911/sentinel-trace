@@ -72,7 +72,7 @@ def test_financial_ledger_invariants(operational_db):
 
 
 def test_event_chain_continuity(operational_db):
-    """Asserts that ST-EVT-V2 Merkle event chain has 100% hash and continuity integrity."""
+    """Asserts that ST-EVT-V2 cryptographic event hash chain has 100% hash and continuity integrity."""
     validator = DatasetValidator(operational_db, operational_db)
     total, valid, err = validator.validate_event_chain()
     assert valid, f"Event chain broken: {err}"

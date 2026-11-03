@@ -10,7 +10,7 @@ Simulates a real investigator performing the full 10-step lifecycle:
 7. SIU Investigation Creation (with INVESTIGATION_OPENED event)
 8. Evidence Notes append-only recording
 9. FSM Status Transitions through terminal closure and claim SIU referral
-10. Cryptographic Merkle Event Chain verification
+10. Cryptographic Event Hash Chain verification
 
 Runs against an isolated temporary copy of data/operational.db to preserve seed data.
 """

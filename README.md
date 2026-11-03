@@ -4,13 +4,14 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![SQLite STRICT](https://img.shields.io/badge/SQLite-STRICT%20%7C%20WAL-003B57.svg)](https://www.sqlite.org/)
 [![Schema Digest](https://img.shields.io/badge/ARCH--ST--010.3-2187bf73...-success.svg)](#key-architectural-invariants-arch-st-0103)
-[![Tests](https://img.shields.io/badge/tests-87%2F87%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
+[![Backend Tests](https://img.shields.io/badge/backend%20tests-59%2F59%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
+[![Total Tests](https://img.shields.io/badge/total%20tests-87%2F87%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
 [![Deterministic Dual-Run](https://img.shields.io/badge/bit--determinism-VERIFIED-brightgreen.svg)](#step-4-verify-deterministic-dual-run-bit-identity)
 
 > **YottaFlex AI Candidate Project Submission**  
 > **Canonical Architecture Baseline:** **ARCH-ST-010.3**  
 > **Target Deadline:** November 4, 2026, 11:48:55 AM IST  
-> **Status:** **READY FOR EVALUATION** (59/59 backend pytest tests passing; 20/20 ARCH-ST-010.3 validation checks verified; 8/8 transactional fault-injection tests passing; End-to-End Forensic Cockpit operational)
+> **Status:** **READY FOR EVALUATION** (59/59 backend pytest tests passing; 20/20 ARCH-ST-010.3 validation checks verified; 8/8 transactional fault-injection tests passing [87/87 total repository tests]; 11/11 separate targeted submission hardening checks passing; End-to-End Forensic Cockpit operational)
 
 ---
 
@@ -43,13 +44,13 @@ flowchart TD
         Waterfall --> Scores[Claims Risk Tiers: HIGH / MEDIUM / LOW]
     end
 
-    subgraph Lifecycle ["3. SIU Case Management & Merkle Ledger"]
+    subgraph Lifecycle ["3. SIU Case Management & Cryptographic Ledger"]
         Scores --> Triage[Claims Desk & Dossier]
         Triage --> SIUCase[SIU Investigation FSM]
         SIUCase --> Notes[Append-Only Forensic Notes]
         SIUCase --> Events[EventChainEmitter: ST-EVT-V2]
         Events --> Ledger[(immutable_events - 19,675 Events)]
-        Ledger --> Merkle[SHA-256 Merkle Chain]
+        Ledger --> HashChain[SHA-256 Sequential Hash Chain (ST-EVT-V2)]
     end
 ```
 
@@ -303,7 +304,7 @@ In compliance with YottaFlex Candidate Project Submission Guidelines, complete d
 
 - **ARCH-ST-010.2 (Archived Predecessor):** Defined 24 triggers, schema digest `26e2218f...`, 19,615 events, and $52.7M exposure. Preserved in `archive/verify-0102/` and `sentinel_trace.db`.
 - **Argon Adversarial Audit:** Evaluated Milestone B (commit `2096c3a`), identifying 10 findings (`F-AUD-01` through `F-AUD-10` in [`argon_audit_report.txt`](argon_audit_report.txt)).
-- **ARCH-ST-010.3 (Active Canonical Baseline):** Resolved all 10 findings by introducing 3 additional lifecycle triggers (27 total), event hash chain extension to 19,675 events (Merkle root `333f22fc...`), and canonical dataset generator `db/seed.py` ($41.8M claimed exposure). Verified in `db/test_suite.py` and `archive/verify-0103/`.
+- **ARCH-ST-010.3 (Active Canonical Baseline):** Resolved all 10 findings by introducing 3 additional lifecycle triggers (27 total), event hash chain extension to 19,675 events (chain tip hash `333f22fc...`), and canonical dataset generator `db/seed.py` ($41.8M claimed exposure). Verified in `db/test_suite.py` and `archive/verify-0103/`.
 
 **Final Assessment:** **READY FOR EVALUATION**  
 *Validated against ARCH-ST-010.3, SPEC-DATASET-GEN-001-REV3.1, and YottaFlex Submission Guidelines.*

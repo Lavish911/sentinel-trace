@@ -20,10 +20,11 @@ The project leveraged AI assistance as an augmented pair programming and archite
 
 ## 2. Tooling & Multi-Model Provenance
 
-- **Primary AI Agent / Assistant:** Antigravity (Google DeepMind Advanced Agentic Coding Assistant powered by Gemini).
-- **Argon Evaluation System:** Argon was utilized as an independent, external automated adversarial review harness. Argon evaluated Milestone B (commit `2096c3a`) and issued an audit report identifying findings `F-AUD-01` through `F-AUD-10`. These findings were tracked, resolved, and verified in the repository (documented in [`argon_audit_report.txt`](argon_audit_report.txt)). Raw external harness invocation prompts resided outside this repository, but all reported findings and remediation steps are fully preserved.
-- **GLM Assistance / Transcripts:** GLM session transcripts were unavailable in this local repository workspace. No prompts or transcripts have been invented or backfilled.
-- **Human Oversight Roles:** Senior Forward Deployed Engineer (FDE), Staff Software Architect, Lead QA Engineer, and Adversarial Verification Evaluator.
+- **Primary Engineering Assistant (Antigravity / Gemini):** Antigravity served as the primary agentic pair-programming assistant throughout the engineering lifecycle. It was utilized for architectural analysis, SQL trigger and DDL authoring, causal chronology generation, PageRank implementation, FastAPI REST endpoint construction, test suite development, and frontend cockpit implementation.
+- **Adversarial Audit Harness (Argon):** Argon served as an independent, external automated adversarial evaluation system. It executed against commit `2096c3a` (Milestone B) and produced the formal audit report identifying 10 critical findings (`F-AUD-01` through `F-AUD-10`, documented in [`argon_audit_report.txt`](argon_audit_report.txt)). The candidate utilized these findings to guide the ARCH-ST-010.3 remediation. Argon's invocation prompts resided on an external system, but all reported findings and remediation diffs are fully preserved in this repository.
+- **Exploratory Ideation (GLM):** GLM was consulted during early preliminary architecture ideation. Verbatim session logs for those exploratory interactions were not captured in this local environment; in accordance with transparency principles, no transcripts have been fabricated, simulated, or backfilled.
+- **Preserved Summaries vs. Verbatim Logs:** Full programmatic trajectory logs for Antigravity are maintained locally in the development harness (`transcript.jsonl`), and human-distilled directive summaries across all project checkpoints are cataloged chronologically in Section 5 below.
+- **Human Candidate Ownership:** The candidate (`Lavish911`) maintained continuous editorial and technical authority. Every line of code, SQL trigger, schema constraint, and detector formula was verified, tested, and validated by the candidate, who takes full responsibility for explaining and defending the implementation.
 - **Development Environment:** Python 3.13, SQLite 3.45+ (STRICT tables, WAL mode, foreign keys enforced, custom SHA-256 and JSON UDFs), FastAPI, Uvicorn, pytest, NetworkX, NumPy.
 
 ---
@@ -37,7 +38,7 @@ Development proceeded through five rigorous, controlled phases:
 - **Prompt Focus (Summary):** "Enforce strict foreign keys, PRAGMAs, and SQLite STRICT typing. Ensure exact canonical schema digest."
 - **Human Review & Intervention:** Rejected loose typing; enforced check constraints for formatted identifiers (`CLM-2026-XXXXXX`, `PRV-XXXXXX`, `INV-PRV-...`). Built `test_schema_digest.py` to cryptographically fail any unauthorized DDL mutation.
 
-### Phase 2: Causal Chronology & Merkle Event Chain Generation
+### Phase 2: Causal Chronology & Cryptographic Event Hash Chain Generation
 - **Objective:** Generate a 5,000-claim enterprise dataset with zero temporal inversions.
 - **Prompt Focus (Summary):** "Generate causally valid timestamps across claims, invoices, payments, and immutable events. Invoices must strictly succeed claim submission; payments must strictly follow invoice approval; immutable events must form a tamper-evident SHA-256 hash chain."
 - **Human Review & Intervention:** Fixed subtle timestamp race conditions where payment authorization timestamps could occur on the same second as invoice approval. Enforced strict monotonicity (`test_chronology.py` and `db/test_suite.py` verifying all events).
@@ -54,7 +55,7 @@ Development proceeded through five rigorous, controlled phases:
 
 ### Phase 5: REST APIs, Zero-Dependency Investigator Cockpit & Packaging
 - **Objective:** Build FastAPI endpoints (`/api/v1/dashboard/stats`, `/claims`, `/network`, `/investigations`) and single-page forensic GUI.
-- **Prompt Focus (Summary):** "Provide complete multi-entity dossier inspection, SVG network topology visualizer, and Merkle chain explorer without requiring external Node.js dependencies."
+- **Prompt Focus (Summary):** "Provide complete multi-entity dossier inspection, SVG network topology visualizer, and event hash chain explorer without requiring external Node.js dependencies."
 - **Human Review & Intervention:** Implemented zero-dependency offline HTML/JS cockpit directly served from FastAPI at `/` and `/cockpit`, enabling frictionless evaluation in air-gapped environments.
 
 ---
@@ -63,7 +64,7 @@ Development proceeded through five rigorous, controlled phases:
 
 Every component in this repository has been subjected to rigorous human verification:
 1. **Schema Invariant:** SHA-256 digest `2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab` verified byte-for-byte (`test_schema_digest.py` and `db/test_suite.py::T-01`).
-2. **Deterministic Reproducibility:** Dataset dual-run bit-identity verified (DB SHA-256 checksum: `3c6a482b86cba7c0410ff24a3528b32cfd17ebf30e03cf44321287130eb5a43b`).
+2. **Deterministic Reproducibility:** Dataset dual-run bit-identity verified (DB SHA-256 checksum: `fd0620776a5070bf282680f625a824196ebc915a6a6ca6fb5a91a0f21f1b8716`).
 3. **Automated Test Suites:** 59/59 backend pytest tests passing 100% green; 20/20 ARCH-ST-010.3 validation tests passing; 8/8 transactional fault-injection tests passing.
 4. **Physical Ground-Truth Isolation:** Operational database `data/operational.db` contains zero synthetic labels or cheat codes; `data/ground_truth.db` is read-only by the test harness.
 
@@ -81,7 +82,7 @@ The table below catalogs the distilled intent and human directive summaries reco
 | **Step 271** | 2026-11-02 16:50 IST | Milestone B Remediation | Address edge cases, define exact indicator rules (IND-01..IND-15), establish Stage 3 persistence rules. |
 | **Step 311** | 2026-11-02 17:15 IST | REV2 Adversarial Gate | Refine BC-1 benign multiplier, address tax collision schema constraints, calibrate indicator cardinality. |
 | **Step 339** | 2026-11-02 17:35 IST | REV3 Verification Gate | Ratify `SPEC-DATASET-GEN-001-REV3.1`, freeze dataset generation contract and evaluation harness. |
-| **Step 433** | 2026-11-02 17:50 IST | Milestone B Authorization | Implement deterministic synthetic generator, Merkle hash chain, and dual-run verification suite. |
+| **Step 433** | 2026-11-02 17:50 IST | Milestone B Authorization | Implement deterministic synthetic generator, sequential event hash chain, and dual-run verification suite. |
 | **Step 1137** | 2026-11-02 22:40 IST | Milestone B Re-Audit Response | Analyze external Argon audit rejection (commit `2096c3a`), isolate defects in chronology and PageRank. |
 | **Step 1167** | 2026-11-02 23:15 IST | Remediation Revision | Reconstruct causal chronology, design operational PageRank on active edges, calibrate IND-07 clustering. |
 | **Step 1226** | 2026-11-03 00:05 IST | Provenance Verification | Prove BC-1 activation conditions, resolve IND-07 180-row component calibration, establish provenance ledger. |

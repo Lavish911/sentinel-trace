@@ -4,7 +4,7 @@ Verifies:
 - Primary and Foreign Key integrity (PRAGMA foreign_key_check)
 - Exact table record counts
 - Financial ledger invariants across claims, invoices, and payments
-- ST-EVT-V2 Merkle event chain continuity and preimage hashes
+- ST-EVT-V2 cryptographic event hash chain continuity and preimage hashes
 - Schema digest baseline equality (26e2218f...)
 - Scenario requirements (YF-NEG-1 through YF-NEG-5)
 - Ground-truth database isolation and withheld edge verification
@@ -104,7 +104,7 @@ class DatasetValidator:
 
     def validate_event_chain(self) -> Tuple[int, bool, Optional[str]]:
         """
-        Validates ST-EVT-V2 Merkle event chain continuity and preimage hashes.
+        Validates ST-EVT-V2 cryptographic event hash chain continuity and preimage hashes.
         """
         rows = self.op_conn.execute("""
             SELECT sequence_no, event_id, event_type, entity_type, entity_id,

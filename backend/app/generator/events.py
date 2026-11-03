@@ -1,6 +1,6 @@
 """
 Event chain builder for immutable_events table in SENTINEL//TRACE.
-Strictly complies with ST-EVT-V2 canonical encoding and Merkle chain linkage.
+Strictly complies with ST-EVT-V2 canonical encoding and sequential cryptographic hash chain linkage.
 Enforces RFC 8259 canonical JSON without floating point numbers.
 """
 
@@ -66,7 +66,7 @@ def encode_event_preimage_v2(
 
 
 class EventChainBuilder:
-    """Maintains sequential Merkle hash chain state for immutable_events."""
+    """Maintains sequential cryptographic hash chain state for immutable_events."""
 
     def __init__(self):
         self.events: List[Dict[str, Any]] = []

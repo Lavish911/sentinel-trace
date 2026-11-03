@@ -3,7 +3,7 @@ Dataset Generation Orchestrator for SENTINEL//TRACE (Milestone B).
 Executes end-to-end deterministic generation:
 1. Operational schema initialization & UDF registration
 2. Operational entity & source fact generation
-3. Causal Merkle event chain execution & financial lifecycle updates
+3. Causal cryptographic event hash chain execution & financial lifecycle updates
 4. Operational indicator detection (IND-01..IND-15)
 5. 10-Stage IEF scoring pipeline & trigger-compliant claim state updates
 6. Independent ground truth database population
@@ -234,9 +234,9 @@ def run_generator(
         op_conn.commit()
         return len(event_builder.events)
 
-    # 5. Build Causal Merkle Event Chain & Execute Lifecycle FSM
+    # 5. Build Causal Cryptographic Event Hash Chain & Execute Lifecycle FSM
     if verbose:
-        print("[5/7] Executing Causal Merkle Event Chain (Target: 19,615 Events)...")
+        print("[5/7] Executing Causal Cryptographic Event Hash Chain (Target: 19,675 Events)...")
         
     # 5.1 Event: INGESTION_EXCEPTION_RECORDED (25 events) & Ingestion Exceptions
     iex_records = []

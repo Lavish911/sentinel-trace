@@ -8,7 +8,7 @@ Validates end-to-end investigation lifecycle:
 5. Terminal state immutability enforcement.
 6. SIU referral propagation to primary claim on confirmed fraud.
 7. Claim SIU hold and D-1 exit gate validation.
-8. ST-EVT-V2 hash chain continuity and Merkle tip verification.
+8. ST-EVT-V2 hash chain continuity and chain tip verification.
 Uses an isolated temporary database copy to ensure canonical data/operational.db remains unmodified.
 """
 
