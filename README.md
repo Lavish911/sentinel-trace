@@ -1,346 +1,167 @@
-# SENTINEL//TRACE — Forensic Insurance Fraud Intelligence Platform
+# SENTINEL//TRACE
 
-[![Python](https://img.shields.io/badge/python-3.11%20%7C%203.12%20%7C%203.13-blue.svg)](https://www.python.org/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
-[![SQLite STRICT](https://img.shields.io/badge/SQLite-STRICT%20%7C%20WAL-003B57.svg)](https://www.sqlite.org/)
-[![Schema Digest](https://img.shields.io/badge/ARCH--ST--010.3-2187bf73...-success.svg)](#key-architectural-invariants-arch-st-0103)
-[![Backend Tests](https://img.shields.io/badge/backend%20tests-66%2F66%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
-[![Total Tests](https://img.shields.io/badge/total%20tests-94%2F94%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
-[![Deterministic Dual-Run](https://img.shields.io/badge/bit--determinism-VERIFIED-brightgreen.svg)](#step-4-verify-deterministic-dual-run-bit-identity)
+**Forensic insurance-fraud intelligence for claim triage, evidence review, network analysis, and SIU case management.**
 
-> **YottaFlex AI Candidate Project Submission**  
-> **Canonical Architecture Baseline:** **ARCH-ST-010.3**  
-> **Target Deadline:** November 4, 2026, 11:48:55 AM IST  
-> **Status:** **READY FOR EVALUATION** (66/66 backend pytest tests passing; 20/20 ARCH-ST-010.3 validation checks verified; 8/8 transactional fault-injection tests passing [94/94 primary repository suite tests]; 8 separate targeted P0 hardening checks passing; End-to-End Forensic Cockpit operational)
+SENTINEL//TRACE is a local FastAPI evaluation workbench. It connects claims, claimants, policies, incidents, providers, invoices, payments, operational relationships, fraud indicators, investigations, and an append-only event ledger. The live application is a self-contained forensic cockpit served at `http://127.0.0.1:8000/`.
 
----
+> **Canonical baseline:** `ARCH-ST-010.3` · **Dataset:** deterministic seed 42 · **App entry point:** `backend.app.main:app`
 
-## Reviewer Fast Path
+## What a reviewer should know in 30 seconds
+
+- **What it solves:** follows a suspicious claim through its related evidence, entities, payments, network, and investigation record.
+- **How it detects risk:** 15 explainable indicators are derived from operational facts and scored across four pillars.
+- **How it is investigated:** the cockpit offers a claim queue, dossier, indicators, network topology, event timeline, and case workflow.
+- **How it avoids label leakage:** `data/operational.db` contains no ground-truth tables or labels. Synthetic labels and withheld edges are physically isolated in `data/ground_truth.db` and used only by evaluators.
+- **What is actually shipped:** FastAPI plus a zero-build HTML/CSS/SVG cockpit. The React/Vite code in `src/` is an archival prototype, not the runtime UI.
+
+## Reviewer fast path
 
 `Install → Generate → Verify → Run → Investigate`
 
 ```bash
-pip install -r backend/requirements.txt
+python -m pip install -r backend/requirements.txt
 python scripts/generate_dataset.py
 python -m pytest backend/tests/ -v
 python -m uvicorn backend.app.main:app --port 8000
 ```
 
-Then open `http://localhost:8000/`, choose a high-risk claim such as `CLM-2026-000050`, and follow its dossier, indicators, network, and investigation workflow. Dataset files are intentionally generated locally under `data/` and are not committed; generation is required before running the app or database-backed tests.
+Open [http://127.0.0.1:8000/](http://127.0.0.1:8000/) and select a high-risk claim such as `CLM-2026-000050`. The generated SQLite files live in `data/` and are intentionally ignored by Git; generation must occur before running the app or database-backed tests.
 
----
-
-## 1. System Overview & Business Problem
-
-**SENTINEL//TRACE** is an enterprise forensic intelligence and fraud detection engine engineered for property, casualty, and commercial insurance carriers.
-
-In commercial claims portfolios, organized fraud networks inflict immense losses through:
-- **Multi-Claimant Collusion Rings:** Shared addresses, shared bank accounts, and staged multi-vehicle accidents.
-- **Provider Billing Mills:** Phantom services, unbundled billing, and duplicate invoices submitted across distinct claimants.
-- **Velocity Anomalies:** Rapid burst filings, post-policy-inception losses, and repeat injury profiles.
-
-SENTINEL//TRACE addresses these challenges by unifying an **operationally observed multi-entity knowledge graph**, an **explainable 10-stage scoring waterfall**, and a **cryptographically sealed append-only audit trail** that produces legally admissible evidence for Special Investigation Units (SIU).
+## Runtime architecture
 
 ```mermaid
-flowchart TD
-    subgraph Ingestion ["1. Data Ingestion & Integrity Boundary"]
-        Raw[Claim & Invoice Stream] --> TrgCheck{27 SQLite Triggers & UDFs}
-        TrgCheck -- Malformed/Unlinked --> IngestEx[ingestion_exceptions]
-        TrgCheck -- Valid Schema --> OpsDB[(operational.db - 12 STRICT Tables)]
-    end
-
-    subgraph Intelligence ["2. Multi-Entity Forensic Engine"]
-        OpsDB --> Graph[Network Graph: 8,000 Active Edges]
-        Graph --> PageRank[IND-06 PageRank Power Iteration]
-        OpsDB --> Detector[15 Fraud Indicators: IND-01..IND-15]
-        PageRank --> Detector
-        Detector --> Calibrator[Deterministic Calibrator: Exact 4,120 Persisted]
-        Calibrator --> Waterfall[10-Stage IEF Scoring Waterfall]
-        Waterfall --> Scores[Claims Risk Tiers: HIGH / MEDIUM / LOW]
-    end
-
-    subgraph Lifecycle ["3. SIU Case Management & Cryptographic Ledger"]
-        Scores --> Triage[Claims Desk & Dossier]
-        Triage --> SIUCase[SIU Investigation FSM]
-        SIUCase --> Notes[Append-Only Forensic Notes]
-        SIUCase --> Events[EventChainEmitter: ST-EVT-V2]
-        Events --> Ledger[(immutable_events - 19,675 Events)]
-        Ledger --> HashChain[SHA-256 Sequential Hash Chain (ST-EVT-V2)]
-    end
+flowchart LR
+    Browser[Investigator browser] --> Cockpit[FastAPI cockpit\nbackend.app.main:app]
+    Cockpit --> API[/api/v1]
+    API --> Ops[(data/operational.db\n12 STRICT tables · 27 triggers)]
+    Ops --> Graph[Operational relationship graph]
+    Graph --> Score[15 explainable indicators\nIEF scoring]
+    Score --> Cases[SIU investigations]
+    Cases --> Ledger[immutable_events\nST-EVT-V2 hash chain]
+    GT[(data/ground_truth.db\nquarantined evaluator data)] -. no runtime access .-> API
 ```
 
----
+### Operational boundaries
 
-## 2. Key Architectural Invariants (`ARCH-ST-010.3`)
-
-1. **Cryptographic Schema Enforcement (`ARCH-ST-010.3`):**  
-   Strict 12-table relational schema with 27 database-level integrity triggers. Zero schema drift enforced via canonical SHA-256 schema digest:  
-   `2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab`.
-2. **Cryptographic Event Hash Chain (ST-EVT-V2):**  
-   Every state transition produces a cryptographically hashed event in `immutable_events`, forming an unbroken sequential SHA-256 hash chain with zero causal or chronological inversions across **19,675 events**.
-   **Canonical Event-Chain Tip Hash:** `333f22fc65e0b22d1c13fd58629694da84fce3c9b77c9e2190f47ed2b784c584` (at sequence #19,675).
-   *Trust Boundary & Scope:* The unkeyed sequential SHA-256 event hash chain provides tamper-evident consistency and integrity verification against post-hoc insertion, reordering, truncation, or modification of historical audit records. Because the chain is unkeyed, it serves strictly as an integrity and consistency check, not as cryptographic proof of authorship, non-repudiation, or actor identity authentication (which in enterprise production architectures requires asymmetric actor digital signatures or HMAC keys).
-3. **Operational Graph Centrality (IND-06 PageRank):**  
-   Computes network centrality strictly over active operational edges (`relationship_edges` where `is_active=1`) using exact power-iteration PageRank. Verified against an independent NumPy reference implementation.
-4. **Physical Ground-Truth Isolation:**  
-   Operational database `data/operational.db` has zero awareness of synthetic labels or cheat codes. Ground truth is physically isolated in `data/ground_truth.db` and accessed exclusively by test evaluators.
-5. **Zero-Dependency Forensic Cockpit:**  
-   Includes a rich, self-contained single-page web UI served directly by FastAPI at `http://localhost:8000/`, enabling human evaluators to perform full end-to-end triage, dossier inspection, network analysis, and case creation without external JavaScript build tools or Node.js.
-6. **Archived Predecessor Baseline (`ARCH-ST-010.2`):**  
-   Predecessor Milestone B artifacts (24 triggers, digest `26e2218f...`, 19,615 events, `sentinel_trace.db`) are preserved under `archive/verify-0102/` for complete audit provenance.
-
----
-
-## 3. Technology Stack
-
-| Component | Technology | Rationale & Specifications |
+| Component | Role | Runtime status |
 |---|---|---|
-| **Backend Framework** | FastAPI (Python 3.11 - 3.13) | Asynchronous, typed RESTful API with automated OpenAPI / Swagger documentation. |
-| **Relational Database** | SQLite 3.45+ (STRICT & WAL) | 12 STRICT tables, 27 database triggers, foreign keys enabled (`PRAGMA foreign_keys = ON`). |
-| **Custom UDFs** | `sha256_hex`, `is_canonical_json` | Deterministic payload hashing and RFC-8785 canonical JSON validation in SQL. |
-| **Graph Analytics** | NetworkX & NumPy | Multi-hop ego-graph path traversal and power-iteration PageRank centrality. |
-| **Frontend Cockpit** | Vanilla ES2020 / SVG / CSS3 | Zero-dependency single-page console served via FastAPI; no Node.js/npm required. |
-| **Testing & Verification**| Pytest, Unittest, Playwright | 94 primary automated tests (66 backend pytest, 20 DB acceptance, 8 atomicity) plus 8 targeted P0 hardening checks. |
+| `backend/app/main.py` | FastAPI entry point and cockpit delivery | Active |
+| `backend/app/templates/cockpit.html` | Investigator UI | Active |
+| `data/operational.db` | Operational claims, relationships, scores, cases, audit events | Generated locally |
+| `data/ground_truth.db` | Withheld labels and negative-scenario evaluation data | Generated locally; evaluator-only |
+| `db/seed.py` | Canonical deterministic dataset generator | Active |
+| `archive/verify-0103/` | Shipped ARCH-ST-010.3 schema SQL and verification evidence | Protected / runtime-referenced |
+| `src/`, `vite.config.ts` | Earlier React/Vite prototype | Archival only |
 
----
+## Data and evidence model
 
-## 4. Data Model & Entity Relationships
+The operational database contains 12 strict tables: `claimants`, `policies`, `incidents`, `claims`, `providers`, `invoices`, `payments`, `relationship_edges`, `fraud_indicators`, `investigations`, `immutable_events`, and `ingestion_exceptions`.
 
-The operational database contains 12 `STRICT` tables linked by enforced foreign keys:
+The seed-42 baseline has 5,000 claims, 8,000 active relationship edges, 4,120 persisted findings, 45 investigations, and 19,675 immutable events. Startup verifies the canonical schema before serving traffic: 12 tables, 27 triggers, and schema digest `2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab`.
 
-```
-  +-------------+       +-----------+
-  |  claimants  |<------|  claims   |------->+------------+
-  +-------------+       +-----+-----+        | policies   |
-                              |              +------------+
-                              v
-                        +-----------+
-                        | incidents |
-                        +-----------+
-                              |
-         +--------------------+--------------------+
-         |                                         |
-         v                                         v
-   +-----------+                             +-----------+
-   | invoices  |                             | payments  |
-   +-----+-----+                             +-----+-----+
-         |                                         |
-         v                                         v
-   +-----------+                             +-----------+
-   | providers |                             |immutable_ |
-   +-----------+                             |  events   |
-         |                                   +-----------+
-         v                                         ^
-+------------------+                               |
-|relationship_edges|-------------------------------+
-+------------------+
-```
+### Audit trail guarantee and boundary
 
-### Table Counts & Baseline Verification (Seed 42)
+`immutable_events` is an append-only sequential SHA-256 chain using `ST-EVT-V2` serialization. It detects post-hoc insertion, reordering, truncation, or modification of ledger history.
 
-| Table Name | Contract Count | Runtime Count | Status | Schema Invariant |
-|:---|:---:|:---:|:---:|:---|
-| `claimants` | 2,000 | 2,000 | **PASS** | Unique tax ID, normalized address, E.164 phone |
-| `policies` | 2,200 | 2,200 | **PASS** | Line of business, active date windows, coverage limits |
-| `incidents` | 3,800 | 3,800 | **PASS** | Incident timestamps strictly precede claim submission |
-| `claims` | 5,000 | 5,000 | **PASS** | Claimed amount, 10-stage score, risk tier, evidence digest |
-| `providers` | 500 | 500 | **PASS** | Medical, auto body, legal, towing, chiropractic |
-| `invoices` | 7,500 | 7,500 | **PASS** | Strict billed/approved ledger integrity |
-| `payments` | 4,200 | 4,200 | **PASS** | Authorized strictly post-invoice approval |
-| `relationship_edges`| 8,000 | 8,000 | **PASS** | Operational relationship graph (`is_active=1`) |
-| `fraud_indicators` | 4,120 | 4,120 | **PASS** | Exact Table 5.1 target cardinality (calibrated persistence) |
-| `investigations` | 45 | 45 | **PASS** | High-priority cases with exposure estimates |
-| `immutable_events` | 19,675 | 19,675 | **PASS** | Monotonic timestamps, zero temporal inversions |
-| `ingestion_exceptions`| 25 | 25 | **PASS** | Quarantined malformed payloads (missing policy) |
+This is an **unkeyed integrity check**, not proof of authorship or non-repudiation. A production deployment would add authenticated writer identity and signed or HMAC-protected event provenance.
 
----
+## Explainable scoring
 
-## 5. Risk Scoring & Indicator Persistence
+The generator evaluates 15 observable indicators over four pillars:
 
-### 10-Stage Scoring Waterfall
-The Integrated Evidence Framework (IEF) evaluates 15 indicators across 4 pillars:
+| Pillar | Indicators |
+|---|---|
+| Network | `IND-01`, `IND-02`, `IND-05`, `IND-06`, `IND-07` |
+| Financial | `IND-03`, `IND-04`, `IND-08`, `IND-12` |
+| Behavioral | `IND-09`, `IND-10`, `IND-11`, `IND-14` |
+| Document | `IND-13`, `IND-15` |
 
-1. **Stage 1:** Build the active operational graph and compute PageRank.
-2. **Stage 2:** Evaluate all 15 observable indicators. The pillars are Network (IND-01, 02, 05, 06, 07), Financial (IND-03, 04, 08, 12), Behavioral (IND-09, 10, 11, 14), and Document (IND-13, 15).
-3. **Stage 3:** Deduplicate a claim's findings by `(indicator_code, canonical_evidence_token)`, retaining the maximum `raw_points`.
-4. **Stage 4:** Normalize pillar totals with caps of 60 / 55 / 45 / 40.
-5. **Stage 5:** Calculate the weighted base score (0.35 / 0.30 / 0.20 / 0.15).
-6. **Stage 6:** Apply benign-context dampening: $D = \max(0.15, \prod m_b)$, except eligible hard-collusion claims use $D = 1.0$.
-7. **Stage 7:** Determine hard-collusion eligibility from a shared IND-01 `BANK:` token and IND-03 `DUP_FP:` token pair.
-8. **Stage 8:** Apply the eligible-component cluster boost.
-9. **Stage 9:** Cap at 100 and apply the 65-point floor only to eligible hard-collusion claims.
-10. **Stage 10:** Round, assign the risk tier, and write the SHA-256 scoring-evidence digest (`scoring_evidence_sha256`).
+The pipeline builds the active graph and PageRank, derives indicators from operational facts, deduplicates a claim's `(indicator_code, canonical_evidence_token)` rows, normalizes pillar totals with caps of 60/55/45/40, and applies weights of 0.35/0.30/0.20/0.15.
 
-### Indicator Persistence: Exact 4,120 Persisted Findings
-For seed 42, the canonical generator asserts exactly **4,120** rows in `fraud_indicators`. Findings are derived from observable operational facts; the test suite verifies the persisted count, scoring invariants, and the YF-NEG-4 result of 36/40 ring claims in the `HIGH` tier.
+Benign contexts use `D = max(0.15, product(m_b))`; eligible hard-collusion pairs receive `D = 1.0`, a component boost, and a 65-point floor. The final score, tier, and SHA-256 evidence digest are persisted together.
 
----
+## Negative scenarios and isolation
 
-## 6. Core Negative Scenario Validation
+| Scenario | Control verified by the repository |
+|---|---|
+| YF-NEG-1 | 25 nonexistent-policy attempts are quarantined in `ingestion_exceptions`. |
+| YF-NEG-2 | Over-cap payments are blocked by `ERR_PAYMENT_EXCEEDS_APPROVED_CAP`. |
+| YF-NEG-3 | Cross-claimant duplicate invoices are linked to observable fraud evidence. |
+| YF-NEG-4 | 25 withheld edges remain outside the operational graph; 36/40 ring claims score `HIGH` from observable facts. |
+| YF-NEG-5 | 80 high-density benign-address claims remain `LOW`; seed-42 empirical maximum is 0.44 with no false positives. |
 
-All 5 core negative and stress scenarios from the specification are verified:
+The operational API intentionally rejects `yf_neg_4` filtering: that scenario is ground-truth-only. It supports a bounded `yf_neg_5` operational address view without exposing labels.
 
-- **YF-NEG-1 (Nonexistent Policy Reference):** 25 invalid claims referencing nonexistent policies are rejected at the foreign key/trigger boundary and quarantined into `ingestion_exceptions` with 25 `INGESTION_EXCEPTION_RECORDED` events. Verified by `db/test_suite.py::T-10`.
-- **YF-NEG-2 (Payment Exceeding Approved Amount):** Direct live attempt to disburse payments exceeding approved invoice caps is aborted with `ERR_PAYMENT_EXCEEDS_APPROVED_CAP`. 30 blocked attempts recorded as `BLOCKED_OVERPAYMENT`. Verified by `db/test_suite.py::T-11`.
-- **YF-NEG-3 (Duplicate Invoice Across Claimants):** 25 duplicate invoice pairs across different claimants (`is_cross = True`) rejected with `REJECTED_DUPLICATE` and escalated by detector to `HIGH` risk ($\ge 65.00$). Verified by `db/test_suite.py::T-12`.
-- **YF-NEG-4 (Missing Operational Relationships):** 25 planted missing edges strictly quarantined in `ground_truth.db` with zero leakage into operational graph. 36 of 40 ring claims (90% $\ge$ 80% threshold) score $\ge 65.00$ `HIGH` using observable data only. Verified by `db/test_suite.py::T-13` and `test_generator.py::test_scenario_yf_neg_4_detection`.
-- **YF-NEG-5 (High-Density Benign Suppression):** 80 apartment claims at 742 Evergreen Terrace Apt 4B (Cohort A, plus 420 lookalike controls in BL-1..BL-5) score below benign thresholds ($\le 12.00$) in `LOW` risk tier with 0 false positives via calibrated benign dampening. Verified by `db/test_suite.py::T-14` and `test_generator.py::test_scenario_yf_neg_5_suppression`.
-  > [!NOTE]
-  > **BC-1 Calibration Disclosure (Empirical vs. Standalone Reference):**
-  > - **Specification Standalone Reference Calculation:** In `ARCH-ST-010.3` §7.1 and `SPEC-DATASET-GEN-001-REV3.1` §4.1, the standalone $BC-1$ formula specifies a single-context multiplier of $m_1 = 0.35$, yielding a theoretical mathematical reference score of **0.82**.
-  > - **Operational Seed Calibration (Compounded Product Rule):** The authoritative operational dataset generated by `db/seed.py` implements the multi-context product rule $D = \max(0.15, \prod m_b)$ wherein $BC-1 = 0.25$ compounds with $BC-6 = 0.75$ ($D = 0.25 \times 0.75 = 0.1875$), producing an empirically observed score of **0.44** across the 80 operational claims in `data/operational.db`.
-  > - **Classification Invariant & Operational Deviation:** Both the theoretical reference score ($0.82$) and the empirically observed score ($0.44$) fall well below the $\le 12.00$ threshold, strictly preserving the `LOW` risk tier, 0 false positives, and preventing any `SIU_HOLD` or `DENIED` outcomes. This difference represents an intentional operational calibration/deviation from the standalone specification reference to account for multi-context compounding in the synthetic generator.
-  > - **Cohort Validation Scope:** Cohort A (742 Evergreen Terrace, 80 claims) is empirically validated against live operational database rows; Cohort B (100 Ocean Ave, modular generator reference) is mathematically verified via regression checks without mutating the canonical 5,000-claim baseline dataset.
+## Three-minute reviewer walkthrough
 
----
+1. **Dashboard:** open `/` and confirm the dataset baseline, risk distribution, entity counts, and audit-chain tip.
+2. **Triage:** open **Claims**, choose `HIGH` or `CRITICAL`, and select a claim.
+3. **Dossier:** review claimant, policy, incident, provider invoices, payment history, score, and evidence digest together.
+4. **Why it is suspicious:** select **Fraud Indicators** to inspect codes, raw points, pillar, and canonical evidence tokens.
+5. **Who is connected:** select **Network Topology** to inspect the operational ego network and active edges.
+6. **What happened:** select **Event Chain** to inspect chronological `ST-EVT-V2` events.
+7. **Case handling:** open or inspect the related SIU investigation, append an evidence note, and follow the allowed status transitions.
 
-## 7. Quick Start & Execution Guide
+Existing reference captures are available in [`docs/screenshots/`](docs/screenshots/), from dashboard overview through the event-chain view and error handling.
 
-### Prerequisites
-- Python 3.11, 3.12, or 3.13
-- SQLite 3.45+ (bundled with standard Python)
+## API surface
 
-### Step 1: Install Dependencies
+| Endpoint | Purpose |
+|---|---|
+| `GET /api/v1/health` | Schema, trigger, and health status |
+| `GET /api/v1/dashboard/stats` | Portfolio, entities, findings, and audit-chain summary |
+| `GET /api/v1/claims` | Filterable, paginated triage queue |
+| `GET /api/v1/claims/{id}` | Multi-entity claim dossier |
+| `GET /api/v1/claims/{id}/indicators` | Explainable findings |
+| `GET /api/v1/claims/{id}/timeline` | Claim-linked immutable events |
+| `GET /api/v1/network/{claim_id}` | Operational ego network |
+| `POST /api/v1/claims/{id}/hold` | Place an eligible claim on SIU hold |
+| `POST /api/v1/claims/{id}/release` | Release through the benign-closure gate |
+| `GET/POST /api/v1/investigations` | List or open investigations |
+| `GET/PATCH /api/v1/investigations/{id}` | Review or transition an investigation |
+| `POST /api/v1/investigations/{id}/notes` | Append forensic evidence notes |
+
+Interactive OpenAPI documentation is available at `/docs`; ReDoc is at `/redoc`.
+
+## Verification commands
+
 ```bash
-pip install -r backend/requirements.txt
-```
-*(Dependencies: `fastapi`, `uvicorn`, `pydantic`, `pydantic-settings`, `pytest`, `httpx`, `networkx`, `numpy`)*
+# FastAPI, workflow, isolation, scoring, and trigger tests (66 tests)
+python -m pytest backend/tests/ -v
 
-### Step 2: Generate the Canonical ARCH-ST-010.3 Dataset
-```bash
-python scripts/generate_dataset.py
-```
-**Output:** Populates `data/operational.db` (5,000 claims, 19,675 events, $41.8M exposure) and `data/ground_truth.db`.
+# Canonical database acceptance checks (T-01 through T-20)
+python -m db.test_suite
 
-> [!NOTE]
-> **Generator Architecture & Canonical Authority:**
-> - **Canonical Generator Authority (`db/seed.py`):** `db/seed.py` is the single authoritative dataset generator for SENTINEL//TRACE (`ARCH-ST-010.3`). It is invoked by `scripts/generate_dataset.py`, the database acceptance suite (`db/test_suite.py`), and the atomicity test suite (`db/test_atomicity.py`). It enforces bit-for-bit deterministic generation (seed 42 checksum `fd062077...`), exact event counts (19,675 events), and live trigger validation.
-> - **Modular Architecture Reference (`backend/app/generator/`):** The package under `backend/app/generator/` (`entities.py`, `relationships.py`, `financial.py`, `detector.py`, `scorer.py`, `validator.py`, and `runner.py`) serves as an architectural component reference and provides isolated unit tests for generator subsystems.
-> - **Unified Path Safety & Overwrite Protection:** Both implementations strictly enforce fail-closed path safety: neither performs legacy fallbacks to root-level databases, both refuse to overwrite existing database files unless explicitly commanded (`--overwrite` / `overwrite=True`), and both reject configurations where operational and ground-truth paths resolve to the same target.
+# Atomic event-and-state rollback checks (8 tests)
+python -m unittest db.test_atomicity
 
-### Step 3: Run Full Automated Test Suites
+# Path safety, negative cases, BC-1, isolation, and digest checks (8 checks)
+python scripts/verify_p0_hardening.py
 
-1. **FastAPI Backend & Workflow Suite (66 tests):**
-   ```bash
-   python -m pytest backend/tests/ -v
-   ```
-   *Expected Output: `66 passed (100% green)`*
-
-2. **Canonical ARCH-ST-010.3 Database Invariants (20 tests, T-01..T-20):**
-   ```bash
-   python -m db.test_suite
-   ```
-   *Expected Output: `db.test_suite: 20 passed, 0 failed out of 20`*
-
-3. **Transactional Atomicity & Fault Injection Suite (8 tests):**
-   ```bash
-   python -m unittest db.test_atomicity
-   ```
-   *Expected Output: `Ran 8 tests ... OK`*
-
-4. **Targeted P0 Hardening & Verification Suite (8 separate checks):**
-   ```bash
-   python scripts/verify_p0_hardening.py
-   ```
-   *Expected Output: `ALL 8 P0 HARDENING CHECKS PASSED` (runs targeted checks on database path safety, YF-NEG-2/3/4/5 assertions, Cohort A empirical & Cohort B mathematical validation, and ground-truth isolation)*
-
-### Step 4: Verify Deterministic Dual-Run Bit Identity
-```bash
+# Deterministic dual-run check
 python scripts/generate_dataset.py --dual-run
 ```
-**Expected Output:**
-```text
-[*] Run 1 DB Checksum: fd0620776a5070bf282680f625a824196ebc915a6a6ca6fb5a91a0f21f1b8716
-[*] Run 2 DB Checksum: fd0620776a5070bf282680f625a824196ebc915a6a6ca6fb5a91a0f21f1b8716
-[*] Checksums Identical: True
-[*] Dual-Run Reproducibility: PASS (Deterministic)
-```
 
-### Step 5: Launch Backend & Forensic Cockpit
-```bash
-# Using Python directly (recommended):
-python -m uvicorn backend.app.main:app --port 8000
+Normal application startup is deliberately fail-closed: it will not create or silently seed a missing database.
 
-# Or using npm script shortcut (delegates to uvicorn):
-npm start
-```
-- **Forensic Cockpit Console:** `http://localhost:8000/` or `http://localhost:8000/cockpit`
-- **Interactive Swagger Documentation:** `http://localhost:8000/docs`
-- **ReDoc Specification:** `http://localhost:8000/redoc`
+## Security and deployment notes
 
-> [!NOTE]
-> **Operational UI vs. Archival Prototype:**
-> - **Operational Forensic Cockpit (`http://localhost:8000/`):** The operational, production-ready investigator interface is served directly by the FastAPI backend at port 8000 using zero-dependency standard HTML5/CSS/SVG templates and client-side ES2020 modules. It requires no Node.js or JavaScript build tools.
-> - **Archival Specification Prototype (`src/`):** The React/Vite codebase in `src/` represents an early milestone specification prototype (ARCH-ST-010.1). It is preserved for design lineage and accessible via `npm run dev:prototype`, but is not part of the active operational pipeline.
+- SQLite is appropriate here for a local evaluator or single-node workstation; concurrent writers are serialized.
+- The demo has no end-user authentication or authorization. Do not expose port 8000 publicly without an upstream identity and network control.
+- SQL parameters and database triggers protect the documented runtime paths, but a privileged raw-SQL writer is outside the provenance trust boundary described above.
+- `.env.example` is a template only. Do not commit populated environment files, credentials, or generated data files.
+
+## AI transparency and provenance
+
+The project’s AI-development disclosure is maintained in [`AI_TRANSPARENCY_DISCLOSURE.md`](AI_TRANSPARENCY_DISCLOSURE.md). It records the actual development context and should be updated only with authentic contribution history; do not manufacture prompts, tool output, or provenance.
+
+Architecture lineage, corrective evidence, and verification records are preserved rather than deleted:
+
+- [`ARCH-ST-010.3.md`](ARCH-ST-010.3.md) — active baseline specification
+- [`VERIFICATION_REPORT_0103.md`](VERIFICATION_REPORT_0103.md) — verification report
+- [`CORRECTION_TRACEABILITY_0103.md`](CORRECTION_TRACEABILITY_0103.md) — remediation traceability
+- [`archive/verify-0103/`](archive/verify-0103/) — shipped schema/digest verification assets
 
 ---
 
-## 8. End-to-End Investigator Workflow Guide (11 Steps)
-
-The built-in forensic cockpit allows evaluators to step through the complete fraud analyst lifecycle:
-
-1. **Dashboard Overview:** Open `http://localhost:8000/`. Review KPI cards showing 5,000 monitored claims, risk tier distributions, **$41.8M** ($41,840,000.00) total claimed exposure, 4,120 persisted indicators, and 45 active SIU cases. ([`01_dashboard_overview.png`](docs/screenshots/01_dashboard_overview.png))
-2. **Claims Queue & Filtering:** Browse the paginated triage worklist on the left panel, filter by risk tier (`High Risk (>=65)`, `Medium Risk`), or select scenario quick-toggles like `YF-NEG-5 · shared address`. ([`02_claims_queue_filtered.png`](docs/screenshots/02_claims_queue_filtered.png))
-3. **Claim Dossier Inspection:** Inspect full multi-entity claim dossier for any claim (e.g. `CLM-2026-000050` or `CLM-2026-002319`), reviewing claimant profile, normalized address, E.164 phone, policy coverage limits, and incident facts. ([`03_claim_dossier_overview.png`](docs/screenshots/03_claim_dossier_overview.png))
-4. **Invoices & Financial Breakdown:** Inspect submitted medical and repair invoices, billing providers, network tiers, and financial ledger figures. ([`04_invoices_payments.png`](docs/screenshots/04_invoices_payments.png))
-5. **Fraud Indicators & Scoring Waterfall:** Switch to the **Fraud Indicators** tab to view triggered rule codes (IND-01..IND-15), pillars, severities, raw points, and exact canonical evidence tokens. ([`05_fraud_indicators.png`](docs/screenshots/05_fraud_indicators.png))
-6. **Interactive Network Topology:** Switch to the **Network Topology** tab to visualize the operational ego-network (claim nodes, claimants, providers, and active relationship edges like `SHARED_ADDRESS`, `SHARED_PHONE`, `PROVIDER_REFERRAL_LINK`). ([`06_network_topology.png`](docs/screenshots/06_network_topology.png))
-7. **Open SIU Case Modal:** Click `+ Open Case` on a high-risk dossier to launch the investigation creation modal and assign investigation parameters. ([`07_open_case_modal.png`](docs/screenshots/07_open_case_modal.png))
-8. **Case Detail & Evidence Notes:** Switch to the **SIU Case** tab to manage case progress, record findings, and append timestamped forensic notes to the append-only audit log. ([`08_case_detail_and_notes.png`](docs/screenshots/08_case_detail_and_notes.png))
-9. **Case Closure & Terminal Sealing:** Transition lifecycle status (`OPEN` $\to$ `EVIDENCE_COLLECTION` $\to$ `SIU_FIELD_REVIEW` $\to$ `CLOSED_CONFIRMED_FRAUD`), sealing the investigation and updating the primary claim to `SIU_REFERRED`. ([`09_case_closed_sealed.png`](docs/screenshots/09_case_closed_sealed.png))
-10. **Event Audit Trail & Hash Chain:** Switch to the **Event Chain** tab to verify chronological `ST-EVT-V2` lifecycle events, monotonic sequence IDs, and unbroken SHA-256 event hash chaining. ([`10_merkle_audit_timeline.png`](docs/screenshots/10_merkle_audit_timeline.png))
-11. **Error & 404 Resiliency:** Verified system handling when requesting nonexistent claim or case IDs, returning structured JSON error diagnostics. ([`11_error_not_found.png`](docs/screenshots/11_error_not_found.png))
-
----
-
-## 9. API Specification & Endpoints
-
-| Endpoint | Method | Description |
-|---|---|---|
-| `/api/v1/health` | `GET` | System health check, table/trigger counts, and schema digest verification. |
-| `/api/v1/dashboard/stats` | `GET` | Aggregated portfolio metrics, financial exposure, and event chain tip hash. |
-| `/api/v1/claims` | `GET` | Paginated claims list with risk tier, status, and scenario filtering. |
-| `/api/v1/claims/{id}` | `GET` | Full multi-entity claim dossier (claimant, policy, incident, invoices, payments). |
-| `/api/v1/claims/{id}/indicators` | `GET` | Rule-level fraud indicators, raw points, and evidence tokens for a claim. |
-| `/api/v1/claims/{id}/timeline` | `GET` | Chronological `ST-EVT-V2` events linked to the claim. |
-| `/api/v1/claims/{id}/hold` | `POST` | Places claim on SIU hold (emits `CLAIM_SIU_HOLD_PLACED`). |
-| `/api/v1/claims/{id}/release` | `POST` | Releases claim from SIU hold (enforces D-1 benign exit gate). |
-| `/api/v1/network/{claim_id}` | `GET` | Multi-hop ego-network graph nodes, edges, and centrality metrics. |
-| `/api/v1/investigations` | `GET` | List active and historical SIU investigations with triage filters. |
-| `/api/v1/investigations` | `POST` | Create SIU investigation (sequential ID, atomic event emission). |
-| `/api/v1/investigations/{id}` | `GET` | Full investigation dossier with linked claim and evidence summary. |
-| `/api/v1/investigations/{id}/status` | `PATCH` | Transition FSM status and ruling outcome (emits event). |
-| `/api/v1/investigations/{id}/notes` | `POST` | Append timestamped evidence note to case audit transcript. |
-
----
-
-## 10. Security Architecture, Known Limitations & Threat Model
-
-### Security Controls Implemented
-1. **Parameterized Queries:** All database queries throughout FastAPI and the detection engine use parameterized SQL (`?` placeholders); zero dynamic SQL string formatting.
-2. **Database Trigger Enforcements:** Append-only triggers prevent `UPDATE` or `DELETE` on `immutable_events` and `ingestion_exceptions`. Core financial fields on `claims` and `payments` are guarded against tampering.
-3. **Fail-Closed Startup Lifespan:** FastAPI refuses to boot if the database file is missing, empty, or fails the canonical ARCH-ST-010.3 schema digest check (`2187bf73...`).
-
-### Operational Limitations & Threat Model
-1. **Single-Writer Concurrency:** SQLite in WAL mode allows concurrent readers but serializes writers with a busy timeout. Suitable for single-node forensic stations and evaluation desks; enterprise multi-region scale requires PostgreSQL or Spanner.
-2. **Authentication & Authorization:** The current application is designed as a standalone evaluation workbench and does not implement user login or JWT authentication.  
-   > [!CAUTION]
-   > Do not expose port 8000 directly to the public internet without an upstream enterprise authentication gateway (e.g. Cloud IAP, OAuth2 Reverse Proxy, or VPN with mTLS).
-3. **Local Evaluation Boundary:** The demo runs by default on `127.0.0.1:8000`. Ingestion exceptions and event logs are strictly read-only and sealed upon terminal case closure.
-
----
-
-## 11. AI Transparency & Prompt Disclosure
-
-In compliance with YottaFlex Candidate Project Submission Guidelines, complete details regarding generative AI assistance, prompt progression, architectural evolution, and human verification protocols are documented in [`AI_TRANSPARENCY_DISCLOSURE.md`](AI_TRANSPARENCY_DISCLOSURE.md).
-
----
-
-## 12. Baseline Provenance & Audit Remediation Summary
-
-- **ARCH-ST-010.2 (Archived Predecessor):** Defined 24 triggers, schema digest `26e2218f...`, 19,615 events, and $52.7M exposure. Preserved in `archive/verify-0102/` and `sentinel_trace.db`.
-- **Argon Adversarial Audit:** Evaluated Milestone B (commit `2096c3a`), identifying 10 findings (`F-AUD-01` through `F-AUD-10` in [`argon_audit_report.txt`](argon_audit_report.txt)).
-- **ARCH-ST-010.3 (Active Canonical Baseline):** Resolved all 10 findings by introducing 3 additional lifecycle triggers (27 total), event hash chain extension to 19,675 events (chain tip hash `333f22fc...`), and canonical dataset generator `db/seed.py` ($41.8M claimed exposure). Verified in `db/test_suite.py` and `archive/verify-0103/`.
-
-**Final Assessment:** **READY FOR EVALUATION**  
-*Validated against ARCH-ST-010.3, SPEC-DATASET-GEN-001-REV3.1, and YottaFlex Submission Guidelines.*
+SENTINEL//TRACE is designed to make the investigation path reviewable: **claim → connected entities → explainable evidence → operational network → auditable SIU decision**.
