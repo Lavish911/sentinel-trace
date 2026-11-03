@@ -36,5 +36,5 @@ EXPECTED_SCHEMA_SHA256 = "2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3
 OPS_SQL_PATH = REPO_ROOT / "archive" / "verify-0103" / "ops_0103.sql"
 TRIGS_SQL_PATH = REPO_ROOT / "archive" / "verify-0103" / "trigs_0103.sql"
 
-DEFAULT_OPERATIONAL_DB = REPO_ROOT / "data" / "operational.db" if (REPO_ROOT / "data" / "operational.db").exists() else (REPO_ROOT / "sentinel_trace.db" if (REPO_ROOT / "sentinel_trace.db").exists() else REPO_ROOT / "data" / "operational.db")
-DEFAULT_GROUND_TRUTH_DB = REPO_ROOT / "data" / "ground_truth.db" if (REPO_ROOT / "data" / "ground_truth.db").exists() else (REPO_ROOT / "ground_truth.db" if (REPO_ROOT / "ground_truth.db").exists() else REPO_ROOT / "data" / "ground_truth.db")
+DEFAULT_OPERATIONAL_DB = REPO_ROOT / "data" / "operational.db"
+DEFAULT_GROUND_TRUTH_DB = REPO_ROOT / "data" / "ground_truth.db"

@@ -1,7 +1,7 @@
 """
 Financial entity generator (invoices, payments, lifecycle operations).
 Ensures 100% financial consistency across claimed, approved, authorized, disbursed,
-clawed back, and net paid amounts, fully satisfying ARCH-ST-010.2 trigger prerequisites.
+clawed back, and net paid amounts, fully satisfying ARCH-ST-010.3 trigger prerequisites.
 """
 
 import hashlib

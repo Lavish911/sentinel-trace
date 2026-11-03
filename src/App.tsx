@@ -119,6 +119,10 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+      {/* Archival Prototype Disclaimer */}
+      <div className="bg-amber-950 text-amber-200 border-b border-amber-600/50 px-4 py-2 text-xs font-mono text-center">
+        ARCHIVAL / NON-OPERATIONAL PROTOTYPE (ARCH-ST-010.1): This React interface is an early static specification harness. The operational production application is the zero-dependency FastAPI Forensic Cockpit at <a href="http://localhost:8000/" className="underline font-bold text-amber-100">http://localhost:8000/</a> connected to data/operational.db.
+      </div>
       {/* Strict 3-Zone Top Bar Contract */}
       <header className="flex items-center justify-between gap-8 px-6 py-4 border-b border-slate-800 bg-slate-950/95 sticky top-0 z-20">
         <a

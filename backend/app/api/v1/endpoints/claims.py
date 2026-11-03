@@ -43,6 +43,37 @@ def list_claims(
     where_clauses = []
     params = []
 
+    ALLOWED_RISK_TIERS = {"ALL", "LOW", "MEDIUM", "HIGH", "CRITICAL"}
+    ALLOWED_CLAIM_STATUSES = {"ALL", "SUBMITTED", "APPROVED", "PARTIALLY_PAID", "DENIED", "SIU_HOLD"}
+
+    if risk_tier and risk_tier not in ALLOWED_RISK_TIERS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid risk_tier '{risk_tier}'. Must be one of {sorted(ALLOWED_RISK_TIERS)}"
+        )
+
+    if claim_status and claim_status not in ALLOWED_CLAIM_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid claim_status '{claim_status}'. Must be one of {sorted(ALLOWED_CLAIM_STATUSES)}"
+        )
+
+    if scenario:
+        if scenario == "yf_neg_4":
+            raise HTTPException(
+                status_code=400,
+                detail="Scenario filter 'yf_neg_4' is not supported on operational endpoints: ground truth is strictly quarantined."
+            )
+        elif scenario == "yf_neg_5":
+            # 80 high-density apartment claims: shared multi-unit building at 742 Evergreen Terrace Apt 4B
+            where_clauses.append("clmt.address_norm LIKE '742 EVERGREEN TERRACE%'")
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid scenario filter '{scenario}'. Supported operational scenarios: 'yf_neg_5'."
+            )
+
+
     if risk_tier and risk_tier != "ALL":
         where_clauses.append("c.latest_risk_tier = ?")
         params.append(risk_tier)
@@ -56,29 +87,6 @@ def list_claims(
         where_clauses.append("(c.claim_id LIKE ? OR clmt.full_name LIKE ? OR c.policy_id LIKE ?)")
         params.extend([s_term, s_term, s_term])
 
-    if scenario == "yf_neg_4":
-        # 40 collusion ring claims under partial missing edge observability
-        gt_path = REPO_ROOT / "data" / "ground_truth.db"
-        if gt_path.is_file():
-            with sqlite3.connect(str(gt_path)) as gt_conn:
-                yf4_ids = [
-                    r[0]
-                    for r in gt_conn.execute(
-                        "SELECT claim_id FROM ground_truth_claim_labels WHERE scenario_code = 'YF-NEG-4'"
-                    ).fetchall()
-                ]
-            if yf4_ids:
-                placeholders = ",".join("?" for _ in yf4_ids)
-                where_clauses.append(f"c.claim_id IN ({placeholders})")
-                params.extend(yf4_ids)
-        else:
-            # Operational relationship fallback: collusion clinic network billing
-            where_clauses.append(
-                "c.claim_id IN (SELECT DISTINCT claim_id FROM invoices WHERE provider_id BETWEEN 'PRV-000031' AND 'PRV-000040')"
-            )
-    elif scenario == "yf_neg_5":
-        # 80 high-density apartment claims: shared multi-unit building at 742 Evergreen Terrace
-        where_clauses.append("clmt.address_norm LIKE '742 EVERGREEN TERRACE%'")
 
     where_sql = ("WHERE " + " AND ".join(where_clauses)) if where_clauses else ""
 
@@ -207,6 +215,10 @@ def get_claim_detail(claim_id: str, conn: sqlite3.Connection = Depends(get_db)) 
 @router.get("/{claim_id}/indicators")
 def get_claim_indicators(claim_id: str, conn: sqlite3.Connection = Depends(get_db)) -> List[Dict[str, Any]]:
     """Returns all fraud indicators and score contributions for a claim."""
+    claim_row = conn.execute("SELECT 1 FROM claims WHERE claim_id = ?", (claim_id,)).fetchone()
+    if not claim_row:
+        raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
+
     q = """
         SELECT 
             indicator_id,
@@ -252,6 +264,10 @@ def get_claim_indicators(claim_id: str, conn: sqlite3.Connection = Depends(get_d
 @router.get("/{claim_id}/timeline")
 def get_claim_timeline(claim_id: str, conn: sqlite3.Connection = Depends(get_db)) -> List[Dict[str, Any]]:
     """Returns chronological sequence of immutable events linked to this claim."""
+    claim_row = conn.execute("SELECT 1 FROM claims WHERE claim_id = ?", (claim_id,)).fetchone()
+    if not claim_row:
+        raise HTTPException(status_code=404, detail=f"Claim {claim_id} not found")
+
     q = """
         SELECT 
             sequence_no,

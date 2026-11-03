@@ -4,13 +4,16 @@
   "version": "0.1.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port=3000 --host=0.0.0.0",
+    "dev": "python -m uvicorn backend.app.main:app --reload --port 8000",
     "dev:backend": "python -m uvicorn backend.app.main:app --reload --port 8000",
     "test:backend": "python -m pytest backend/tests -v",
     "build": "vite build",
     "preview": "vite preview",
     "clean": "rm -rf dist server.js",
-    "lint": "tsc --noEmit"
+    "lint": "tsc --noEmit",
+    "start": "python -m uvicorn backend.app.main:app --port 8000",
+    "dev:prototype": "vite --port=3000 --host=0.0.0.0",
+    "build:prototype": "vite build"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

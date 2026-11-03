@@ -1,7 +1,7 @@
 """
 Operational fraud indicator detection engine for SENTINEL//TRACE.
 Evaluates all 15 atomic detection rules (IND-01 through IND-15) strictly
-in accordance with ARCH-ST-010.2 Section 8 and Section 9.
+in accordance with ARCH-ST-010.3 Section 8 and Section 9.
 Never accesses ground_truth.db.
 """
 
@@ -572,7 +572,7 @@ class OperationalIndicatorDetector:
         return findings, metrics
 
 
-# Calibrated rule targets from Table 5.1 of SPEC-DATASET-GEN-001-REV3.1 / ARCH-ST-010.2
+# Calibrated rule targets from Table 5.1 of SPEC-DATASET-GEN-001-REV3.1 / ARCH-ST-010.3
 RULE_TARGET_CAPS = {
     "IND-01": 255,
     "IND-02": 305,

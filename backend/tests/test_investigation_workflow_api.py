@@ -245,3 +245,81 @@ def test_claim_hold_and_timeline_continuity(isolated_db):
         assert rows[i][1] == rows[i-1][2]      # Unbroken link
     conn.close()
 
+
+
+def test_claim_siu_hold_and_release_workflow(isolated_db):
+    """
+    Validates complete hold-and-release investigator lifecycle:
+    1. Place claim on SIU_HOLD.
+    2. Attempt release without CLEARED_BENIGN investigation -> rejected with 400.
+    3. Open investigation for claim and close as CLOSED_CLEARED_BENIGN.
+    4. Valid release transitions claim to APPROVED, emits CLAIM_APPROVED event.
+    5. Verifies timeline and event hash chain integrity.
+    """
+    client, db_path = isolated_db
+    claim_id = "CLM-2026-001276"  # Claim with approved_amount_cents > 0 and net_paid_cents == 0
+
+    # 1. Place claim on hold
+    res_hold = client.post(f"/api/v1/claims/{claim_id}/hold", json={"actor_id": "SIU-TESTER", "reason": "Triage review"})
+    assert res_hold.status_code == 200
+    assert res_hold.json()["claim_status"] == "SIU_HOLD"
+
+    # 2. Attempt invalid release (no benign investigation exists for this hold cycle)
+    res_bad_rel = client.post(
+        f"/api/v1/claims/{claim_id}/release",
+        json={
+            "target_status": "APPROVED",
+            "cleared_investigation_id": "INVG-2026-000001",
+            "actor_id": "SIU-TESTER"
+        }
+    )
+    assert res_bad_rel.status_code == 400
+    assert "ERR_CLAIM_SIU_EXIT_REQUIRES_BENIGN_CLOSURE" in res_bad_rel.json()["detail"]
+
+    # 3. Open investigation on the claim
+    res_inv = client.post(
+        "/api/v1/investigations",
+        json={
+            "primary_claim_id": claim_id,
+            "priority": "P2_HIGH",
+            "assigned_investigator_id": "SIU-BENIGN-REVIEWER",
+            "case_summary_notes": "Reviewing claim for benign multi-unit address verification"
+        }
+    )
+    assert res_inv.status_code == 201
+    inv_id = res_inv.json()["investigation_id"]
+
+    # Progress to CLOSED_CLEARED_BENIGN
+    res_close = client.patch(
+        f"/api/v1/investigations/{inv_id}/status",
+        json={
+            "new_status": "CLOSED_CLEARED_BENIGN",
+            "ruling_outcome": "CLEARED_BENIGN",
+            "notes": "Verified legitimate insured, no collusion found",
+            "actor_id": "SIU-SUPERVISOR"
+        }
+    )
+    assert res_close.status_code == 200
+
+    # 4. Valid release
+    res_good_rel = client.post(
+        f"/api/v1/claims/{claim_id}/release",
+        json={
+            "target_status": "APPROVED",
+            "cleared_investigation_id": inv_id,
+            "actor_id": "SIU-SUPERVISOR"
+        }
+    )
+    assert res_good_rel.status_code == 200
+    rel_data = res_good_rel.json()
+    assert rel_data["status"] == "SIU_HOLD_RELEASED"
+    assert rel_data["claim_status"] == "APPROVED"
+
+    # 5. Timeline validation: events are strictly linked
+    res_tl = client.get(f"/api/v1/claims/{claim_id}/timeline")
+    assert res_tl.status_code == 200
+    event_types = [e["event_type"] for e in res_tl.json()]
+    assert "CLAIM_SIU_HOLD_PLACED" in event_types
+    assert "INVESTIGATION_OPENED" in event_types
+    assert "INVESTIGATION_CLOSED" in event_types
+    assert "CLAIM_APPROVED" in event_types

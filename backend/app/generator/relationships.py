@@ -1,6 +1,6 @@
 """
 Operational relationship edge generator for SENTINEL//TRACE.
-Builds the graph topology in accordance with ARCH-ST-010.2:
+Builds the graph topology in accordance with ARCH-ST-010.3:
 - Canonical key ordering: canonical_src_key < canonical_dst_key (lexicographical)
 - Strict withholding of cross-cluster bridge edges for YF-NEG-4
 - Embeds edge types: SHARED_ADDRESS, SHARED_PHONE, SHARED_BANK_ACCOUNT,

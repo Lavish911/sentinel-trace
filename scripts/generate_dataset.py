@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed (default: 42)")
     parser.add_argument("--op-db", type=str, default=str(DEFAULT_OPERATIONAL_DB), help="Operational DB path")
     parser.add_argument("--gt-db", type=str, default=str(DEFAULT_GROUND_TRUTH_DB), help="Ground truth DB path")
+    parser.add_argument("--overwrite", action="store_true", help="Overwrite existing database files if they exist")
     parser.add_argument("--dual-run", action="store_true", help="Execute dual-run reproducibility test")
 
     args = parser.parse_args()
@@ -34,7 +35,28 @@ def main():
     gt_path = Path(args.gt_db)
 
     print(f"Starting ARCH-ST-010.3 dataset generation with seed={args.seed}...")
-    report = generate_dataset(seed=args.seed, ops_db_path=op_path, gt_db_path=gt_path)
+    print(f"[*] Operational DB target:  {op_path.resolve()}")
+    print(f"[*] Ground-truth DB target: {gt_path.resolve()}")
+    print(f"[*] Overwrite allowed:      {args.overwrite}")
+
+    # P0-1: Collision guard
+    if op_path.resolve() == gt_path.resolve():
+        raise ValueError(f"Operational DB and Ground Truth DB cannot resolve to the same path: {op_path}")
+
+    # P0-1: Overwrite refusal
+    if not args.overwrite:
+        if op_path.exists():
+            raise FileExistsError(
+                f"Operational database already exists at {op_path}. "
+                "Specify --overwrite to replace it."
+            )
+        if gt_path.exists():
+            raise FileExistsError(
+                f"Ground truth database already exists at {gt_path}. "
+                "Specify --overwrite to replace it."
+            )
+
+    report = generate_dataset(seed=args.seed, ops_db_path=op_path, gt_db_path=gt_path, overwrite=args.overwrite)
 
     print(f"[PASS] Seed={report['seed']} generated successfully.")
     print(f"       ST-SCHEMA-V1 digest : {report['schema_digest']}")
@@ -49,7 +71,7 @@ def main():
         print("=" * 80)
         run2_op = op_path.parent / "operational_run2.db"
         run2_gt = gt_path.parent / "ground_truth_run2.db"
-        report2 = generate_dataset(seed=args.seed, ops_db_path=run2_op, gt_db_path=run2_gt)
+        report2 = generate_dataset(seed=args.seed, ops_db_path=run2_op, gt_db_path=run2_gt, overwrite=True)
 
         match = (
             report["ops_checksum"] == report2["ops_checksum"]

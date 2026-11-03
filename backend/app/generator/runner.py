@@ -53,9 +53,14 @@ def create_operational_connection(db_path: Path) -> sqlite3.Connection:
     return conn
 
 
-def init_operational_db(db_path: Path):
-    """Initializes the ARCH-ST-010.2 operational schema."""
+def init_operational_db(db_path: Path, overwrite: bool = True):
+    """Initializes the ARCH-ST-010.3 operational schema."""
     if db_path.exists():
+        if not overwrite:
+            raise FileExistsError(
+                f"Operational database already exists at {db_path}. "
+                "Specify overwrite=True or --overwrite to replace."
+            )
         db_path.unlink()
         
     conn = create_operational_connection(db_path)
@@ -71,23 +76,49 @@ def run_generator(
     seed: int = DEFAULT_SEED,
     op_db_path: Path = DEFAULT_OPERATIONAL_DB,
     gt_db_path: Path = DEFAULT_GROUND_TRUTH_DB,
-    verbose: bool = True
+    verbose: bool = True,
+    overwrite: bool = False
 ) -> Dict[str, Any]:
     """
     Executes complete deterministic dataset generation and verification.
     """
+    op_path = Path(op_db_path)
+    gt_path = Path(gt_db_path)
+
+    # P0-1: Collision guard
+    if op_path.resolve() == gt_path.resolve():
+        raise ValueError(
+            f"Operational DB and Ground Truth DB cannot resolve to the same path: {op_path}"
+        )
+
+    # P0-1: Overwrite protection
+    if not overwrite:
+        if op_path.exists():
+            raise FileExistsError(
+                f"Operational database already exists at {op_path}. "
+                "Specify overwrite=True or --overwrite to replace."
+            )
+        if gt_path.exists():
+            raise FileExistsError(
+                f"Ground truth database already exists at {gt_path}. "
+                "Specify overwrite=True or --overwrite to replace."
+            )
+
     if verbose:
         print("=" * 80)
         print(f"SENTINEL//TRACE — DETERMINISTIC DATASET GENERATOR (SEED={seed})")
         print("=" * 80)
+        print(f"[*] Operational DB target:  {op_path.resolve()}")
+        print(f"[*] Ground-truth DB target: {gt_path.resolve()}")
+        print(f"[*] Overwrite allowed:      {overwrite}")
 
     # 1. Initialize Databases
     if verbose:
-        print("[1/7] Initializing ARCH-ST-010.2 Operational & Ground-Truth Databases...")
-    init_operational_db(op_db_path)
-    init_ground_truth_db(gt_db_path)
+        print("[1/7] Initializing ARCH-ST-010.3 Operational & Ground-Truth Databases...")
+    init_operational_db(op_path, overwrite=overwrite)
+    init_ground_truth_db(gt_path, overwrite=overwrite)
     
-    op_conn = create_operational_connection(op_db_path)
+    op_conn = create_operational_connection(op_path)
     event_builder = EventChainBuilder()
 
     # 2. Generate Entities
@@ -707,6 +738,9 @@ def run_generator(
         print(f"[*] FK Violations: {len(fk_violations)}")
         print(f"[*] Financial Invariant Violations: {len(fin_violations)}")
         print(f"[*] Event Chain Status: {'PASS' if ev_valid else 'FAIL'} ({ev_total} events)")
+        print(f"[*] YF-NEG-1 Passed: {scenario_res.get('YF-NEG-1', {}).get('passed')}")
+        print(f"[*] YF-NEG-2 Passed: {scenario_res.get('YF-NEG-2', {}).get('passed')}")
+        print(f"[*] YF-NEG-3 Passed: {scenario_res.get('YF-NEG-3', {}).get('passed')}")
         print(f"[*] YF-NEG-4 Passed: {scenario_res.get('YF-NEG-4', {}).get('passed')}")
         print(f"[*] YF-NEG-5 Passed: {scenario_res.get('YF-NEG-5', {}).get('passed')}")
         print(f"[*] Withheld Edges in Operational DB: {scenario_res.get('WITHHELD_EDGES', {}).get('operational_count')}")

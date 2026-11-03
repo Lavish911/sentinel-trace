@@ -4,14 +4,14 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![SQLite STRICT](https://img.shields.io/badge/SQLite-STRICT%20%7C%20WAL-003B57.svg)](https://www.sqlite.org/)
 [![Schema Digest](https://img.shields.io/badge/ARCH--ST--010.3-2187bf73...-success.svg)](#key-architectural-invariants-arch-st-0103)
-[![Backend Tests](https://img.shields.io/badge/backend%20tests-59%2F59%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
-[![Total Tests](https://img.shields.io/badge/total%20tests-87%2F87%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
+[![Backend Tests](https://img.shields.io/badge/backend%20tests-66%2F66%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
+[![Total Tests](https://img.shields.io/badge/total%20tests-94%2F94%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
 [![Deterministic Dual-Run](https://img.shields.io/badge/bit--determinism-VERIFIED-brightgreen.svg)](#step-4-verify-deterministic-dual-run-bit-identity)
 
 > **YottaFlex AI Candidate Project Submission**  
 > **Canonical Architecture Baseline:** **ARCH-ST-010.3**  
 > **Target Deadline:** November 4, 2026, 11:48:55 AM IST  
-> **Status:** **READY FOR EVALUATION** (59/59 backend pytest tests passing; 20/20 ARCH-ST-010.3 validation checks verified; 8/8 transactional fault-injection tests passing [87/87 total repository tests]; 11/11 separate targeted submission hardening checks passing; End-to-End Forensic Cockpit operational)
+> **Status:** **READY FOR EVALUATION** (66/66 backend pytest tests passing; 20/20 ARCH-ST-010.3 validation checks verified; 8/8 transactional fault-injection tests passing [94/94 primary repository suite tests]; 8 separate targeted P0 hardening checks passing; End-to-End Forensic Cockpit operational)
 
 ---
 
@@ -62,8 +62,9 @@ flowchart TD
    Strict 12-table relational schema with 27 database-level integrity triggers. Zero schema drift enforced via canonical SHA-256 schema digest:  
    `2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab`.
 2. **Cryptographic Event Hash Chain (ST-EVT-V2):**  
-   Every state transition produces a cryptographically hashed event in `immutable_events`, forming an unbroken sequential SHA-256 hash chain with zero causal or chronological inversions across **19,675 events**.  
+   Every state transition produces a cryptographically hashed event in `immutable_events`, forming an unbroken sequential SHA-256 hash chain with zero causal or chronological inversions across **19,675 events**.
    **Canonical Event-Chain Tip Hash:** `333f22fc65e0b22d1c13fd58629694da84fce3c9b77c9e2190f47ed2b784c584` (at sequence #19,675).
+   *Trust Boundary & Scope:* The unkeyed sequential SHA-256 event hash chain provides tamper-evident consistency and integrity verification against post-hoc insertion, reordering, truncation, or modification of historical audit records. Because the chain is unkeyed, it serves strictly as an integrity and consistency check, not as cryptographic proof of authorship, non-repudiation, or actor identity authentication (which in enterprise production architectures requires asymmetric actor digital signatures or HMAC keys).
 3. **Operational Graph Centrality (IND-06 PageRank):**  
    Computes network centrality strictly over active operational edges (`relationship_edges` where `is_active=1`) using exact power-iteration PageRank. Verified against an independent NumPy reference implementation.
 4. **Physical Ground-Truth Isolation:**  
@@ -84,7 +85,7 @@ flowchart TD
 | **Custom UDFs** | `sha256_hex`, `is_canonical_json` | Deterministic payload hashing and RFC-8785 canonical JSON validation in SQL. |
 | **Graph Analytics** | NetworkX & NumPy | Multi-hop ego-graph path traversal and power-iteration PageRank centrality. |
 | **Frontend Cockpit** | Vanilla ES2020 / SVG / CSS3 | Zero-dependency single-page console served via FastAPI; no Node.js/npm required. |
-| **Testing & Verification**| Pytest, Unittest, Playwright | 87 total automated tests covering API, FSM lifecycle, transactional atomicity, and UI. |
+| **Testing & Verification**| Pytest, Unittest, Playwright | 94 primary automated tests (66 backend pytest, 20 DB acceptance, 8 atomicity) plus 8 targeted P0 hardening checks. |
 
 ---
 
@@ -171,7 +172,13 @@ All 5 core negative and stress scenarios from the specification are verified:
 - **YF-NEG-2 (Payment Exceeding Approved Amount):** Direct live attempt to disburse payments exceeding approved invoice caps is aborted with `ERR_PAYMENT_EXCEEDS_APPROVED_CAP`. 30 blocked attempts recorded as `BLOCKED_OVERPAYMENT`. Verified by `db/test_suite.py::T-11`.
 - **YF-NEG-3 (Duplicate Invoice Across Claimants):** 25 duplicate invoice pairs across different claimants (`is_cross = True`) rejected with `REJECTED_DUPLICATE` and escalated by detector to `HIGH` risk ($\ge 65.00$). Verified by `db/test_suite.py::T-12`.
 - **YF-NEG-4 (Missing Operational Relationships):** 25 planted missing edges strictly quarantined in `ground_truth.db` with zero leakage into operational graph. 36 of 40 ring claims (90% $\ge$ 80% threshold) score $\ge 65.00$ `HIGH` using observable data only. Verified by `db/test_suite.py::T-13` and `test_generator.py::test_scenario_yf_neg_4_detection`.
-- **YF-NEG-5 (High-Density Benign Suppression):** 80 apartment claims at 742 Evergreen Terrace Apt 4B (plus 420 lookalike controls in BL-1..BL-5) score below benign thresholds ($\le 12.00$) in `LOW` risk tier with 0 false positives via calibrated BC-1 benign multiplier. Verified by `db/test_suite.py::T-14` and `test_generator.py::test_scenario_yf_neg_5_suppression`.
+- **YF-NEG-5 (High-Density Benign Suppression):** 80 apartment claims at 742 Evergreen Terrace Apt 4B (Cohort A, plus 420 lookalike controls in BL-1..BL-5) score below benign thresholds ($\le 12.00$) in `LOW` risk tier with 0 false positives via calibrated benign dampening. Verified by `db/test_suite.py::T-14` and `test_generator.py::test_scenario_yf_neg_5_suppression`.
+  > [!NOTE]
+  > **BC-1 Calibration Disclosure (Empirical vs. Standalone Reference):**
+  > - **Specification Standalone Reference Calculation:** In `ARCH-ST-010.3` §7.1 and `SPEC-DATASET-GEN-001-REV3.1` §4.1, the standalone $BC-1$ formula specifies a single-context multiplier of $m_1 = 0.35$, yielding a theoretical mathematical reference score of **0.82**.
+  > - **Operational Seed Calibration (Compounded Product Rule):** The authoritative operational dataset generated by `db/seed.py` implements the multi-context product rule $D = \max(0.15, \prod m_b)$ wherein $BC-1 = 0.25$ compounds with $BC-6 = 0.75$ ($D = 0.25 \times 0.75 = 0.1875$), producing an empirically observed score of **0.44** across the 80 operational claims in `data/operational.db`.
+  > - **Classification Invariant & Operational Deviation:** Both the theoretical reference score ($0.82$) and the empirically observed score ($0.44$) fall well below the $\le 12.00$ threshold, strictly preserving the `LOW` risk tier, 0 false positives, and preventing any `SIU_HOLD` or `DENIED` outcomes. This difference represents an intentional operational calibration/deviation from the standalone specification reference to account for multi-context compounding in the synthetic generator.
+  > - **Cohort Validation Scope:** Cohort A (742 Evergreen Terrace, 80 claims) is empirically validated against live operational database rows; Cohort B (100 Ocean Ave, modular generator reference) is mathematically verified via regression checks without mutating the canonical 5,000-claim baseline dataset.
 
 ---
 
@@ -193,13 +200,19 @@ python scripts/generate_dataset.py
 ```
 **Output:** Populates `data/operational.db` (5,000 claims, 19,675 events, $41.8M exposure) and `data/ground_truth.db`.
 
+> [!NOTE]
+> **Generator Architecture & Canonical Authority:**
+> - **Canonical Generator Authority (`db/seed.py`):** `db/seed.py` is the single authoritative dataset generator for SENTINEL//TRACE (`ARCH-ST-010.3`). It is invoked by `scripts/generate_dataset.py`, the database acceptance suite (`db/test_suite.py`), and the atomicity test suite (`db/test_atomicity.py`). It enforces bit-for-bit deterministic generation (seed 42 checksum `fd062077...`), exact event counts (19,675 events), and live trigger validation.
+> - **Modular Architecture Reference (`backend/app/generator/`):** The package under `backend/app/generator/` (`entities.py`, `relationships.py`, `financial.py`, `detector.py`, `scorer.py`, `validator.py`, and `runner.py`) serves as an architectural component reference and provides isolated unit tests for generator subsystems.
+> - **Unified Path Safety & Overwrite Protection:** Both implementations strictly enforce fail-closed path safety: neither performs legacy fallbacks to root-level databases, both refuse to overwrite existing database files unless explicitly commanded (`--overwrite` / `overwrite=True`), and both reject configurations where operational and ground-truth paths resolve to the same target.
+
 ### Step 3: Run Full Automated Test Suites
 
-1. **FastAPI Backend & Workflow Suite (59 tests):**
+1. **FastAPI Backend & Workflow Suite (66 tests):**
    ```bash
    python -m pytest backend/tests/ -v
    ```
-   *Expected Output: `59 passed (100% green)`*
+   *Expected Output: `66 passed (100% green)`*
 
 2. **Canonical ARCH-ST-010.3 Database Invariants (20 tests, T-01..T-20):**
    ```bash
@@ -212,6 +225,12 @@ python scripts/generate_dataset.py
    python -m unittest db.test_atomicity
    ```
    *Expected Output: `Ran 8 tests ... OK`*
+
+4. **Targeted P0 Hardening & Verification Suite (8 separate checks):**
+   ```bash
+   python scripts/verify_p0_hardening.py
+   ```
+   *Expected Output: `ALL 8 P0 HARDENING CHECKS PASSED` (runs targeted checks on database path safety, YF-NEG-2/3/4/5 assertions, Cohort A empirical & Cohort B mathematical validation, and ground-truth isolation)*
 
 ### Step 4: Verify Deterministic Dual-Run Bit Identity
 ```bash
@@ -227,11 +246,20 @@ python scripts/generate_dataset.py --dual-run
 
 ### Step 5: Launch Backend & Forensic Cockpit
 ```bash
+# Using Python directly (recommended):
 python -m uvicorn backend.app.main:app --port 8000
+
+# Or using npm script shortcut (delegates to uvicorn):
+npm start
 ```
 - **Forensic Cockpit Console:** `http://localhost:8000/` or `http://localhost:8000/cockpit`
 - **Interactive Swagger Documentation:** `http://localhost:8000/docs`
 - **ReDoc Specification:** `http://localhost:8000/redoc`
+
+> [!NOTE]
+> **Operational UI vs. Archival Prototype:**
+> - **Operational Forensic Cockpit (`http://localhost:8000/`):** The operational, production-ready investigator interface is served directly by the FastAPI backend at port 8000 using zero-dependency standard HTML5/CSS/SVG templates and client-side ES2020 modules. It requires no Node.js or JavaScript build tools.
+> - **Archival Specification Prototype (`src/`):** The React/Vite codebase in `src/` represents an early milestone specification prototype (ARCH-ST-010.1). It is preserved for design lineage and accessible via `npm run dev:prototype`, but is not part of the active operational pipeline.
 
 ---
 
@@ -239,21 +267,17 @@ python -m uvicorn backend.app.main:app --port 8000
 
 The built-in forensic cockpit allows evaluators to step through the complete fraud analyst lifecycle:
 
-1. **Dashboard Overview:** Open `http://localhost:8000/`. Review KPI cards showing 5,000 monitored claims, risk tier distributions, **$41.8M** ($41,840,000.00) total claimed exposure, 4,120 persisted indicators, and 45 active SIU cases.
-2. **Triage Worklist:** Browse the paginated claim triage queue on the left panel, sorted by descending IEF risk score.
-3. **Risk Tier Filtering:** Click filter pills to isolate `High Risk (>=65)` or `Medium Risk` claims.
-4. **Scenario Quick-Toggles:** Click `YF-NEG-4 Collusion` to filter the 40 organized fraud syndicate claims, or `YF-NEG-5 Shared Address` to inspect the 80 apartment claims with benign suppression.
-5. **Claim Dossier Inspection:** Click any claim (e.g. `CLM-2026-000050`) to load its full forensic dossier in the right panel.
-6. **Claimant & Policy Verification:** Review claimant profile, normalized address, E.164 phone, policy coverage limits, and incident facts.
-7. **Invoices & Provider Breakdown:** Inspect submitted medical and repair invoices, billing providers, network tiers, and financial ledger figures.
-8. **Fraud Indicators & Scoring Waterfall:** Switch to the **Fraud Indicators** tab to view triggered rule codes (IND-01..IND-15), pillars, severities, raw points, and exact canonical evidence tokens.
-9. **Interactive Network Topology:** Switch to the **Network Topology** tab to visualize the operational ego-network. See claim nodes, claimants, providers, and active relationship edges (`SHARED_ADDRESS`, `SHARED_PHONE`, `PROVIDER_REFERRAL_LINK`).
-10. **Event Audit Trail:** Switch to the **Event Chain** tab to verify the chronological event sequence and SHA-256 event hash chain.
-11. **SIU Case Management:** Switch to the **SIU Case** tab:
-    - Click `+ Open Case` to create case `INVG-2026-XXXXXX` (emits `INVESTIGATION_OPENED`).
-    - Append evidence notes (persisted audit log).
-    - Transition lifecycle status: `OPEN` $\to$ `EVIDENCE_COLLECTION` $\to$ `SIU_FIELD_REVIEW` $\to$ `CLOSED_CONFIRMED_FRAUD`.
-    - Observe automatic primary claim update to `SIU_REFERRED`.
+1. **Dashboard Overview:** Open `http://localhost:8000/`. Review KPI cards showing 5,000 monitored claims, risk tier distributions, **$41.8M** ($41,840,000.00) total claimed exposure, 4,120 persisted indicators, and 45 active SIU cases. ([`01_dashboard_overview.png`](docs/screenshots/01_dashboard_overview.png))
+2. **Claims Queue & Filtering:** Browse the paginated triage worklist on the left panel, filter by risk tier (`High Risk (>=65)`, `Medium Risk`), or select scenario quick-toggles like `YF-NEG-5 · shared address`. ([`02_claims_queue_filtered.png`](docs/screenshots/02_claims_queue_filtered.png))
+3. **Claim Dossier Inspection:** Inspect full multi-entity claim dossier for any claim (e.g. `CLM-2026-000050` or `CLM-2026-002319`), reviewing claimant profile, normalized address, E.164 phone, policy coverage limits, and incident facts. ([`03_claim_dossier_overview.png`](docs/screenshots/03_claim_dossier_overview.png))
+4. **Invoices & Financial Breakdown:** Inspect submitted medical and repair invoices, billing providers, network tiers, and financial ledger figures. ([`04_invoices_payments.png`](docs/screenshots/04_invoices_payments.png))
+5. **Fraud Indicators & Scoring Waterfall:** Switch to the **Fraud Indicators** tab to view triggered rule codes (IND-01..IND-15), pillars, severities, raw points, and exact canonical evidence tokens. ([`05_fraud_indicators.png`](docs/screenshots/05_fraud_indicators.png))
+6. **Interactive Network Topology:** Switch to the **Network Topology** tab to visualize the operational ego-network (claim nodes, claimants, providers, and active relationship edges like `SHARED_ADDRESS`, `SHARED_PHONE`, `PROVIDER_REFERRAL_LINK`). ([`06_network_topology.png`](docs/screenshots/06_network_topology.png))
+7. **Open SIU Case Modal:** Click `+ Open Case` on a high-risk dossier to launch the investigation creation modal and assign investigation parameters. ([`07_open_case_modal.png`](docs/screenshots/07_open_case_modal.png))
+8. **Case Detail & Evidence Notes:** Switch to the **SIU Case** tab to manage case progress, record findings, and append timestamped forensic notes to the append-only audit log. ([`08_case_detail_and_notes.png`](docs/screenshots/08_case_detail_and_notes.png))
+9. **Case Closure & Terminal Sealing:** Transition lifecycle status (`OPEN` $\to$ `EVIDENCE_COLLECTION` $\to$ `SIU_FIELD_REVIEW` $\to$ `CLOSED_CONFIRMED_FRAUD`), sealing the investigation and updating the primary claim to `SIU_REFERRED`. ([`09_case_closed_sealed.png`](docs/screenshots/09_case_closed_sealed.png))
+10. **Event Audit Trail & Hash Chain:** Switch to the **Event Chain** tab to verify chronological `ST-EVT-V2` lifecycle events, monotonic sequence IDs, and unbroken SHA-256 event hash chaining. ([`10_merkle_audit_timeline.png`](docs/screenshots/10_merkle_audit_timeline.png))
+11. **Error & 404 Resiliency:** Verified system handling when requesting nonexistent claim or case IDs, returning structured JSON error diagnostics. ([`11_error_not_found.png`](docs/screenshots/11_error_not_found.png))
 
 ---
 

@@ -1,6 +1,6 @@
 """
 10-Stage IEF Scoring Pipeline and Claim State Update Engine.
-Implements ARCH-ST-010.2 Section 9.4:
+Implements ARCH-ST-010.3 Section 9.4:
 - Stage 1: Graph & Centrality (PageRank over operational graph)
 - Stage 2: Indicator computation (All 15 indicators, IND-06 emitted when PR > 1.25)
 - Stage 3: Deduplication by (indicator_code, canonical_evidence_token)

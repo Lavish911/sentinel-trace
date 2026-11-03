@@ -383,7 +383,7 @@ def generate_entities(seed: int = 42) -> Tuple[
                 inc_rec["reported_timestamp_utc"] = (sub_date - timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
         else:
             claimed_cents = rng.choice([150000, 280000, 420000, 750000, 1200000, 3500000])
-        # ARCH-ST-010.2 trigger requirement:
+        # ARCH-ST-010.3 trigger requirement:
         # payout_cap_cents == MIN(claimed_amount_cents, MAX(0, coverage_limit_cents - deductible_cents))
         net_coverage = max(0, pol["coverage_limit_cents"] - pol["deductible_cents"])
         payout_cap = min(claimed_cents, net_coverage)

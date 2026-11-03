@@ -71,6 +71,24 @@ def list_investigations(
     conn: sqlite3.Connection = Depends(get_db)
 ) -> Dict[str, Any]:
     """Lists investigations with triage filters and linked claim risk metrics."""
+    ALLOWED_STATUSES = {
+        "ALL", "OPEN", "IN_PROGRESS", "EVIDENCE_COLLECTION", "SIU_FIELD_REVIEW",
+        "CLOSED_CONFIRMED_FRAUD", "CLOSED_CLEARED_BENIGN", "CLOSED_INSUFFICIENT_EVIDENCE"
+    }
+    ALLOWED_PRIORITIES = {"ALL", "P1_CRITICAL", "P2_HIGH", "P3_MEDIUM", "P4_LOW"}
+
+    if status and status not in ALLOWED_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid status '{status}'. Must be one of {sorted(ALLOWED_STATUSES)}"
+        )
+
+    if priority and priority not in ALLOWED_PRIORITIES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Invalid priority '{priority}'. Must be one of {sorted(ALLOWED_PRIORITIES)}"
+        )
+
     where_clauses = []
     params = []
 
@@ -413,6 +431,10 @@ def get_investigation_timeline(
     conn: sqlite3.Connection = Depends(get_db)
 ) -> List[Dict[str, Any]]:
     """Returns chronological immutable events directly related to this investigation."""
+    inv_row = conn.execute("SELECT 1 FROM investigations WHERE investigation_id = ?", (investigation_id,)).fetchone()
+    if not inv_row:
+        raise HTTPException(status_code=404, detail=f"Investigation {investigation_id} not found")
+
     rows = conn.execute("""
         SELECT 
             sequence_no, event_id, event_type, entity_type, entity_id,

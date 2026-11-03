@@ -1,7 +1,7 @@
 """
 Database Trigger and Security Guard Verification Suite for SENTINEL//TRACE.
 Verifies negative tests, FSM transition guards, digest tampering protections,
-and balance constraints across the 24 ARCH-ST-010.2 database triggers (F-AUD-10).
+and balance constraints across the 27 ARCH-ST-010.3 database triggers (F-AUD-10).
 """
 
 import sqlite3

@@ -1,6 +1,6 @@
 """
 Operational Graph and PageRank Centrality Engine for SENTINEL//TRACE.
-Complies with ARCH-ST-010.2 Section 9.1-9.4 and Section 8 (IND-06).
+Complies with ARCH-ST-010.3 Section 9.1-9.4 and Section 8 (IND-06).
 
 Features:
 - Deterministic 7,500-node universe (5,000 claims, 2,000 claimants, 500 providers)

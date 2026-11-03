@@ -19,7 +19,7 @@ from backend.app.main import app
 
 @pytest.fixture
 def in_memory_db() -> Generator:
-    """Fixture providing an in-memory SQLite database initialized with ARCH-ST-010.2 schema."""
+    """Fixture providing an in-memory SQLite database initialized with ARCH-ST-010.3 schema."""
     conn = create_connection(":memory:")
     initialize_database(conn)
     try:

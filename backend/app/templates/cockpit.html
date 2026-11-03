@@ -743,8 +743,7 @@ function renderClaimsDesk(){
           <select class="select" id="claim-size">${[25,50,100].map(n=>`<option ${c.size===n?'selected':''}>${n}</option>`).join('')}</select></div>
       </div>
       <div class="pills" style="padding:10px 16px;border-bottom:1px solid var(--panel-line)" role="group" aria-label="Scenario lenses">
-        <button class="pill ${!c.scenario?'on':''}" data-scenario="" onclick="setScenario(this)">All scenarios</button>
-        <button class="pill ${c.scenario==='yf_neg_4'?'on':''}" data-scenario="yf_neg_4" onclick="setScenario(this)">YF-NEG-4 · collusion ring</button>
+        <button class="pill ${!c.scenario?'on':''}" data-scenario="" onclick="setScenario(this)">All claims</button>
         <button class="pill ${c.scenario==='yf_neg_5'?'on':''}" data-scenario="yf_neg_5" onclick="setScenario(this)">YF-NEG-5 · shared address</button>
       </div>
       <div id="claims-table"></div>

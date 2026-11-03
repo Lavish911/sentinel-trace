@@ -1,7 +1,8 @@
 """
 Independent ground-truth database generator.
 Generates ground_truth.db containing labels, ring topologies, scenarios, and withheld edges.
-Completely isolated from the operational database (sentinel_trace.db).
+Completely isolated from the operational database (data/operational.db).
+Adheres strictly to ARCH-ST-010.3 specifications.
 """
 
 import sqlite3
@@ -9,9 +10,14 @@ from pathlib import Path
 from typing import Dict, List, Any
 
 
-def init_ground_truth_db(db_path: Path):
+def init_ground_truth_db(db_path: Path, overwrite: bool = True):
     """Initializes the isolated ground_truth.db schema."""
     if db_path.exists():
+        if not overwrite:
+            raise FileExistsError(
+                f"Ground truth database already exists at {db_path}. "
+                "Specify overwrite=True to replace."
+            )
         db_path.unlink()
         
     conn = sqlite3.connect(str(db_path))
@@ -79,7 +85,7 @@ def populate_ground_truth(
         ("YF-NEG-2", "Staged Two-Car Collisions", "FRAUD_RING", 50, "Coordinated multi-party staged accidents"),
         ("YF-NEG-3", "Cross-Claimant Duplicate Invoices", "FRAUD_PAIR", 25, "Duplicate invoices across claimants sharing payout accounts"),
         ("YF-NEG-4", "Partially Observable Ring Collusion", "FRAUD_RING", 40, "5 collusion rings of 8 claims with withheld bridge edges"),
-        ("YF-NEG-5", "Multi-Unit Apartment Cluster", "BENIGN_CONTROL", 80, "Legitimate claimants sharing 100 Ocean Ave apartment building"),
+        ("YF-NEG-5", "Multi-Unit Apartment Cluster", "BENIGN_CONTROL", 80, "Legitimate claimants sharing 742 Evergreen Terrace Apt 4B"),
         ("BL-BENIGN", "Baseline Clean Operations", "BENIGN_POPULATION", 4780, "Uncoordinated normal insureds and claimants")
     ]
     conn.executemany("INSERT INTO scenarios VALUES (?,?,?,?,?)", scenarios)
@@ -121,7 +127,7 @@ def populate_ground_truth(
         elif idx in yf3_indices:
             labels.append((cid, 1, "YF-NEG-3", None, "HIGH_CONFIDENCE_FRAUD", "Duplicate invoice shared payout pair"))
         elif idx in yf5_indices:
-            labels.append((cid, 0, "YF-NEG-5", None, "BENIGN_CONTROL", "Legitimate resident of 100 Ocean Ave"))
+            labels.append((cid, 0, "YF-NEG-5", None, "BENIGN_CONTROL", "Legitimate resident of 742 Evergreen Terrace Apt 4B"))
         else:
             # Baseline claims: ~10% planted anomalies, 90% clean
             is_fraud = 1 if (idx % 10 == 0) else 0
@@ -144,4 +150,3 @@ def populate_ground_truth(
 
     conn.commit()
     conn.close()
-

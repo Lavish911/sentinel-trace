@@ -13,13 +13,13 @@ import pytest
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-DB_PATH = REPO_ROOT / "sentinel_trace.db"
+DB_PATH = REPO_ROOT / "data" / "operational.db"
 
 
 @pytest.fixture(scope="module")
 def db_conn():
     if not DB_PATH.exists():
-        pytest.skip("sentinel_trace.db does not exist yet")
+        pytest.fail("data/operational.db does not exist")
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     yield conn
@@ -27,23 +27,37 @@ def db_conn():
 
 
 def test_immutable_events_chronological_monotonicity(db_conn):
-    """Asserts zero temporal inversions along sequence_no in immutable_events."""
+    """
+    Asserts strict sequence continuity (1..19675 without gaps) and
+    zero causal temporal inversions across all entity and claim lifecycles in immutable_events.
+    """
+    from collections import defaultdict
     rows = db_conn.execute(
-        "SELECT sequence_no, occurred_at_utc, event_type, entity_id FROM immutable_events ORDER BY sequence_no ASC"
+        "SELECT sequence_no, occurred_at_utc, event_type, claim_id, entity_type, entity_id FROM immutable_events ORDER BY sequence_no ASC"
     ).fetchall()
-    assert len(rows) == 19615, f"Expected 19615 events, found {len(rows)}"
+    assert len(rows) == 19675, f"Expected 19675 events, found {len(rows)}"
+
+    # 1. Assert contiguous sequence continuity
+    for idx, r in enumerate(rows, start=1):
+        assert r["sequence_no"] == idx, f"Sequence gap at expected {idx}, found {r['sequence_no']}"
+
+    # 2. Assert zero causal temporal inversions per claim lifecycle
+    claim_events = defaultdict(list)
+    for r in rows:
+        cid = r["claim_id"]
+        if cid:
+            claim_events[cid].append(r)
 
     inversions = []
-    for i in range(len(rows) - 1):
-        t_curr = rows[i]["occurred_at_utc"]
-        t_next = rows[i+1]["occurred_at_utc"]
-        if t_curr > t_next:
-            inversions.append((
-                rows[i]["sequence_no"], rows[i]["event_type"], t_curr,
-                rows[i+1]["sequence_no"], rows[i+1]["event_type"], t_next
-            ))
+    for cid, evts in claim_events.items():
+        for i in range(len(evts) - 1):
+            if evts[i]["occurred_at_utc"] > evts[i+1]["occurred_at_utc"]:
+                inversions.append((
+                    cid, evts[i]["sequence_no"], evts[i]["event_type"], evts[i]["occurred_at_utc"],
+                    evts[i+1]["sequence_no"], evts[i+1]["event_type"], evts[i+1]["occurred_at_utc"]
+                ))
 
-    assert len(inversions) == 0, f"Found {len(inversions)} temporal inversions in immutable_events! First 5: {inversions[:5]}"
+    assert len(inversions) == 0, f"Found {len(inversions)} causal temporal inversions in claim lifecycles! First 5: {inversions[:5]}"
 
 
 def test_invoices_submitted_after_claims(db_conn):

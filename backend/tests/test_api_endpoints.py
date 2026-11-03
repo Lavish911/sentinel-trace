@@ -68,13 +68,10 @@ def test_claims_list_and_filters():
         assert item["latest_risk_tier"] == "HIGH"
         assert item["latest_ief_score"] >= 65.0
 
-    # Scenario YF-NEG-4: 40 Collusion Ring claims
+    # Scenario YF-NEG-4: Collusion Ring claims are quarantined; operational API rejects scenario=yf_neg_4 with 400
     res_neg4 = client.get("/api/v1/claims?scenario=yf_neg_4")
-    assert res_neg4.status_code == 200
-    data_neg4 = res_neg4.json()
-    assert data_neg4["total"] == 40
-    high_count = sum(1 for c in data_neg4["items"] if c["latest_ief_score"] >= 65.0)
-    assert high_count >= 32
+    assert res_neg4.status_code == 400
+    assert "quarantined" in res_neg4.json()["detail"].lower()
 
     # Scenario YF-NEG-5: 80 Apartment claims
     res_neg5 = client.get("/api/v1/claims?scenario=yf_neg_5")

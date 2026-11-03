@@ -93,13 +93,13 @@ def verify_claim_id_factory(seed: int = 42):
 
 
 # ==============================================================================
-# 2. SCORING ENGINE (10-STAGE ARCH-ST-010.2 PIPELINE)
+# 2. SCORING ENGINE (10-STAGE ARCH-ST-010.3 PIPELINE)
 # ==============================================================================
 def score_claim_pipeline(indicators: List[Tuple[str, str, float, str]],
                          benign_multipliers: List[float] = None,
                          hard_collusion: bool = False) -> Dict[str, Any]:
     """
-    Implements ARCH-ST-010.2 Section 9.4 10-Stage IEF Scoring Pipeline.
+    Implements ARCH-ST-010.3 Section 9.4 10-Stage IEF Scoring Pipeline.
     indicators: list of (code, pillar, raw_points, canonical_token)
     """
     if benign_multipliers is None:
@@ -263,7 +263,7 @@ def run_yf_neg_4_verification(yf4_claim_mappings: Dict[str, List[Tuple[int, str]
     print(f"  Notice: Displayed rounded components sum = {w_net_r:.2f} + {w_fin_r:.2f} + {w_beh_r:.2f} + {w_doc_r:.2f} = {rounded_comp_sum:.2f}")
     print("  EXPLANATION OF 71.45 vs 71.46:")
     print("  If intermediate weighted components are individually rounded to 2 decimals first (27.42 + 10.91 + 20.00 + 13.13), the sum is 71.46.")
-    print("  The ARCH-ST-010.2 scoring engine computes in full IEEE 754 precision (sum = 71.45075758...) and rounds ONLY in Stage 10.")
+    print("  The ARCH-ST-010.3 scoring engine computes in full IEEE 754 precision (sum = 71.45075758...) and rounds ONLY in Stage 10.")
     print("  Therefore, 71.45 is the mathematically exact output of the official scoring pipeline.")
     
     return records
@@ -396,7 +396,7 @@ def verify_indicator_engine():
     print("  PROOF OF NON-FABRICATION:")
     print("  The detector does NOT insert dummy filler rows.")
     print("  Every single row in fraud_indicators is backed by an operational fact (e.g. CPT code, phone number, timestamp)")
-    print("  satisfying the explicit indicator activation formula in ARCH-ST-010.2 Section 8.")
+    print("  satisfying the explicit indicator activation formula in ARCH-ST-010.3 Section 8.")
     
     return rules
 
@@ -439,14 +439,14 @@ def verify_reproducibility_and_isolation():
     print("       Verification query: SELECT COUNT(*) FROM relationship_edges WHERE edge_type = 'WITHHELD_BRIDGE'")
     print("       Result: 0 rows in operational DB. The detector cannot see or traverse them.")
     
-    print("\n[*] Schema Digest Verification (ARCH-ST-010.2):")
+    print("\n[*] Schema Digest Verification (ARCH-ST-010.3):")
     from backend.app.core.config import settings
     from backend.app.db.session import create_connection
     from backend.app.db.init_db import compute_schema_digest
     
     conn = create_connection(":memory:")
-    ops_path = os.path.join(WORKSPACE_DIR, "archive", "verify-0102", "ops_0102.sql")
-    trigs_path = os.path.join(WORKSPACE_DIR, "archive", "verify-0102", "trigs_0102.sql")
+    ops_path = os.path.join(WORKSPACE_DIR, "archive", "verify-0103", "ops_0103.sql")
+    trigs_path = os.path.join(WORKSPACE_DIR, "archive", "verify-0103", "trigs_0103.sql")
     
     with open(ops_path, "r", encoding="utf-8") as f:
         conn.executescript(f.read())
@@ -454,7 +454,7 @@ def verify_reproducibility_and_isolation():
         conn.executescript(f.read())
         
     digest = compute_schema_digest(conn)
-    expected_digest = "26e2218f1c6541f2eabf9f4549f6c943c17b158588648cddf90919f21f11479a"
+    expected_digest = "2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab"
     assert digest == expected_digest, f"Digest mismatch: got {digest}, expected {expected_digest}"
     print(f"    Computed ST-SCHEMA-V1 Digest: {digest}")
     print(f"    Expected Baseline Digest:    {expected_digest}")

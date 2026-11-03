@@ -16,7 +16,7 @@ def test_sha256_hex_empty_and_bytes():
 
 
 def test_sha256_hex_kav1_payload():
-    """Verify SHA-256 for KAV-1 payload from ARCH-ST-010.2."""
+    """Verify SHA-256 for KAV-1 payload from ARCH-ST-010.3."""
     pjson1 = '{"claim_id":"CLM-2026-000001","claim_status":"SUBMITTED","claimed_amount_cents":420000,"incident_id":"INC-2026-000001","policy_id":"POL-2026-000001"}'
     assert sha256_hex(pjson1) == "45ddaa20e1747160abf8eced5ab43948697a7be0a16bbef80641387bb0d57cd3"
 

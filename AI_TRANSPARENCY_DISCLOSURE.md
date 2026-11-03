@@ -41,7 +41,7 @@ Development proceeded through five rigorous, controlled phases:
 ### Phase 2: Causal Chronology & Cryptographic Event Hash Chain Generation
 - **Objective:** Generate a 5,000-claim enterprise dataset with zero temporal inversions.
 - **Prompt Focus (Summary):** "Generate causally valid timestamps across claims, invoices, payments, and immutable events. Invoices must strictly succeed claim submission; payments must strictly follow invoice approval; immutable events must form a tamper-evident SHA-256 hash chain."
-- **Human Review & Intervention:** Fixed subtle timestamp race conditions where payment authorization timestamps could occur on the same second as invoice approval. Enforced strict monotonicity (`test_chronology.py` and `db/test_suite.py` verifying all events).
+- **Human Review & Intervention:** Fixed subtle timestamp race conditions where payment authorization timestamps could occur on the same second as invoice approval. Enforced strict monotonicity (`test_chronology.py` and `db/test_suite.py` verifying all events). Clarified event-chain trust boundary: established that the unkeyed sequential SHA-256 hash chain provides tamper-evident audit log consistency/integrity verification, rather than cryptographic proof of authorship or actor identity authentication.
 
 ### Phase 3: Operational Graph Centrality & Fraud Detection (IND-01 to IND-15)
 - **Objective:** Implement all 15 fraud indicators without ground-truth leakage.
@@ -65,7 +65,7 @@ Development proceeded through five rigorous, controlled phases:
 Every component in this repository has been subjected to rigorous human verification:
 1. **Schema Invariant:** SHA-256 digest `2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab` verified byte-for-byte (`test_schema_digest.py` and `db/test_suite.py::T-01`).
 2. **Deterministic Reproducibility:** Dataset dual-run bit-identity verified (DB SHA-256 checksum: `fd0620776a5070bf282680f625a824196ebc915a6a6ca6fb5a91a0f21f1b8716`).
-3. **Automated Test Suites:** 59/59 backend pytest tests passing 100% green; 20/20 ARCH-ST-010.3 validation tests passing; 8/8 transactional fault-injection tests passing.
+3. **Automated Test Suites:** 66/66 backend pytest tests passing 100% green; 20/20 ARCH-ST-010.3 validation tests passing; 8/8 transactional fault-injection tests passing [94 primary repository suite tests, with 8 separate targeted P0 hardening checks].
 4. **Physical Ground-Truth Isolation:** Operational database `data/operational.db` contains zero synthetic labels or cheat codes; `data/ground_truth.db` is read-only by the test harness.
 
 ---

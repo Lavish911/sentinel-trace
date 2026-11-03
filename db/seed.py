@@ -1002,11 +1002,30 @@ def generate_dataset(
     seed: int = 42,
     ops_db_path: str | Path = ":memory:",
     gt_db_path: str | Path = ":memory:",
+    overwrite: bool = True,
 ) -> dict[str, Any]:
     """
     Deterministically builds and populates both `operational.db` and `ground_truth.db`.
     All 27 triggers remain active throughout population.
     """
+    # P0-1: Collision guard
+    if ops_db_path != ":memory:" and gt_db_path != ":memory:":
+        if Path(ops_db_path).resolve() == Path(gt_db_path).resolve():
+            raise ValueError(
+                f"Operational DB and Ground Truth DB cannot resolve to the same path: {ops_db_path}"
+            )
+
+    # P0-1: Overwrite protection
+    if not overwrite:
+        if ops_db_path != ":memory:" and Path(ops_db_path).exists():
+            raise FileExistsError(
+                f"Operational database already exists at {ops_db_path}. Specify overwrite=True or --overwrite to replace."
+            )
+        if gt_db_path != ":memory:" and Path(gt_db_path).exists():
+            raise FileExistsError(
+                f"Ground truth database already exists at {gt_db_path}. Specify overwrite=True or --overwrite to replace."
+            )
+
     rng = random.Random(seed)
 
     if ops_db_path != ":memory:":

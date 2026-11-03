@@ -1,6 +1,6 @@
 """
 Deterministic ID allocation factory for all entities in SENTINEL//TRACE.
-Enforces GLOB constraints and schema formats from ARCH-ST-010.2.
+Enforces GLOB constraints and schema formats from ARCH-ST-010.3.
 """
 
 import random

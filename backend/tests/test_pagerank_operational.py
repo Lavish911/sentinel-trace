@@ -1,6 +1,6 @@
 """
 Operational IND-06 and PageRank Centrality Engine Verification Test.
-Complies with ARCH-ST-010.2 Section 8 (IND-06) and Section 9.1-9.4.
+Complies with ARCH-ST-010.3 Section 8 (IND-06) and Section 9.1-9.4.
 
 Validates:
 1. Operational graph universe: exactly 7,500 nodes (5,000 claims, 2,000 claimants, 500 providers).
@@ -22,13 +22,13 @@ from backend.app.generator.graph import (
 )
 
 REPO_ROOT = Path(__file__).resolve().parent.parent.parent
-DB_PATH = REPO_ROOT / "sentinel_trace.db"
+DB_PATH = REPO_ROOT / "data" / "operational.db"
 
 
 @pytest.fixture(scope="module")
 def db_conn():
     if not DB_PATH.exists():
-        pytest.skip("sentinel_trace.db does not exist yet")
+        pytest.fail("data/operational.db does not exist")
     conn = sqlite3.connect(str(DB_PATH))
     conn.row_factory = sqlite3.Row
     yield conn

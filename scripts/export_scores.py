@@ -1,10 +1,35 @@
-import sqlite3
+import argparse
 import csv
 from pathlib import Path
+import sqlite3
+import sys
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-OP_DB_PATH = REPO_ROOT / "data" / "operational.db"
-GT_DB_PATH = REPO_ROOT / "data" / "ground_truth.db"
+
+parser = argparse.ArgumentParser(description="Export scenario evaluation scores.")
+parser.add_argument(
+    "--op-db",
+    type=Path,
+    default=REPO_ROOT / "data" / "operational.db",
+    help="Path to operational database.",
+)
+parser.add_argument(
+    "--gt-db",
+    type=Path,
+    default=REPO_ROOT / "data" / "ground_truth.db",
+    help="Path to ground truth database.",
+)
+parser.add_argument(
+    "--out-dir",
+    type=Path,
+    default=Path("."),
+    help="Output directory for CSV files.",
+)
+args, _ = parser.parse_known_args()
+
+OP_DB_PATH = args.op_db
+GT_DB_PATH = args.gt_db
+OUT_DIR = args.out_dir
 
 op_conn = sqlite3.connect(str(OP_DB_PATH))
 gt_conn = sqlite3.connect(str(GT_DB_PATH))
@@ -17,7 +42,8 @@ yf4_rows = gt_conn.execute("""
     ORDER BY rm.ring_id ASC, rm.claim_id ASC
 """).fetchall()
 
-with open("yf_neg_4_scores.csv", "w", newline="", encoding="utf-8") as f:
+yf4_csv_path = OUT_DIR / "yf_neg_4_scores.csv"
+with open(yf4_csv_path, "w", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
     writer.writerow([
         "claim_id", "ring_id", "indicator_ids", "evidence_ids",
@@ -58,16 +84,17 @@ with open("yf_neg_4_scores.csv", "w", newline="", encoding="utf-8") as f:
 
 print(f"Exported yf_neg_4_scores.csv successfully ({len(yf4_rows)} claims).")
 
-# 2. Export yf_neg_5_scores.csv (80 claims for the 80 apartment claimants at 100 Ocean Ave)
+# 2. Export yf_neg_5_scores.csv (80 claims for the 80 apartment claimants at 742 Evergreen Terrace Apt 4B)
 yf5_claims = op_conn.execute("""
     SELECT c.claim_id, c.claimant_id, clmt.address_norm, c.latest_ief_score, c.latest_risk_tier
     FROM claims c
     JOIN claimants clmt ON c.claimant_id = clmt.claimant_id
-    WHERE clmt.address_norm LIKE '100 Ocean Ave%'
+    WHERE clmt.address_norm LIKE '742 EVERGREEN TERRACE%'
     ORDER BY c.claim_id ASC
 """).fetchall()
 
-with open("yf_neg_5_scores.csv", "w", newline="", encoding="utf-8") as f:
+yf5_csv_path = OUT_DIR / "yf_neg_5_scores.csv"
+with open(yf5_csv_path, "w", newline="", encoding="utf-8") as f:
     writer = csv.writer(f)
     writer.writerow([
         "claim_id", "claimant_id", "address_norm", "indicator_ids",
@@ -97,3 +124,6 @@ with open("yf_neg_5_scores.csv", "w", newline="", encoding="utf-8") as f:
         ])
 
 print(f"Exported yf_neg_5_scores.csv successfully ({len(yf5_claims)} claims).")
+
+op_conn.close()
+gt_conn.close()

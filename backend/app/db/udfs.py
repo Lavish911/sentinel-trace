@@ -16,7 +16,7 @@ def sha256_hex(val: Any) -> str:
 
 
 def is_canonical_json(val: Any) -> int:
-    """Validate canonical JSON according to ARCH-ST-010.2 / ARCH-ST-010.1 specification.
+    """Validate canonical JSON according to ARCH-ST-010.3 specification.
 
     Rules:
     - Root must be a JSON object (dictionary)
