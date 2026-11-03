@@ -355,7 +355,14 @@ export function runCleanRoomEvaluation(options?: { addressAblation?: boolean }):
       claimId: 'CLM-2026-000003',
       claimantId: 'CLMT-000003',
       providerId: 'PRV-000001',
-      indicators: [],
+      indicators: [] as Array<{
+        code: string;
+        name: string;
+        pillar: 'NETWORK' | 'FINANCIAL' | 'BEHAVIORAL' | 'DOCUMENT';
+        rawPoints: number;
+        maxPoints: number;
+        token: string;
+      }>,
       activeBenignContexts: ['BC-6 (Clean In-Network Tenure, m=0.75)'],
       rawMultipliers: [0.75],
       hardCollusionOverride: false,

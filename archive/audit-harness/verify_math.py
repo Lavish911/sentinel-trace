@@ -175,12 +175,21 @@ def main():
         base = 0.35 * pNet + 0.30 * pFin + 0.20 * pBeh + 0.15 * pDoc
         damp = 1.0 if hard else max(0.15, math.prod(_mults))
         dampened = base * damp
-        return base, dampened
+        return base, damp, dampened
 
-    base1, d1 = score([('NETWORK', 20.0, 'IND-01'), ('FINANCIAL', 35.0, 'IND-03')], [], True)
-    base2, d2 = score([('NETWORK', 20.0, 'IND-01'), ('FINANCIAL', 35.0, 'IND-03')], [], True)
-    base3, d3 = score([], [0.75], False)
-    base4, d4 = score([('BEHAVIORAL', 8.0, 'IND-14')], [0.25, 0.75], False)
+    base1, damp1, d1 = score([('NETWORK', 20.0, 'IND-01'), ('FINANCIAL', 35.0, 'IND-03')], [], True)
+    base2, damp2, d2 = score([('NETWORK', 20.0, 'IND-01'), ('FINANCIAL', 35.0, 'IND-03')], [], True)
+    base3, damp3, d3 = score([], [0.75], False)
+    base4, damp4, d4 = score([('BEHAVIORAL', 8.0, 'IND-14')], [0.25, 0.75], False)
+    import os
+    eng_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'src', 'utils', 'sentinelEngine.ts')
+    eng_src = open(eng_path, encoding='utf-8').read() if os.path.exists(eng_path) else ''
+    check("D-5: CLM-2026-000003 dampening factor == BC-6 (m = 0.75) in score() and sentinelEngine.ts",
+          abs(damp3 - 0.75) < 1e-12 and "rawMultipliers: [0.75]" in eng_src)
+    check("D-5: CLM-2026-000004 dampening factor == BC-5 x BC-6 (m = 0.25 * 0.75 = 0.1875) in score() and sentinelEngine.ts",
+          abs(damp4 - 0.1875) < 1e-12 and "rawMultipliers: [0.25, 0.75]" in eng_src)
+    check("D-5: dampened c3 == 0.75 * 0.0 == 0.0 (final stays 0.00 LOW)",
+          abs(d3 - 0.0) < 1e-12 and abs(damp1 - 1.0) < 1e-12 and abs(damp2 - 1.0) < 1e-12)
     elig = [(base1, d1), (base2, d2)]
     mx = max(x[1] for x in elig)
     mn = sum(x[1] for x in elig) / 2
