@@ -9,12 +9,11 @@
 
 ## 1. Executive Summary & Policy Compliance
 
-In accordance with the YottaFlex Candidate Project Submission Guidelines and AI Usage FAQ, this disclosure documents the methodology, tools, iterative prompt cycles, and human oversight applied during the engineering of SENTINEL//TRACE.
+In line with YottaFlex's project guidelines, this file records where AI tools were used while building SENTINEL//TRACE and what is currently available as a record of that work.
 
-The project leveraged AI assistance as an augmented pair programming and architectural verification partner under strict human-in-the-loop control. Every architectural invariant, database trigger, cryptographic schema digest, detector formula, and regression test was independently designed, verified, and executed against actual runtime SQLite databases.
+AI tools were used for parts of the planning, implementation support, review, debugging, and documentation process. They were tools in the development process; they do not replace the need for the candidate to understand the application and explain its design. The code and claims in this repository still need to be checked against the running project before they are presented as verified.
 
-> **Candidate Oversight & Verification Declaration:**  
-> All AI-generated code, SQL DDL, mathematical formulations, graph algorithms, and tests were critically reviewed, verified, executed, and validated by the candidate (`Lavish911`). The candidate maintains full intellectual ownership, accountability, and comprehension of every file and line in this repository.
+The candidate is responsible for the final submission and for explaining the implementation. This statement does not mean that every suggestion from an AI tool was accepted or that every line was written without assistance.
 
 ---
 
@@ -23,9 +22,9 @@ The project leveraged AI assistance as an augmented pair programming and archite
 - **Primary Engineering Assistant (Antigravity / Gemini):** Antigravity served as the primary agentic pair-programming assistant throughout the engineering lifecycle. It was utilized for architectural analysis, SQL trigger and DDL authoring, causal chronology generation, PageRank implementation, FastAPI REST endpoint construction, test suite development, and frontend cockpit implementation.
 - **Adversarial Audit Harness (Argon):** Argon served as an independent, external automated adversarial evaluation system. It executed against commit `2096c3a` (Milestone B) and produced the formal audit report identifying 10 critical findings (`F-AUD-01` through `F-AUD-10`, documented in [`argon_audit_report.txt`](argon_audit_report.txt)). The candidate utilized these findings to guide the ARCH-ST-010.3 remediation. Argon's invocation prompts resided on an external system, but all reported findings and remediation diffs are fully preserved in this repository.
 - **Exploratory Ideation (GLM):** GLM was consulted during early preliminary architecture ideation. Verbatim session logs for those exploratory interactions were not captured in this local environment; in accordance with transparency principles, no transcripts have been fabricated, simulated, or backfilled.
-- **Preserved Summaries vs. Verbatim Logs:** Full programmatic trajectory logs for Antigravity are maintained locally in the development harness (`transcript.jsonl`), and human-distilled directive summaries across all project checkpoints are cataloged chronologically in Section 5 below.
-- **Human Candidate Ownership:** The candidate (`Lavish911`) maintained continuous editorial and technical authority. Every line of code, SQL trigger, schema constraint, and detector formula was verified, tested, and validated by the candidate, who takes full responsibility for explaining and defending the implementation.
-- **Other AI Models (ChatGPT / OpenAI):** ChatGPT and OpenAI models were not utilized at any point during the architecture, coding, testing, or evaluation of this project.
+- **What is preserved:** The Antigravity entries in Section 5 are summaries of selected directives, not verbatim prompt transcripts. The local `transcript.jsonl` mentioned during development has not been added to this public repository, so its completeness and availability to a reviewer are not established here. GLM and Argon prompt records are also incomplete in the material currently available.
+- **Candidate responsibility:** The candidate made the final project decisions and is responsible for reviewing the implementation, checking its behavior, and being able to explain the important design choices. The candidate should not describe AI-generated suggestions as independently authored work.
+- **ChatGPT (OpenAI):** ChatGPT was also used during project preparation for architecture and implementation discussions, code and documentation review, debugging guidance, and drafting/revising prompts and explanations. This was development-time assistance. It should not be confused with a runtime OpenAI API integration; the presence or absence of such an integration must be determined from the application code and configuration.
 - **Development Environment:** Python 3.13, SQLite 3.45+ (STRICT tables, WAL mode, foreign keys enforced, custom SHA-256 and JSON UDFs), FastAPI, Uvicorn, pytest, NetworkX, NumPy.
 
 ---
@@ -63,7 +62,7 @@ Development proceeded through five rigorous, controlled phases:
 
 ## 4. Human Verification & Quality Gates
 
-Every component in this repository has been subjected to rigorous human verification:
+The repository contains automated checks and documented verification work. The figures below are reported by the project documentation; they should be treated as reported results until reproduced from a clean checkout of the exact submitted commit:
 1. **Schema Invariant:** SHA-256 digest `2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab` verified byte-for-byte (`test_schema_digest.py` and `db/test_suite.py::T-01`).
 2. **Deterministic Reproducibility:** Dataset dual-run bit-identity verified (DB SHA-256 checksum: `fd0620776a5070bf282680f625a824196ebc915a6a6ca6fb5a91a0f21f1b8716`).
 3. **Automated Test Suites:** 66/66 backend pytest tests passing 100% green; 20/20 ARCH-ST-010.3 validation tests passing; 8/8 transactional fault-injection tests passing [94 primary repository suite tests, with 8 separate targeted P0 hardening checks].
@@ -71,9 +70,9 @@ Every component in this repository has been subjected to rigorous human verifica
 
 ---
 
-## 5. Authentic Antigravity Prompt Directive Summaries
+## 5. Antigravity Prompt Summaries (Not Verbatim)
 
-The table below catalogs the distilled intent and human directive summaries recorded in the Antigravity conversation logs across the project trajectory. These entries represent chronological directive summaries, not raw unedited transcripts:
+The table below is a summary of selected Antigravity directives recorded during development. It is not the complete prompt history requested by YottaFlex and should not be read as a verbatim transcript.
 
 | Step / Index | Local Timestamp | Phase / Directive | Human Directive & Task Scope Summary |
 |:---|:---|:---|:---|
@@ -97,3 +96,8 @@ The table below catalogs the distilled intent and human directive summaries reco
 | **Step 3700** | 2026-11-03 11:45 IST | Checkpoint 1 Integration Gate | Canonical ARCH-ST-010.3 alignment on main, schema digest verification, and startup verification. |
 | **Step 3750** | 2026-11-03 12:05 IST | Checkpoints 2 & 3: Workflow | Implement investigation REST endpoints, SIU Hold/Release, append-only notes, and interactive Cockpit. |
 | **Step 3800** | 2026-11-03 12:35 IST | Checkpoint 4: Final Packaging | Clean-clone reproducibility, Playwright real browser verification, comprehensive audit, and README packaging. |
+
+
+## 6. Prompt-history completeness
+
+YottaFlex asks candidates to include all prompts submitted to every AI tool; AI responses are optional. The material currently preserved in this repository does not yet meet that requirement: the Antigravity table above contains summaries rather than full prompts, and the complete GLM, Argon, and ChatGPT prompt records have not been assembled here. No missing prompts have been reconstructed or invented. Before submission, add the original prompt exports or a clearly labeled, best-effort record for each tool, and state any export limitations. This section must be updated if additional prompt records are recovered.
