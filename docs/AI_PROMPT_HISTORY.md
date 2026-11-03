@@ -1,45 +1,158 @@
 # AI prompt history
 
-This file records the AI-tool usage that can currently be substantiated for SENTINEL//TRACE. It distinguishes a recovered prompt from a summary and from a missing original record.
+This record distinguishes prompts supplied by the candidate from a reconstructed prompt and from unavailable ChatGPT prompts. AI responses are not included. This is not yet a complete record because the original ChatGPT prompts have not been supplied.
 
-YottaFlex asks candidates to include all prompts submitted to every AI tool. AI responses are optional. This is a working record, not a claim that the complete prompt archive has been recovered.
+## Argon 4 - Google AI Studio
 
-## ChatGPT (OpenAI)
+### Initial architecture and technical planning
 
-ChatGPT was used during development for:
-- discussing the system architecture and implementation plan;
-- reviewing repository structure, source code, documentation, and submission readiness;
-- identifying possible inconsistencies and proposing debugging or remediation steps;
-- drafting and refining technical documentation and explanations;
-- preparing review instructions and prompts for other AI tools.
+```text
+I'm working on a project called SENTINEL//TRACE for a technical hiring challenge. The goal is to build a system that can connect claimants, insurance policies, incidents, healthcare providers, invoices and payments, and help investigators identify suspicious relationships.
 
-The current conversation record contains summaries of these activities, but not a complete verbatim export of every prompt submitted throughout the project. Exact missing prompt text is not recreated here.
+I don't want to start coding immediately. First, help me work through the architecture properly.
 
-## Antigravity / Gemini
+I need a practical design covering:
 
-The repository's AI transparency disclosure contains chronological directive summaries attributed to Antigravity. Those entries are summaries, not verbatim prompts. The complete local transcript mentioned in the existing disclosure has not been verified as available in this public repository.
+- The main entities and how they relate to each other.
+- Database schema and relationships.
+- How synthetic data should be generated consistently.
+- How to represent suspicious relationships and networks.
+- Detection indicators and scoring logic.
+- How to separate ground-truth data from operational data.
+- How investigators should review flagged cases.
+- API structure and frontend requirements.
+- Testing strategy and measurable evaluation metrics.
 
-## Argon
+Keep the design realistic and implementable. Point out assumptions, edge cases and possible problems before recommending a solution. Don't write implementation code at this stage.
+```
 
-Argon was used for adversarial review according to the existing project disclosure. The invocation prompts are described there as residing on an external system. The prompt text has not been recovered here.
+### Architecture review and correction (reconstructed)
+
+The candidate identifies this as reconstructed, not a verbatim export:
+
+```text
+Review the current architecture documents critically. Don't assume the design is correct just because it is already documented.
+
+Check whether the database design, entity relationships, scoring rules, detection indicators, audit trail and evaluation approach are consistent with each other.
+
+Identify specific gaps and contradictions. For each issue, explain why it matters and propose a correction. Keep the review focused on the actual project requirements rather than adding unnecessary complexity.
+
+Do not approve implementation if important architectural decisions are still unresolved.
+```
+
+### Independent technical audit
+
+```text
+Act as an independent reviewer of SENTINEL//TRACE. I want a critical review, not a general positive assessment.
+
+Compare the implementation against the architecture and project requirements.
+
+Check:
+
+1. Whether the database schema matches the documented design.
+2. Whether detection indicators are implemented correctly.
+3. Whether scoring calculations match their specifications.
+4. Whether synthetic data and ground truth are handled separately.
+5. Whether negative test scenarios genuinely test the intended conditions.
+6. Whether audit records are traceable and internally consistent.
+7. Whether evaluation metrics are meaningful and correctly calculated.
+8. Whether API responses and frontend behaviour match.
+9. Whether the setup and verification instructions work.
+10. Whether there are unsupported claims in the documentation.
+
+For every finding, include its severity, affected file or component, evidence, impact and recommended correction.
+
+Do not report something as fixed or verified unless there is evidence.
+```
+
+### Re-audit after remediation
+
+```text
+Review the latest remediation changes independently.
+
+Check whether the original issues are actually resolved and whether the changes introduced new problems.
+
+Pay particular attention to database integrity, score consistency, negative-case evaluation, audit traceability and reproducibility.
+
+Separate verified fixes from partially resolved findings and unresolved issues. Give evidence for each conclusion.
+```
+
+## Gemini 3.8 Flash - Antigravity
+
+### Implementing the approved architecture
+
+```text
+The architecture is now being developed into SENTINEL//TRACE. Go through the existing project structure and architecture documents before making changes.
+
+Implement the system in small, understandable steps. Keep the implementation aligned with the approved schema and specifications.
+
+Focus on:
+
+- Database tables, constraints and relationships.
+- Deterministic synthetic-data generation.
+- Detection indicators and scoring.
+- Relationship and network analysis.
+- Backend APIs.
+- Investigator-facing frontend.
+- Auditability and traceability.
+
+Avoid unnecessary abstractions. Keep the code readable and maintainable. Don't silently change documented business rules. If something in the implementation conflicts with the architecture, stop and explain the conflict before changing it.
+
+After each meaningful change, run the relevant tests and report what passed, failed and remains unverified.
+```
+
+### Debugging and implementation corrections
+
+```text
+Review the current implementation and find issues that could affect correctness or reliability.
+
+Check the actual code rather than relying only on documentation. Look for incorrect calculations, inconsistent data relationships, missing validations, database integrity problems, API errors and frontend/backend mismatches.
+
+Fix confirmed issues without changing unrelated functionality. Add or update tests for every meaningful correction. Explain what was wrong, what changed and how the fix was verified.
+```
+
+### Fixing audit findings
+
+```text
+I have received independent audit findings for SENTINEL//TRACE. Go through each finding and compare it with the current code and architecture documents.
+
+For every finding:
+
+- Confirm whether it is valid.
+- Identify the exact source of the issue.
+- Check whether the proposed correction is consistent with the specifications.
+- Make the smallest appropriate change.
+- Add regression coverage where needed.
+- Run the relevant verification steps.
+- Record the result.
+
+Don't make speculative changes just to make an audit report look clean. If a finding cannot be resolved safely, document why and leave it clearly identified.
+```
 
 ## GLM
 
-GLM was used for early architecture ideation according to the existing project disclosure. Verbatim session logs were not captured, so no exact prompts are supplied here.
+### Additional review and alternative technical feedback
 
-## Other tools
+```text
+Review the current SENTINEL//TRACE design and implementation from a fresh perspective.
 
-Add any additional AI tools used during the project and include their prompts or clearly state why the original prompt record is unavailable. Do not omit a tool simply because its prompt export is inconvenient.
+Look for problems that may have been missed during development, especially inconsistencies between documentation, database logic, detection rules and evaluation.
+
+Prioritise concrete issues over style suggestions. Explain the reasoning behind each finding and suggest the smallest practical correction.
+
+Do not assume that an existing test passing proves the entire feature is correct.
+```
+
+## ChatGPT - OpenAI
+
+ChatGPT was used for architecture and implementation discussions, repository and documentation review, debugging guidance, and preparation of audit/remediation prompts. The original prompts have not yet been supplied, so this section is a disclosure of the gap rather than a reconstructed history.
 
 ## Completion checklist
 
-- [ ] Export or copy the original ChatGPT prompts that can still be recovered.
-- [ ] Add original Antigravity/Gemini prompts or include the available transcript in a suitable, reviewable format.
-- [ ] Add Argon invocation prompts if they can be retrieved from the external session.
-- [ ] Add GLM prompts if they can be retrieved.
-- [ ] Confirm whether any other AI coding or chat tools were used and record them.
-- [ ] Review this file against the final set of tools used before submission.
+- [ ] Add any recoverable original ChatGPT prompts.
+- [ ] Confirm whether any AI tool beyond Argon 4, Gemini 3.8 Flash/Antigravity, GLM, and ChatGPT was used.
+- [ ] Review this file against the final tool list before submission.
 
 ## Runtime distinction
 
-Development-time use of an AI tool does not by itself mean the running application calls that provider's API. Any runtime model/API integration should be described separately and only if confirmed in the application source and configuration.
+Development-time AI use does not imply that the running application calls a provider API. Runtime model/API integrations should be described only when confirmed in source and configuration.
