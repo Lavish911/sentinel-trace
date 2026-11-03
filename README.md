@@ -60,9 +60,9 @@ flowchart TD
 1. **Cryptographic Schema Enforcement (`ARCH-ST-010.3`):**  
    Strict 12-table relational schema with 27 database-level integrity triggers. Zero schema drift enforced via canonical SHA-256 schema digest:  
    `2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab`.
-2. **Immutable Merkle Event Chain:**  
-   Every state transition produces a cryptographically hashed event in `immutable_events`, forming an unbroken SHA-256 Merkle chain with zero causal or chronological inversions across **19,675 events**.  
-   **Canonical Merkle Root:** `333f22fc65e0b22d1c13fd58629694da84fce3c9b77c9e2190f47ed2b784c584`.
+2. **Cryptographic Event Hash Chain (ST-EVT-V2):**  
+   Every state transition produces a cryptographically hashed event in `immutable_events`, forming an unbroken sequential SHA-256 hash chain with zero causal or chronological inversions across **19,675 events**.  
+   **Canonical Event-Chain Tip Hash:** `333f22fc65e0b22d1c13fd58629694da84fce3c9b77c9e2190f47ed2b784c584` (at sequence #19,675).
 3. **Operational Graph Centrality (IND-06 PageRank):**  
    Computes network centrality strictly over active operational edges (`relationship_edges` where `is_active=1`) using exact power-iteration PageRank. Verified against an independent NumPy reference implementation.
 4. **Physical Ground-Truth Isolation:**  
@@ -170,7 +170,7 @@ All 5 core negative and stress scenarios from the specification are verified:
 - **YF-NEG-2 (Payment Exceeding Approved Amount):** Direct live attempt to disburse payments exceeding approved invoice caps is aborted with `ERR_PAYMENT_EXCEEDS_APPROVED_CAP`. 30 blocked attempts recorded as `BLOCKED_OVERPAYMENT`. Verified by `db/test_suite.py::T-11`.
 - **YF-NEG-3 (Duplicate Invoice Across Claimants):** 25 duplicate invoice pairs across different claimants (`is_cross = True`) rejected with `REJECTED_DUPLICATE` and escalated by detector to `HIGH` risk ($\ge 65.00$). Verified by `db/test_suite.py::T-12`.
 - **YF-NEG-4 (Missing Operational Relationships):** 25 planted missing edges strictly quarantined in `ground_truth.db` with zero leakage into operational graph. 36 of 40 ring claims (90% $\ge$ 80% threshold) score $\ge 65.00$ `HIGH` using observable data only. Verified by `db/test_suite.py::T-13` and `test_generator.py::test_scenario_yf_neg_4_detection`.
-- **YF-NEG-5 (High-Density Benign Suppression):** 80 apartment claims at 100 Ocean Ave / 742 Evergreen Terrace (plus 420 lookalike controls in BL-1..BL-5) score below benign thresholds ($\le 12.00$) in `LOW` risk tier with 0 false positives via calibrated BC-1 benign multiplier. Verified by `db/test_suite.py::T-14` and `test_generator.py::test_scenario_yf_neg_5_suppression`.
+- **YF-NEG-5 (High-Density Benign Suppression):** 80 apartment claims at 742 Evergreen Terrace Apt 4B (plus 420 lookalike controls in BL-1..BL-5) score below benign thresholds ($\le 12.00$) in `LOW` risk tier with 0 false positives via calibrated BC-1 benign multiplier. Verified by `db/test_suite.py::T-14` and `test_generator.py::test_scenario_yf_neg_5_suppression`.
 
 ---
 
@@ -184,7 +184,7 @@ All 5 core negative and stress scenarios from the specification are verified:
 ```bash
 pip install -r backend/requirements.txt
 ```
-*(Dependencies: `fastapi`, `uvicorn`, `pydantic`, `pydantic-settings`, `pytest`, `httpx`, `networkx`, `numpy`, `playwright`)*
+*(Dependencies: `fastapi`, `uvicorn`, `pydantic`, `pydantic-settings`, `pytest`, `httpx`, `networkx`, `numpy`)*
 
 ### Step 2: Generate the Canonical ARCH-ST-010.3 Dataset
 ```bash
@@ -218,8 +218,8 @@ python scripts/generate_dataset.py --dual-run
 ```
 **Expected Output:**
 ```text
-[*] Run 1 DB Checksum: 3c6a482b86cba7c0410ff24a3528b32cfd17ebf30e03cf44321287130eb5a43b
-[*] Run 2 DB Checksum: 3c6a482b86cba7c0410ff24a3528b32cfd17ebf30e03cf44321287130eb5a43b
+[*] Run 1 DB Checksum: fd0620776a5070bf282680f625a824196ebc915a6a6ca6fb5a91a0f21f1b8716
+[*] Run 2 DB Checksum: fd0620776a5070bf282680f625a824196ebc915a6a6ca6fb5a91a0f21f1b8716
 [*] Checksums Identical: True
 [*] Dual-Run Reproducibility: PASS (Deterministic)
 ```
@@ -241,13 +241,13 @@ The built-in forensic cockpit allows evaluators to step through the complete fra
 1. **Dashboard Overview:** Open `http://localhost:8000/`. Review KPI cards showing 5,000 monitored claims, risk tier distributions, **$41.8M** ($41,840,000.00) total claimed exposure, 4,120 persisted indicators, and 45 active SIU cases.
 2. **Triage Worklist:** Browse the paginated claim triage queue on the left panel, sorted by descending IEF risk score.
 3. **Risk Tier Filtering:** Click filter pills to isolate `High Risk (>=65)` or `Medium Risk` claims.
-4. **Scenario Quick-Toggles:** Click `YF-NEG-4 Collusion` to filter the 40 organized fraud syndicate claims, or `YF-NEG-5 Ocean Ave` to inspect the 80 apartment claims with benign suppression.
+4. **Scenario Quick-Toggles:** Click `YF-NEG-4 Collusion` to filter the 40 organized fraud syndicate claims, or `YF-NEG-5 Shared Address` to inspect the 80 apartment claims with benign suppression.
 5. **Claim Dossier Inspection:** Click any claim (e.g. `CLM-2026-000050`) to load its full forensic dossier in the right panel.
 6. **Claimant & Policy Verification:** Review claimant profile, normalized address, E.164 phone, policy coverage limits, and incident facts.
 7. **Invoices & Provider Breakdown:** Inspect submitted medical and repair invoices, billing providers, network tiers, and financial ledger figures.
 8. **Fraud Indicators & Scoring Waterfall:** Switch to the **Fraud Indicators** tab to view triggered rule codes (IND-01..IND-15), pillars, severities, raw points, and exact canonical evidence tokens.
 9. **Interactive Network Topology:** Switch to the **Network Topology** tab to visualize the operational ego-network. See claim nodes, claimants, providers, and active relationship edges (`SHARED_ADDRESS`, `SHARED_PHONE`, `PROVIDER_REFERRAL_LINK`).
-10. **Merkle Audit Trail:** Switch to the **Merkle Timeline** tab to verify the chronological event sequence and SHA-256 event hash chain.
+10. **Event Audit Trail:** Switch to the **Event Chain** tab to verify the chronological event sequence and SHA-256 event hash chain.
 11. **SIU Case Management:** Switch to the **SIU Case** tab:
     - Click `+ Open Case` to create case `INVG-2026-XXXXXX` (emits `INVESTIGATION_OPENED`).
     - Append evidence notes (persisted audit log).
@@ -261,7 +261,7 @@ The built-in forensic cockpit allows evaluators to step through the complete fra
 | Endpoint | Method | Description |
 |---|---|---|
 | `/api/v1/health` | `GET` | System health check, table/trigger counts, and schema digest verification. |
-| `/api/v1/dashboard/stats` | `GET` | Aggregated portfolio metrics, financial exposure, and Merkle root tip. |
+| `/api/v1/dashboard/stats` | `GET` | Aggregated portfolio metrics, financial exposure, and event chain tip hash. |
 | `/api/v1/claims` | `GET` | Paginated claims list with risk tier, status, and scenario filtering. |
 | `/api/v1/claims/{id}` | `GET` | Full multi-entity claim dossier (claimant, policy, incident, invoices, payments). |
 | `/api/v1/claims/{id}/indicators` | `GET` | Rule-level fraud indicators, raw points, and evidence tokens for a claim. |
