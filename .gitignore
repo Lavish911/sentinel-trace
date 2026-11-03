@@ -31,3 +31,4 @@ data/*.db-shm
 # Build / tools
 bun.lock
 .aistudio/
+.test-tmp/

@@ -25,6 +25,7 @@ The project leveraged AI assistance as an augmented pair programming and archite
 - **Exploratory Ideation (GLM):** GLM was consulted during early preliminary architecture ideation. Verbatim session logs for those exploratory interactions were not captured in this local environment; in accordance with transparency principles, no transcripts have been fabricated, simulated, or backfilled.
 - **Preserved Summaries vs. Verbatim Logs:** Full programmatic trajectory logs for Antigravity are maintained locally in the development harness (`transcript.jsonl`), and human-distilled directive summaries across all project checkpoints are cataloged chronologically in Section 5 below.
 - **Human Candidate Ownership:** The candidate (`Lavish911`) maintained continuous editorial and technical authority. Every line of code, SQL trigger, schema constraint, and detector formula was verified, tested, and validated by the candidate, who takes full responsibility for explaining and defending the implementation.
+- **Other AI Models (ChatGPT / OpenAI):** ChatGPT and OpenAI models were not utilized at any point during the architecture, coding, testing, or evaluation of this project.
 - **Development Environment:** Python 3.13, SQLite 3.45+ (STRICT tables, WAL mode, foreign keys enforced, custom SHA-256 and JSON UDFs), FastAPI, Uvicorn, pytest, NetworkX, NumPy.
 
 ---

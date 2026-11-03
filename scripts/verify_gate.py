@@ -1,4 +1,11 @@
 """
+[LEGACY VERIFICATION HARNESS - ARCH-ST-010.2 / REV3]
+WARNING: DO NOT EXECUTE DIRECTLY FOR CURRENT CANONICAL SUBMISSION VERIFICATION.
+Executing this script will overwrite canonical score CSV files with legacy simulation outputs.
+For canonical ARCH-ST-010.3 scenario verification, use:
+    python scripts/verify_p0_hardening.py
+    python scripts/export_scores.py
+--------------------------------------------------------------------------------
 SENTINEL//TRACE — REV3 FINAL VERIFICATION GATE RUNNER
 Executes:
 1. Deterministic Claim ID Factory & Contradiction Resolution Proof
