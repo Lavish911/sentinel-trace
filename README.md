@@ -24,7 +24,7 @@ In commercial claims portfolios, organized fraud networks inflict immense losses
 - **Provider Billing Mills:** Phantom services, unbundled billing, and duplicate invoices submitted across distinct claimants.
 - **Velocity Anomalies:** Rapid burst filings, post-policy-inception losses, and repeat injury profiles.
 
-SENTINEL//TRACE addresses these challenges by unifying an **operationally observed multi-entity knowledge graph**, an **explainable 10-stage scoring waterfall**, and a **cryptographically sealed append-only audit trail** that produces legally admissible evidence for Special Investigation Units (SIU).
+SENTINEL//TRACE addresses these challenges by unifying an **operationally observed multi-entity knowledge graph**, an **explainable 10-stage scoring waterfall**, and a **append-only, hash-linked event log** that helps investigators review how records and case states changed. The hash chain is tamper-evident, but it does not by itself prove who created an event or establish legal admissibility for Special Investigation Units (SIU).
 
 ```mermaid
 flowchart TD
