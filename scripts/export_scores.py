@@ -2,13 +2,17 @@ import sqlite3
 import csv
 from pathlib import Path
 
-op_conn = sqlite3.connect("sentinel_trace.db")
-gt_conn = sqlite3.connect("ground_truth.db")
+REPO_ROOT = Path(__file__).resolve().parent.parent
+OP_DB_PATH = REPO_ROOT / "data" / "operational.db"
+GT_DB_PATH = REPO_ROOT / "data" / "ground_truth.db"
+
+op_conn = sqlite3.connect(str(OP_DB_PATH))
+gt_conn = sqlite3.connect(str(GT_DB_PATH))
 
 # 1. Export yf_neg_4_scores.csv
 yf4_rows = gt_conn.execute("""
     SELECT rm.claim_id, rm.ring_id
-    FROM ring_members rm
+    FROM ground_truth_claim_labels rm
     WHERE rm.ring_id IN ('RING-2026-016','RING-2026-017','RING-2026-018','RING-2026-019','RING-2026-020')
     ORDER BY rm.ring_id ASC, rm.claim_id ASC
 """).fetchall()
