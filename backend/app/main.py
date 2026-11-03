@@ -3,7 +3,11 @@ import logging
 import sqlite3
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from pathlib import Path
+
+TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
+COCKPIT_HTML_PATH = TEMPLATES_DIR / "cockpit.html"
 
 from backend.app.core.config import settings
 from backend.app.api.v1.api import api_router
@@ -77,14 +81,26 @@ async def sqlite_integrity_error_handler(request: Request, exc: sqlite3.Integrit
 
 
 @app.get("/")
-def root():
-    """Root metadata endpoint."""
+def root(request: Request):
+    """Root endpoint: serves interactive forensic cockpit for browsers or JSON metadata for API clients."""
+    accept_header = request.headers.get("accept", "")
+    if "text/html" in accept_header and COCKPIT_HTML_PATH.exists():
+        return HTMLResponse(content=COCKPIT_HTML_PATH.read_text(encoding="utf-8"))
     return {
         "service": settings.PROJECT_NAME,
         "description": settings.PROJECT_DESCRIPTION,
         "version": settings.VERSION,
         "schema_baseline": settings.SCHEMA_BASELINE,
+        "cockpit_url": "/cockpit",
         "docs_url": "/docs",
         "health_endpoint": f"{settings.API_V1_STR}/health",
     }
+
+
+@app.get("/cockpit", response_class=HTMLResponse)
+def cockpit():
+    """Direct URL for the forensic investigator cockpit."""
+    if COCKPIT_HTML_PATH.exists():
+        return HTMLResponse(content=COCKPIT_HTML_PATH.read_text(encoding="utf-8"))
+    return HTMLResponse(content="<h1>Cockpit template not found</h1>", status_code=404)
 
