@@ -4,14 +4,14 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.110+-009688.svg)](https://fastapi.tiangolo.com/)
 [![SQLite STRICT](https://img.shields.io/badge/SQLite-STRICT%20%7C%20WAL-003B57.svg)](https://www.sqlite.org/)
 [![Schema Digest](https://img.shields.io/badge/ARCH--ST--010.3-2187bf73...-success.svg)](#key-architectural-invariants-arch-st-0103)
-[![Backend Tests](https://img.shields.io/badge/backend%20tests-66%2F66%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
-[![Total Tests](https://img.shields.io/badge/total%20tests-94%2F94%20PASSING-brightgreen.svg)](#step-3-run-full-automated-test-suites)
-[![Deterministic Dual-Run](https://img.shields.io/badge/bit--determinism-VERIFIED-brightgreen.svg)](#step-4-verify-deterministic-dual-run-bit-identity)
+[![Backend Tests](https://img.shields.io/badge/backend%20tests-66%20documented-blue.svg)](#step-3-run-full-automated-test-suites)
+[![Total Tests](https://img.shields.io/badge/primary%20tests-94%20documented-blue.svg)](#step-3-run-full-automated-test-suites)
+[![Deterministic Dual-Run](https://img.shields.io/badge/dual--run-check-documented-blue.svg)](#step-4-verify-deterministic-dual-run-bit-identity)
 
 > **YottaFlex AI Candidate Project Submission**  
 > **Canonical Architecture Baseline:** **ARCH-ST-010.3**  
 > **Target Deadline:** November 4, 2026, 11:48:55 AM IST  
-> **Status:** **READY FOR EVALUATION** (66/66 backend pytest tests passing; 20/20 ARCH-ST-010.3 validation checks verified; 8/8 transactional fault-injection tests passing [94/94 primary repository suite tests]; 8 separate targeted P0 hardening checks passing; End-to-End Forensic Cockpit operational)
+> **Status:** Submission candidate. Test counts and verification results below are documented project results; rerun them against the exact submitted commit before treating them as independently confirmed.
 
 ---
 
@@ -208,6 +208,8 @@ python scripts/generate_dataset.py
 
 ### Step 3: Run Full Automated Test Suites
 
+The counts and expected outputs below are taken from the project's existing test documentation. They are not a claim that this review has just rerun the suites. Run the commands from a clean checkout and retain the terminal output for the submitted commit.
+
 1. **FastAPI Backend & Workflow Suite (66 tests):**
    ```bash
    python -m pytest backend/tests/ -v
@@ -258,7 +260,7 @@ npm start
 
 > [!NOTE]
 > **Operational UI vs. Archival Prototype:**
-> - **Operational Forensic Cockpit (`http://localhost:8000/`):** The operational, production-ready investigator interface is served directly by the FastAPI backend at port 8000 using zero-dependency standard HTML5/CSS/SVG templates and client-side ES2020 modules. It requires no Node.js or JavaScript build tools.
+> - **Operational Forensic Cockpit (`http://localhost:8000/`):** The operational investigator interface is served directly by the FastAPI backend at port 8000 using zero-dependency standard HTML5/CSS/SVG templates and client-side ES2020 modules. It requires no Node.js or JavaScript build tools.
 > - **Archival Specification Prototype (`src/`):** The React/Vite codebase in `src/` represents an early milestone specification prototype (ARCH-ST-010.1). It is preserved for design lineage and accessible via `npm run dev:prototype`, but is not part of the active operational pipeline.
 
 ---
@@ -320,7 +322,7 @@ The built-in forensic cockpit allows evaluators to step through the complete fra
 
 ## 11. AI Transparency & Prompt Disclosure
 
-In compliance with YottaFlex Candidate Project Submission Guidelines, complete details regarding generative AI assistance, prompt progression, architectural evolution, and human verification protocols are documented in [`AI_TRANSPARENCY_DISCLOSURE.md`](AI_TRANSPARENCY_DISCLOSURE.md).
+AI tools were used during development. The current disclosure in [`AI_TRANSPARENCY_DISCLOSURE.md`](AI_TRANSPARENCY_DISCLOSURE.md) records the tools and available summaries, but the prompt-history record is not yet complete: YottaFlex asks for all prompts submitted to every AI tool. Complete that record before submission and clearly identify any prompts that could not be exported.
 
 ---
 
