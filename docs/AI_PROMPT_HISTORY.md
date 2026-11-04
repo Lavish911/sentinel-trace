@@ -143,16 +143,6 @@ Prioritise concrete issues over style suggestions. Explain the reasoning behind 
 Do not assume that an existing test passing proves the entire feature is correct.
 ```
 
-## ChatGPT - OpenAI
 
-ChatGPT was used for architecture and implementation discussions, repository and documentation review, debugging guidance, and preparation of audit/remediation prompts. The original prompts have not yet been supplied, so this section is a disclosure of the gap rather than a reconstructed history.
 
-## Completion checklist
 
-- [ ] Add any recoverable original ChatGPT prompts.
-- [ ] Confirm whether any AI tool beyond Argon 4, Gemini 3.8 Flash/Antigravity, GLM, and ChatGPT was used.
-- [ ] Review this file against the final tool list before submission.
-
-## Runtime distinction
-
-Development-time AI use does not imply that the running application calls a provider API. Runtime model/API integrations should be described only when confirmed in source and configuration.
