@@ -126,6 +126,12 @@ To run the dual-run bit-for-bit reproducibility verification (Challenge Step 10)
 python scripts/generate_dataset.py --dual-run --overwrite
 ```
 
+To export evaluation seed data, ground-truth labels, and measurable performance metrics (Challenge Steps 7 & 9):
+
+```bash
+python scripts/export_seed_data.py
+```
+
 Follow [`docs/VERIFICATION.md`](docs/VERIFICATION.md) for setup, commands, and the evidence to record. That guide also explains how to avoid overwriting existing databases or score artifacts.
 
 ## Known limits
@@ -134,11 +140,12 @@ Follow [`docs/VERIFICATION.md`](docs/VERIFICATION.md) for setup, commands, and t
 - Authentication, authorization, production key management, and multi-writer scaling are out of scope.
 - The data is synthetic and should not be treated as real insurance, claimant, or provider data.
 - Ground truth is deliberately unavailable to operational scoring and API routes.
-- General CSV, JSON, and SQL export is not implemented as a product feature. A real export workflow would need authorization, field-level redaction, and audit logging.
+- Seed data, ground-truth labels, and performance metrics are exported via `python scripts/export_seed_data.py` into `data/` for evaluator inspection.
 
 ## Project records
 
 - [Data dictionary](docs/DATA_DICTIONARY.md)
+- [Source manifest and provenance](docs/SOURCE_MANIFEST.md)
 - [Data provenance and isolation](docs/DATA_PROVENANCE.md)
 - [Verification guide](docs/VERIFICATION.md)
 - [AI prompt history](docs/AI_PROMPT_HISTORY.md)

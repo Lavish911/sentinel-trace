@@ -1006,6 +1006,7 @@ def generate_dataset(
     ops_db_path: str | Path = ":memory:",
     gt_db_path: str | Path = ":memory:",
     overwrite: bool = True,
+    scale: float = 1.0,
 ) -> dict[str, Any]:
     """
     Deterministically builds and populates both `operational.db` and `ground_truth.db`.

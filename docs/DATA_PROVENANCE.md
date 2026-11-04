@@ -22,7 +22,7 @@ Ground truth is not an authorization source and must not be joined into operatio
 - Names, addresses, IDs, hashes, and events are synthetic generator output. They are examples, not validated real-world records.
 - Historical audit reports, screenshots, checksums, and score CSVs are retained as artifacts. They are not current-run evidence unless regenerated from the reviewed revision.
 - The pre-010.3 architecture files are documented as placeholder lineage in `ARCH-ST-010.3.md`; their historical contents are not independently recoverable from this repository.
-- General CSV, JSON, or SQL dumping is not implemented as a product feature. The repository contains scenario-specific CSV helpers for audit work. This is intentional for a local evaluation dataset; an operational export feature would need field-level access controls, redaction policy, and an audit trail before handling real data.
+- Seed data, ground-truth labels, and performance evaluation metrics are exported via `scripts/export_seed_data.py` into `data/` to support offline audit inspection and scenario verification. An operational export pipeline would require field-level access controls, redaction policy, and audit logging before handling production data.
 
 ## Scoring alignment note
 

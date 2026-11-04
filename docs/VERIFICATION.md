@@ -45,6 +45,7 @@ python -m pytest backend/tests -v
 python -m db.test_suite
 python -m unittest db.test_atomicity
 python scripts/verify_p0_hardening.py
+python scripts/export_seed_data.py
 ```
 
 `pytest --collect-only -q backend/tests` was run during the documentation audit and collected 66 cases. No full-suite pass result is claimed here: this checkout did not include generated database fixtures, and this audit did not run a command that creates or overwrites ground-truth data or score CSVs.

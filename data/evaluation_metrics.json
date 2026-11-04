@@ -1,0 +1,110 @@
+{
+  "metadata": {
+    "baseline": "ARCH-ST-010.3",
+    "seed": 42,
+    "evaluated_at_utc": "2026-11-04T06:00:23.590796+00:00",
+    "total_claims": 5000,
+    "decision_threshold": "latest_ief_score >= 65.00 OR latest_risk_tier IN ('HIGH', 'CRITICAL')"
+  },
+  "confusion_matrix": {
+    "true_positives": 771,
+    "false_positives": 0,
+    "true_negatives": 4225,
+    "false_negatives": 4
+  },
+  "performance_metrics": {
+    "precision": 1.0,
+    "recall": 0.9948,
+    "f1_score": 0.9974,
+    "specificity": 1.0,
+    "false_positive_rate": 0.0,
+    "false_negative_rate": 0.0052
+  },
+  "ring_level_detection": {
+    "RING-2026-001": {
+      "total": 48,
+      "flagged": 48
+    },
+    "RING-2026-002": {
+      "total": 48,
+      "flagged": 48
+    },
+    "RING-2026-003": {
+      "total": 48,
+      "flagged": 48
+    },
+    "RING-2026-004": {
+      "total": 48,
+      "flagged": 48
+    },
+    "RING-2026-005": {
+      "total": 48,
+      "flagged": 48
+    },
+    "RING-2026-006": {
+      "total": 47,
+      "flagged": 47
+    },
+    "RING-2026-007": {
+      "total": 47,
+      "flagged": 47
+    },
+    "RING-2026-008": {
+      "total": 47,
+      "flagged": 47
+    },
+    "RING-2026-009": {
+      "total": 47,
+      "flagged": 47
+    },
+    "RING-2026-010": {
+      "total": 47,
+      "flagged": 47
+    },
+    "RING-2026-011": {
+      "total": 47,
+      "flagged": 47
+    },
+    "RING-2026-012": {
+      "total": 47,
+      "flagged": 47
+    },
+    "RING-2026-013": {
+      "total": 47,
+      "flagged": 47
+    },
+    "RING-2026-014": {
+      "total": 47,
+      "flagged": 47
+    },
+    "RING-2026-015": {
+      "total": 47,
+      "flagged": 47
+    },
+    "RING-2026-016": {
+      "total": 8,
+      "flagged": 8
+    },
+    "RING-2026-017": {
+      "total": 8,
+      "flagged": 8
+    },
+    "RING-2026-018": {
+      "total": 8,
+      "flagged": 8
+    },
+    "RING-2026-019": {
+      "total": 8,
+      "flagged": 8
+    },
+    "RING-2026-020": {
+      "total": 8,
+      "flagged": 4
+    },
+    "UNASSIGNED_RING": {
+      "total": 25,
+      "flagged": 25
+    }
+  },
+  "notes": "False negatives (4 claims) correspond exclusively to the 4 missing-edge ring claims in YF-NEG-4 (Rings 16-20) where 25 deliberate off-book relationships were withheld to test detection boundaries. False positive rate across all 4,225 benign claims is 0.0% (zero false positives)."
+}

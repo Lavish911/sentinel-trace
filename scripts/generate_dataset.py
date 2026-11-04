@@ -26,6 +26,7 @@ def main():
     parser.add_argument("--seed", type=int, default=DEFAULT_SEED, help="Random seed (default: 42)")
     parser.add_argument("--op-db", type=str, default=str(DEFAULT_OPERATIONAL_DB), help="Operational DB path")
     parser.add_argument("--gt-db", type=str, default=str(DEFAULT_GROUND_TRUTH_DB), help="Ground truth DB path")
+    parser.add_argument("--scale", type=float, default=1.0, help="Volume scale factor (default: 1.0 = canonical 5,000 claims baseline)")
     parser.add_argument("--overwrite", action="store_true", help="Overwrite existing database files if they exist")
     parser.add_argument("--dual-run", action="store_true", help="Execute dual-run reproducibility test")
 
@@ -56,7 +57,7 @@ def main():
                 "Specify --overwrite to replace it."
             )
 
-    report = generate_dataset(seed=args.seed, ops_db_path=op_path, gt_db_path=gt_path, overwrite=args.overwrite)
+    report = generate_dataset(seed=args.seed, ops_db_path=op_path, gt_db_path=gt_path, overwrite=args.overwrite, scale=args.scale)
 
     print(f"[PASS] Seed={report['seed']} generated successfully.")
     print(f"       ST-SCHEMA-V1 digest : {report['schema_digest']}")

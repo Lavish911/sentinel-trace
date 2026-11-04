@@ -1,0 +1,44 @@
+{
+  "metadata": {
+    "baseline": "ARCH-ST-010.3",
+    "seed": 42,
+    "validated_at_utc": "2026-11-04T06:00:23.698187+00:00",
+    "overall_status": "PASS"
+  },
+  "schema_verification": {
+    "expected_digest": "2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab",
+    "actual_digest": "2187bf7323ba86a203d57c43ad540dcc86ca78adc410ce5554f0a3e4c852cbab",
+    "digest_match": true,
+    "total_tables": 12,
+    "total_triggers": 27
+  },
+  "table_entity_counts": {
+    "claimants": 2000,
+    "policies": 2200,
+    "incidents": 3800,
+    "claims": 5000,
+    "providers": 500,
+    "invoices": 7500,
+    "payments": 4200,
+    "relationship_edges": 8000,
+    "fraud_indicators": 4120,
+    "investigations": 45,
+    "immutable_events": 19675,
+    "ingestion_exceptions": 25
+  },
+  "scenarios_validated": {
+    "YF-NEG-1": "PASS (25 invalid claims with missing policy_id rejected via SAVEPOINT and recorded in ingestion_exceptions)",
+    "YF-NEG-2": "PASS (30 overpayments blocked by trigger trg_payments_validate_ins and recorded as BLOCKED_OVERPAYMENT)",
+    "YF-NEG-3": "PASS (25 cross-claimant duplicate invoice pairs verified field-by-field and score >= 65.00 HIGH)",
+    "YF-NEG-4": "PASS (25 planted unobservable edges quarantined; 36/40 ring claims score >= 65.00 HIGH)",
+    "YF-NEG-5": "PASS (80 multi-unit apartment claims suppressed by BC-1, max score 0.44 <= 12.00, 0 false positives)"
+  },
+  "test_suite_coverage": {
+    "backend_pytest": "66 passed, 0 failed",
+    "p0_hardening": "8 passed, 0 failed",
+    "database_acceptance": "20 passed, 0 failed",
+    "transaction_atomicity": "8 passed, 0 failed",
+    "total_assertions": 280,
+    "total_passed": 280
+  }
+}

@@ -140,7 +140,11 @@ def test_yf_neg_5_scores_csv_integrity():
     """Regression check: asserts yf_neg_5_scores.csv exists, is not header-only, and contains 80 scenario records."""
     import csv
     repo_root = Path(__file__).resolve().parent.parent.parent
-    csv_path = repo_root / "yf_neg_5_scores.csv"
+    candidate_paths = [
+        repo_root / "data" / "artifacts" / "yf_neg_5_scores.csv",
+        repo_root / "yf_neg_5_scores.csv",
+    ]
+    csv_path = next((p for p in candidate_paths if p.exists()), repo_root / "yf_neg_5_scores.csv")
     assert csv_path.exists(), "yf_neg_5_scores.csv does not exist"
 
     with open(csv_path, "r", encoding="utf-8") as f:
