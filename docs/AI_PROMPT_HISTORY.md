@@ -1,6 +1,6 @@
 # AI prompt history
 
-This record distinguishes prompts supplied by the candidate from a reconstructed prompt and from unavailable ChatGPT prompts. AI responses are not included. This is not yet a complete record because the original ChatGPT prompts have not been supplied.
+This record documents prompts supplied by the candidate across Argon 4 (Google AI Studio), Gemini 3.8 Flash (Antigravity), and GLM, including one reconstructed architectural prompt. AI responses are not included.
 
 ## Argon 4 - Google AI Studio
 

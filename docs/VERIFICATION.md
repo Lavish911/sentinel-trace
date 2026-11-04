@@ -20,6 +20,14 @@ python scripts/generate_dataset.py \
   --gt-db .test-tmp/ground_truth.db
 ```
 
+### Dual-run reproducibility test (Challenge Step 10)
+
+To verify bit-for-bit deterministic reproducibility across two consecutive generator runs:
+
+```bash
+python scripts/generate_dataset.py --dual-run --overwrite
+```
+
 Use the resulting operational database to launch the service:
 
 ```bash

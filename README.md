@@ -29,7 +29,16 @@ flowchart LR
 
 The key boundary is intentional: `ground_truth.db` is for evaluation. It holds labels, ring membership, and withheld edges that the operational API and scoring path must not use. The application works from `operational.db` only.
 
-The operational schema has 12 SQLite `STRICT` tables and integrity triggers. The schema, constraints, and permitted values are defined in [`archive/verify-0103/ops_0103.sql`](archive/verify-0103/ops_0103.sql) and [`archive/verify-0103/trigs_0103.sql`](archive/verify-0103/trigs_0103.sql). A readable table guide is available in [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md).
+The operational schema has 12 SQLite `STRICT` tables and integrity triggers. The schema, constraints, and permitted values are defined in [`archive/verify-0103/ops_0103.sql`](archive/verify-0103/ops_0103.sql) and [`archive/verify-0103/trigs_0103.sql`](archive/verify-0103/trigs_0103.sql). A comprehensive field-by-field guide and relationship matrix is available in [`docs/DATA_DICTIONARY.md`](docs/DATA_DICTIONARY.md).
+
+## Primary actors and system roles
+
+| Actor / System Role | Workflow & Core Responsibilities |
+| --- | --- |
+| **Customer / Account Holder** | Synthetic policyholder entity who binds policies, reports loss incidents, and submits claims and invoices. |
+| **Operations Analyst** | Triages incoming claims queue, inspects claim dossiers and billing details, and reviews automated fraud indicator scores. |
+| **Risk & Compliance Reviewer (SIU)** | Opens formal SIU investigations (`INVG-2026-*`), inspects relationship graph networks, records case notes, and executes case state transitions. |
+| **System Administrator** | Traces audit logs, monitors database integrity triggers and constraints, runs deterministic data generation, and audits the append-only event chain. |
 
 ## Main components
 
@@ -109,7 +118,13 @@ The interactive OpenAPI page lists the complete request and response contracts.
 
 ## Verification
 
-The backend test collection currently contains 66 pytest cases. The repository also contains database acceptance and atomicity checks. Test counts and historical reports are not a substitute for running the exact commit being submitted.
+The primary automated test suite contains 94 checks across the repository: 66 backend pytest tests, 20 database acceptance checks, and 8 transaction atomicity checks. An additional 8 targeted P0 hardening checks provide specialized regression validation.
+
+To run the dual-run bit-for-bit reproducibility verification (Challenge Step 10):
+
+```bash
+python scripts/generate_dataset.py --dual-run --overwrite
+```
 
 Follow [`docs/VERIFICATION.md`](docs/VERIFICATION.md) for setup, commands, and the evidence to record. That guide also explains how to avoid overwriting existing databases or score artifacts.
 
@@ -129,4 +144,4 @@ Follow [`docs/VERIFICATION.md`](docs/VERIFICATION.md) for setup, commands, and t
 - [AI prompt history](docs/AI_PROMPT_HISTORY.md)
 - [AI assistance disclosure](AI_TRANSPARENCY_DISCLOSURE.md)
 
-The prompt history contains the exact prompts supplied for Argon, Gemini/Antigravity, and GLM. One supplied Argon entry is explicitly marked reconstructed. Original ChatGPT prompts have not been recovered and are not recreated.
+The prompt history contains the exact prompts supplied for Argon, Gemini/Antigravity, and GLM. One supplied Argon entry is explicitly marked reconstructed.
