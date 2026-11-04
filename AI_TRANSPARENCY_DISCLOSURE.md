@@ -4,7 +4,7 @@ SENTINEL//TRACE was developed with AI assistance. The purpose of this document i
 
 ## Prompt record
 
-The available prompts are recorded verbatim in [`docs/AI_PROMPT_HISTORY.md`](docs/AI_PROMPT_HISTORY.md). That file includes prompts supplied for:
+[`docs/AI_PROMPT_HISTORY.md`](docs/AI_PROMPT_HISTORY.md) distinguishes original prompt text supplied from exports from explicitly labelled reconstructions. It includes available prompt records for:
 
 - Argon 4 in Google AI Studio - architecture planning, independent audit, and remediation re-audit;
 - Gemini 3.8 Flash in Antigravity - implementation, debugging, and remediation work; and
