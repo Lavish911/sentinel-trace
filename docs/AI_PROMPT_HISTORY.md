@@ -1,6 +1,6 @@
 # AI prompt history
 
-This record documents prompts supplied by the candidate across Argon 4 (Google AI Studio), Gemini 3.8 Flash (Antigravity), and GLM, including one reconstructed architectural prompt. AI responses are not included.
+This record documents prompts supplied by the candidate across Argon 4 (Google AI Studio), Gemini 3.8 Flash (Antigravity), and GLM, including one reconstructed architectural prompt. AI responses are not included. ChatGPT was also used during the project for architecture and implementation discussions; its original prompts could not be recovered from the session history, so they are not reproduced below. This limitation is disclosed rather than omitted.
 
 ## Argon 4 - Google AI Studio
 
@@ -143,6 +143,14 @@ Prioritise concrete issues over style suggestions. Explain the reasoning behind 
 Do not assume that an existing test passing proves the entire feature is correct.
 ```
 
+
+
+
+## ChatGPT
+
+### Prompt record limitation
+
+ChatGPT was used during the project for architecture and implementation discussions. The original ChatGPT prompts cannot be recovered from the session history, so they are not reproduced here and no replacement text has been reconstructed for them. Their unavailability is disclosed in `AI_TRANSPARENCY_DISCLOSURE.md` as a limitation of this record.
 
 
 

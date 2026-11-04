@@ -151,4 +151,4 @@ Follow [`docs/VERIFICATION.md`](docs/VERIFICATION.md) for setup, commands, and t
 - [AI prompt history](docs/AI_PROMPT_HISTORY.md)
 - [AI assistance disclosure](AI_TRANSPARENCY_DISCLOSURE.md)
 
-The prompt history contains the exact prompts supplied for Argon, Gemini/Antigravity, and GLM. One supplied Argon entry is explicitly marked reconstructed.
+The prompt history contains the exact prompts supplied for Argon 4, Gemini 3.8 Flash/Antigravity, and GLM. One supplied Argon entry is explicitly marked reconstructed. ChatGPT was also used during the project, but its original prompts could not be recovered; this limitation is disclosed in [`AI_TRANSPARENCY_DISCLOSURE.md`](AI_TRANSPARENCY_DISCLOSURE.md).

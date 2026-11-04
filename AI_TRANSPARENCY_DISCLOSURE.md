@@ -14,7 +14,14 @@ One Argon architecture-review prompt is labelled **reconstructed** because it wa
 
 ## Tool scope and attribution
 
-Only the three AI tools noted above were utilized during the design and development of this project. Other commercial or open-source LLM assistants (including ChatGPT and OpenAI models) were not used.
+Four AI tools were used during the design and development of this project:
+
+- **Argon 4 (Google AI Studio)** — architecture planning, adversarial threat modeling, and independent audit review; recorded in the prompt history;
+- **Gemini 3.8 Flash (Antigravity)** — incremental implementation, test suite development, and debugging; recorded in the prompt history;
+- **GLM** — secondary independent architectural review; recorded in the prompt history; and
+- **ChatGPT** — used for architecture and implementation discussions. The original ChatGPT prompts could not be recovered from the session history, so they are not reproduced in `docs/AI_PROMPT_HISTORY.md`. This is a disclosed limitation of the prompt record, not an omission of tool use.
+
+One Argon architecture-review prompt is labelled **reconstructed** because it was summarized from session notes rather than exported verbatim.
 
 AI assistance was utilized during development for planning, code generation, and test creation; the running application does not invoke any external AI provider or model API at runtime. All scoring, indicator derivation, and fraud detection logic runs entirely locally on deterministic Python algorithms and SQLite triggers.
 
